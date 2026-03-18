@@ -704,24 +704,27 @@ function Extension() {
                   onInput={(e) => setSearchTerm(e.currentTarget.value)}
                   placeholder={i18n.translate("search_placeholder")}
                 />
-                <s-select
-                  label={i18n.translate("filter")}
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.currentTarget.value)}
+                <s-text type="strong">{i18n.translate("filter")}</s-text>
+                <s-choice-list
+                  values={[statusFilter]}
+                  onInput={(e) => {
+                    const v = e.currentTarget.values;
+                    setStatusFilter(Array.isArray(v) && v[0] !== undefined ? v[0] : "");
+                  }}
                 >
-                  <s-option value="">{i18n.translate("all_statuses")}</s-option>
-                  <s-option value="open">
+                  <s-choice value="">{i18n.translate("all_statuses")}</s-choice>
+                  <s-choice value="open">
                     {i18n.translate("filter_open")}
-                  </s-option>
-                  <s-option value="Not Ordered">Not Ordered</s-option>
-                  <s-option value="Ordered">Ordered</s-option>
-                  <s-option value="Back Ordered">Back Ordered</s-option>
-                  <s-option value="Received">Received</s-option>
-                  <s-option value="Picked Up - Sale Complete">
+                  </s-choice>
+                  <s-choice value="Not Ordered">Not Ordered</s-choice>
+                  <s-choice value="Ordered">Ordered</s-choice>
+                  <s-choice value="Back Ordered">Back Ordered</s-choice>
+                  <s-choice value="Received">Received</s-choice>
+                  <s-choice value="Picked Up - Sale Complete">
                     Picked Up - Sale Complete
-                  </s-option>
-                  <s-option value="Order Canceled">Order Canceled</s-option>
-                </s-select>
+                  </s-choice>
+                  <s-choice value="Order Canceled">Order Canceled</s-choice>
+                </s-choice-list>
                 {statusFilter && (
                   <s-button
                     variant="secondary"
