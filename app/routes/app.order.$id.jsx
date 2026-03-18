@@ -820,6 +820,17 @@ export default function OrderDetails() {
       heading={order.name}
       inlineSize="large"
     >
+      <style>{`
+        .order-status-dropdown-wrapper {
+          background-color: #f4f6f8;
+          border: 2px solid #5c6ac4;
+          border-radius: 8px;
+          padding: 12px 16px;
+          display: inline-flex;
+          align-items: center;
+          gap: 12px;
+        }
+      `}</style>
       {/* Top bar: back link + order meta */}
       <s-section>
         <s-stack direction="inline" alignItems="center" justifyContent="space-between">
@@ -1070,11 +1081,7 @@ export default function OrderDetails() {
                           <s-heading size="large" style={{ fontSize: "1.5rem" }}>
                             ORDER STATUS
                           </s-heading>
-                          <s-stack
-                            direction="inline"
-                            gap="small"
-                            alignItems="center"
-                          >
+                          <div className="order-status-dropdown-wrapper">
                             <s-select
                               value={item.orderStatus || "Not Ordered"}
                               onChange={(event) => {
@@ -1102,7 +1109,7 @@ export default function OrderDetails() {
                             <s-badge tone={getOrderStatusTone(item.orderStatus)}>
                               {item.orderStatus || "Not set"}
                             </s-badge>
-                          </s-stack>
+                          </div>
                         </s-stack>
 
                         {/* Editable attributes (metafield-backed); Brand, Type, Style #, Size, Color always present */}
