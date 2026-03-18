@@ -1093,6 +1093,9 @@ export default function OrderDetails() {
                               </s-option>
                               <s-option value="Received">Received</s-option>
                               <s-option value="Canceled">Canceled</s-option>
+                              <s-option value="Order Canceled">
+                                Order Canceled
+                              </s-option>
                             </s-select>
                             <s-badge tone={getOrderStatusTone(item.orderStatus)}>
                               {item.orderStatus || "Not set"}
