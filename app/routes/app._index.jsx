@@ -292,12 +292,16 @@ export const loader = async ({ request }) => {
         createdDateLabel: new Date(order.createdAt).toLocaleDateString(),
       };
     })
-    // Open orders first; completed (Picked Up - Sale Complete) last. Within each group, newest first.
+    // Open orders first; Picked Up - Sale Complete second; Order Canceled last. Within each group, newest first.
     .sort((a, b) => {
-      const aCompleted = isCompletedContactStatus(a.contactStatus);
-      const bCompleted = isCompletedContactStatus(b.contactStatus);
-      if (!aCompleted && bCompleted) return -1;
-      if (aCompleted && !bCompleted) return 1;
+      const getTier = (order) => {
+        if (order.contactStatus === "Order Canceled") return 2;
+        if (isCompletedContactStatus(order.contactStatus)) return 1;
+        return 0;
+      };
+      const aTier = getTier(a);
+      const bTier = getTier(b);
+      if (aTier !== bTier) return aTier - bTier;
       return (
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
