@@ -292,11 +292,16 @@ export const loader = async ({ request }) => {
         createdDateLabel: new Date(order.createdAt).toLocaleDateString(),
       };
     })
-    // Sort newest first
-    .sort(
-      (a, b) =>
+    // Open orders first; completed (Picked Up - Sale Complete) last. Within each group, newest first.
+    .sort((a, b) => {
+      const aCompleted = isCompletedContactStatus(a.contactStatus);
+      const bCompleted = isCompletedContactStatus(b.contactStatus);
+      if (!aCompleted && bCompleted) return -1;
+      if (aCompleted && !bCompleted) return 1;
+      return (
         new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
+      );
+    });
 
   return { orders: normalizedOrders };
 };
