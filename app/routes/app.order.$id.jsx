@@ -33,11 +33,11 @@ function formatUsPhone(phone) {
 }
 
 function extractContactStatusFromMetafields(metafields) {
-  if (!metafields || !metafields.edges) return "";
+  if (!metafields || !metafields.edges) return "Not Contacted";
   const entry = metafields.edges.find(
     (edge) => edge.node.key === "contact_status"
   );
-  return entry?.node?.value || "";
+  return entry?.node?.value || "Not Contacted";
 }
 
 function normalizeText(text) {
@@ -70,7 +70,7 @@ function getPaymentStatusTone(status) {
 
 function getContactStatusTone(status) {
   const s = String(status || "").toLowerCase().trim();
-  if (!s || s === "not set") return "critical";
+  if (!s || s === "not set" || s === "not contacted") return "critical";
   if (s.includes("no answer")) return "critical";
   if (s.includes("left message")) return "warning";
   if (s.includes("spoke to customer")) return "success";
@@ -926,7 +926,7 @@ export default function OrderDetails() {
                 ☎️ CONTACT STATUS
               </s-heading>
               <s-select
-                value={order.contactStatus || ""}
+                value={order.contactStatus || "Not Contacted"}
                 onChange={(event) => {
                   submit(
                     {
@@ -938,7 +938,7 @@ export default function OrderDetails() {
                   );
                 }}
               >
-                <s-option value="">Not set</s-option>
+                <s-option value="Not Contacted">Not Contacted</s-option>
                 <s-option value="No Answer">No Answer</s-option>
                 <s-option value="Left Message">Left Message</s-option>
                 <s-option value="Spoke to Customer">Spoke to Customer</s-option>
@@ -947,7 +947,7 @@ export default function OrderDetails() {
                 </s-option>
               </s-select>
               <s-badge tone={getContactStatusTone(order.contactStatus)}>
-                {order.contactStatus || "Not set"}
+                {order.contactStatus || "Not Contacted"}
               </s-badge>
             </s-stack>
           </s-box>

@@ -126,7 +126,7 @@ function extractOrderStatuses(order) {
 }
 
 function extractContactStatusFromMetafields(metafields) {
-  if (!metafields || !metafields.edges) return "Not set";
+  if (!metafields || !metafields.edges) return "Not Contacted";
 
   const contactMf = metafields.edges.find(
     (edge) => edge.node.key === "contact_status"
@@ -135,12 +135,12 @@ function extractContactStatusFromMetafields(metafields) {
     return contactMf.node.value;
   }
 
-  return "Not set";
+  return "Not Contacted";
 }
 
 function getContactStatusTone(status) {
   const s = String(status || "").toLowerCase().trim();
-  if (!s || s === "not set") return "critical";
+  if (!s || s === "not set" || s === "not contacted") return "critical";
   if (s.includes("no answer")) return "critical";
   if (s.includes("left message")) return "warning";
   if (s.includes("spoke to customer")) return "success";
@@ -628,7 +628,7 @@ export default function Index() {
                     </s-table-cell>
                     <s-table-cell id={`cell-contact-${order.id}`}>
                       <s-badge tone={getContactStatusTone(order.contactStatus)}>
-                        {order.contactStatus || "Not set"}
+                        {order.contactStatus || "Not Contacted"}
                       </s-badge>
                     </s-table-cell>
                     <s-table-cell id={`cell-actions-${order.id}`}>
