@@ -471,6 +471,10 @@ export default function Index() {
           (order) =>
             order.contactStatus === "Picked Up - Sale Complete"
         );
+      } else if (statusFilter === "Order Canceled") {
+        result = result.filter(
+          (order) => order.contactStatus === "Order Canceled"
+        );
       } else if (statusFilter === "open") {
         // Only orders with at least one item in Not Ordered, Ordered, Back Ordered, or Received
         // Excludes: contact status Picked Up - Sale Complete, and orders where all items are Canceled
@@ -536,10 +540,11 @@ export default function Index() {
             <s-option value="Ordered">Ordered</s-option>
             <s-option value="Back Ordered">Back Ordered</s-option>
             <s-option value="Received">Received</s-option>
-            <s-option value="Canceled">Canceled</s-option>
+            <s-option value="Canceled">Item Canceled</s-option>
             <s-option value="Picked Up - Sale Complete">
               Picked Up - Sale Complete
             </s-option>
+            <s-option value="Order Canceled">Order Canceled</s-option>
           </s-select>
           <s-button
             id="clear-filters-button"
