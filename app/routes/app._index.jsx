@@ -459,13 +459,26 @@ export default function Index() {
       });
     }
 
-    // Status filter: contact status "Picked Up - Sale Complete" or line item order status
+    // Status filter: contact status "Picked Up - Sale Complete", open orders, or line item order status
+    const OPEN_STATUSES = ["Not Ordered", "Ordered", "Back Ordered", "Received"];
     if (statusFilter) {
       if (statusFilter === "Picked Up - Sale Complete") {
         result = result.filter(
           (order) =>
             order.contactStatus === "Picked Up - Sale Complete"
         );
+      } else if (statusFilter === "open") {
+        // Only orders with at least one item in Not Ordered, Ordered, Back Ordered, or Received
+        // Excludes: contact status Picked Up - Sale Complete, and orders where all items are Canceled
+        result = result.filter((order) => {
+          if (order.contactStatus === "Picked Up - Sale Complete") return false;
+          const statuses = order.orderStatuses || [];
+          return statuses.some((item) => {
+            const status =
+              typeof item === "object" && item != null ? item.status : item;
+            return status && OPEN_STATUSES.includes(status);
+          });
+        });
       } else {
         result = result.filter((order) => {
           const statuses = order.orderStatuses || [];
@@ -509,6 +522,9 @@ export default function Index() {
             onChange={(event) => setStatusFilter(event.currentTarget.value)}
           >
             <s-option value="">All Statuses</s-option>
+            <s-option value="open">
+              Not Ordered, Ordered, Back Ordered &amp; Received
+            </s-option>
             <s-option value="Not Ordered">Not Ordered</s-option>
             <s-option value="Ordered">Ordered</s-option>
             <s-option value="Back Ordered">Back Ordered</s-option>
