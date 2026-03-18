@@ -504,7 +504,7 @@ export default function Index() {
           background-color: #66bb6a !important;
         }
         s-table-cell.order-cell-canceled {
-          background-color: #8b0000 !important;
+          background-color: #c62828 !important;
         }
       `}</style>
       {/* Filters section */}
@@ -627,7 +627,7 @@ export default function Index() {
                               }
                             : orderCanceled
                               ? {
-                                  backgroundColor: "#8b0000",
+                                  backgroundColor: "#c62828",
                                   padding: "6px 10px",
                                   borderRadius: "4px",
                                   display: "inline-block",
