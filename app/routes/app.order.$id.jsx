@@ -71,6 +71,7 @@ function getPaymentStatusTone(status) {
 function getContactStatusTone(status) {
   const s = String(status || "").toLowerCase().trim();
   if (!s || s === "not set" || s === "not contacted") return "critical";
+  if (s.includes("order canceled") || s.includes("canceled")) return "critical";
   if (s.includes("no answer")) return "critical";
   if (s.includes("left message")) return "warning";
   if (s.includes("spoke to customer")) return "success";
@@ -945,6 +946,7 @@ export default function OrderDetails() {
                 <s-option value="Picked Up - Sale Complete">
                   Picked Up - Sale Complete
                 </s-option>
+                <s-option value="Order Canceled">Order Canceled</s-option>
               </s-select>
               <s-badge tone={getContactStatusTone(order.contactStatus)}>
                 {order.contactStatus || "Not Contacted"}
