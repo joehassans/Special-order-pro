@@ -11,7 +11,7 @@ function Extension() {
   return (
     <s-tile
       heading={i18n.translate('tile_heading')}
-      subheading={i18n.translate('tile_subheading', {flavor: 'preact'})}
+      subheading={i18n.translate('tile_subheading')}
       onClick={() => shopify.action.presentModal()}
     />
   );

@@ -5,6 +5,19 @@
   "modal_heading": "Commandes spéciales",
   "loading": "Chargement des commandes spéciales...",
   "empty": "Aucune commande spéciale",
-  "view_admin": "Voir les détails complets dans l'admin Shopify"
+  "view_admin": "Voir les détails complets dans l'admin Shopify",
+  "back": "Retour à la liste",
+  "customer": "Client",
+  "contact_status": "Statut de contact",
+  "payment_status": "Statut de paiement",
+  "note": "Note",
+  "line_items": "Articles",
+  "order_status": "Statut de commande",
+  "search": "Rechercher",
+  "search_placeholder": "Client, n° commande ou produit...",
+  "filter": "Filtrer par statut",
+  "all_statuses": "Tous les statuts",
+  "filter_open": "Non commandé, Commandé, En rupture & Reçu",
+  "saving": "Enregistrement..."
 }
 
