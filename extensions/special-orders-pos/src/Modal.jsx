@@ -34,6 +34,26 @@ const CONTACT_STATUS_OPTIONS = [
   "Order Canceled",
 ];
 
+const FILTER_OPTIONS = [
+  { value: "", labelKey: "all_statuses" },
+  { value: "open", labelKey: "filter_open" },
+  { value: "Not Ordered", label: "Not Ordered" },
+  { value: "Ordered", label: "Ordered" },
+  { value: "Back Ordered", label: "Back Ordered" },
+  { value: "Received", label: "Received" },
+  { value: "Picked Up - Sale Complete", label: "Picked Up - Sale Complete" },
+  { value: "Order Canceled", label: "Order Canceled" },
+];
+
+function getFilterLabel(value, i18n) {
+  const opt = FILTER_OPTIONS.find((o) => o.value === value);
+  return opt
+    ? opt.labelKey
+      ? i18n.translate(opt.labelKey)
+      : opt.label
+    : i18n.translate("all_statuses");
+}
+
 function graphql(query, variables = {}) {
   return fetch("shopify:admin/api/graphql.json", {
     method: "POST",
@@ -705,26 +725,28 @@ function Extension() {
                   placeholder={i18n.translate("search_placeholder")}
                 />
                 <s-text type="strong">{i18n.translate("filter")}</s-text>
-                <s-choice-list
-                  values={[statusFilter]}
-                  onInput={(e) => {
-                    const v = e.currentTarget.values;
-                    setStatusFilter(Array.isArray(v) && v[0] !== undefined ? v[0] : "");
-                  }}
+                <s-button
+                  variant="secondary"
+                  commandFor="filter-modal"
+                  command="--show"
                 >
-                  <s-choice value="">{i18n.translate("all_statuses")}</s-choice>
-                  <s-choice value="open">
-                    {i18n.translate("filter_open")}
-                  </s-choice>
-                  <s-choice value="Not Ordered">Not Ordered</s-choice>
-                  <s-choice value="Ordered">Ordered</s-choice>
-                  <s-choice value="Back Ordered">Back Ordered</s-choice>
-                  <s-choice value="Received">Received</s-choice>
-                  <s-choice value="Picked Up - Sale Complete">
-                    Picked Up - Sale Complete
-                  </s-choice>
-                  <s-choice value="Order Canceled">Order Canceled</s-choice>
-                </s-choice-list>
+                  {getFilterLabel(statusFilter, i18n)}
+                </s-button>
+                <s-modal id="filter-modal" heading={i18n.translate("filter")}>
+                  <s-stack gap="base">
+                    {FILTER_OPTIONS.map((opt) => (
+                      <s-button
+                        key={opt.value || "all"}
+                        variant="secondary"
+                        commandFor="filter-modal"
+                        command="--hide"
+                        onClick={() => setStatusFilter(opt.value)}
+                      >
+                        {opt.labelKey ? i18n.translate(opt.labelKey) : opt.label}
+                      </s-button>
+                    ))}
+                  </s-stack>
+                </s-modal>
                 {statusFilter && (
                   <s-button
                     variant="secondary"
