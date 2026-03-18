@@ -540,7 +540,6 @@ export default function Index() {
             <s-option value="Ordered">Ordered</s-option>
             <s-option value="Back Ordered">Back Ordered</s-option>
             <s-option value="Received">Received</s-option>
-            <s-option value="Canceled">Item Canceled</s-option>
             <s-option value="Picked Up - Sale Complete">
               Picked Up - Sale Complete
             </s-option>
