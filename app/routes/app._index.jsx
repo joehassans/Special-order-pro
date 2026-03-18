@@ -503,6 +503,9 @@ export default function Index() {
         s-table-cell.order-cell-completed {
           background-color: #66bb6a !important;
         }
+        s-table-cell.order-cell-canceled {
+          background-color: #8b0000 !important;
+        }
       `}</style>
       {/* Filters section */}
       <s-section id="filters-section">
@@ -595,6 +598,8 @@ export default function Index() {
                 const completed = isCompletedContactStatus(
                   order.contactStatus
                 );
+                const orderCanceled =
+                  order.contactStatus === "Order Canceled";
 
                 return (
                   <s-table-row
@@ -603,7 +608,13 @@ export default function Index() {
                   >
                     <s-table-cell
                       id={`cell-order-${order.id}`}
-                      className={completed ? "order-cell-completed" : ""}
+                      className={
+                        completed
+                          ? "order-cell-completed"
+                          : orderCanceled
+                            ? "order-cell-canceled"
+                            : ""
+                      }
                     >
                       <span
                         style={
@@ -614,7 +625,14 @@ export default function Index() {
                                 borderRadius: "4px",
                                 display: "inline-block",
                               }
-                            : undefined
+                            : orderCanceled
+                              ? {
+                                  backgroundColor: "#8b0000",
+                                  padding: "6px 10px",
+                                  borderRadius: "4px",
+                                  display: "inline-block",
+                                }
+                              : undefined
                         }
                       >
                         <s-text type="strong">{order.name}</s-text>
