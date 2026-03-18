@@ -1,0 +1,10 @@
+{
+  "name": "Special Orders Pro",
+  "tile_heading": "Special Orders Pro",
+  "tile_subheading": "Voir les commandes spéciales",
+  "modal_heading": "Commandes spéciales",
+  "loading": "Chargement des commandes spéciales...",
+  "empty": "Aucune commande spéciale",
+  "view_admin": "Voir les détails complets dans l'admin Shopify"
+}
+
