@@ -273,6 +273,13 @@ function Extension() {
             OPEN_STATUSES.includes(item.status)
           );
         });
+      } else {
+        result = result.filter((o) =>
+          o.orderStatuses?.some((item) => {
+            const status = typeof item === "object" ? item.status : item;
+            return status && status.toLowerCase() === statusFilter.toLowerCase();
+          })
+        );
       }
     }
     return result;
@@ -687,29 +694,44 @@ function Extension() {
       <s-scroll-box>
         <s-box padding="base">
           <s-stack gap="base">
-            {/* Search */}
-            <s-text-field
-              label={i18n.translate("search")}
-              value={searchTerm}
-              onInput={(e) => setSearchTerm(e.currentTarget.value)}
-              placeholder={i18n.translate("search_placeholder")}
-            />
-
-            {/* Filter */}
-            <s-select
-              label={i18n.translate("filter")}
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.currentTarget.value)}
-            >
-              <s-option value="">{i18n.translate("all_statuses")}</s-option>
-              <s-option value="open">
-                {i18n.translate("filter_open")}
-              </s-option>
-              <s-option value="Picked Up - Sale Complete">
-                Picked Up - Sale Complete
-              </s-option>
-              <s-option value="Order Canceled">Order Canceled</s-option>
-            </s-select>
+            {/* Filters section - search + dropdown */}
+            <s-box padding="base" borderRadius="base" background="subdued">
+              <s-stack gap="base">
+                <s-text type="strong">{i18n.translate("filters_heading")}</s-text>
+                <s-text-field
+                  label={i18n.translate("search")}
+                  value={searchTerm}
+                  onInput={(e) => setSearchTerm(e.currentTarget.value)}
+                  placeholder={i18n.translate("search_placeholder")}
+                />
+                <s-select
+                  label={i18n.translate("filter")}
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.currentTarget.value)}
+                >
+                  <s-option value="">{i18n.translate("all_statuses")}</s-option>
+                  <s-option value="open">
+                    {i18n.translate("filter_open")}
+                  </s-option>
+                  <s-option value="Not Ordered">Not Ordered</s-option>
+                  <s-option value="Ordered">Ordered</s-option>
+                  <s-option value="Back Ordered">Back Ordered</s-option>
+                  <s-option value="Received">Received</s-option>
+                  <s-option value="Picked Up - Sale Complete">
+                    Picked Up - Sale Complete
+                  </s-option>
+                  <s-option value="Order Canceled">Order Canceled</s-option>
+                </s-select>
+                {statusFilter && (
+                  <s-button
+                    variant="secondary"
+                    onClick={() => setStatusFilter("")}
+                  >
+                    {i18n.translate("clear_filters")}
+                  </s-button>
+                )}
+              </s-stack>
+            </s-box>
 
             {loading ? (
               <s-text>{i18n.translate("loading")}</s-text>

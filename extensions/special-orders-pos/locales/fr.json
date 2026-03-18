@@ -18,6 +18,8 @@
   "filter": "Filtrer par statut",
   "all_statuses": "Tous les statuts",
   "filter_open": "Non commandé, Commandé, En rupture & Reçu",
-  "saving": "Enregistrement..."
+  "saving": "Enregistrement...",
+  "filters_heading": "Filtres",
+  "clear_filters": "Effacer les filtres"
 }
 

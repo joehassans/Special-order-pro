@@ -18,6 +18,8 @@
   "filter": "Filter by status",
   "all_statuses": "All Statuses",
   "filter_open": "Not Ordered, Ordered, Back Ordered & Received",
-  "saving": "Saving..."
+  "saving": "Saving...",
+  "filters_heading": "Filters",
+  "clear_filters": "Clear filters"
 }
 
