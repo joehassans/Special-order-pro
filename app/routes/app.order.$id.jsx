@@ -1074,7 +1074,7 @@ export default function OrderDetails() {
                             alignItems="center"
                           >
                             <s-select
-                              value={item.orderStatus || ""}
+                              value={item.orderStatus || "Not Ordered"}
                               onChange={(event) => {
                                 submit(
                                   {
@@ -1086,7 +1086,6 @@ export default function OrderDetails() {
                                 );
                               }}
                             >
-                              <s-option value="">Not set</s-option>
                               <s-option value="Not Ordered">Not Ordered</s-option>
                               <s-option value="Ordered">Ordered</s-option>
                               <s-option value="Back Ordered">
