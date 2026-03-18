@@ -459,19 +459,26 @@ export default function Index() {
       });
     }
 
-    // Status filter: match if any item status matches
+    // Status filter: contact status "Picked Up - Sale Complete" or line item order status
     if (statusFilter) {
-      result = result.filter((order) => {
-        const statuses = order.orderStatuses || [];
-        return statuses.some((item) => {
-          const status =
-            typeof item === "object" && item != null ? item.status : item;
-          return (
-            status &&
-            String(status).toLowerCase() === statusFilter.toLowerCase()
-          );
+      if (statusFilter === "Picked Up - Sale Complete") {
+        result = result.filter(
+          (order) =>
+            order.contactStatus === "Picked Up - Sale Complete"
+        );
+      } else {
+        result = result.filter((order) => {
+          const statuses = order.orderStatuses || [];
+          return statuses.some((item) => {
+            const status =
+              typeof item === "object" && item != null ? item.status : item;
+            return (
+              status &&
+              String(status).toLowerCase() === statusFilter.toLowerCase()
+            );
+          });
         });
-      });
+      }
     }
 
     return result;
@@ -507,6 +514,9 @@ export default function Index() {
             <s-option value="Back Ordered">Back Ordered</s-option>
             <s-option value="Received">Received</s-option>
             <s-option value="Canceled">Canceled</s-option>
+            <s-option value="Picked Up - Sale Complete">
+              Picked Up - Sale Complete
+            </s-option>
           </s-select>
           <s-button
             id="clear-filters-button"
