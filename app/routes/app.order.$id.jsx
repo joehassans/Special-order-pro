@@ -54,6 +54,24 @@ function getOrderStatusTone(status) {
   return "subdued";
 }
 
+/** Returns { background, border } for the order status dropdown wrapper. */
+function getOrderStatusWrapperColors(status) {
+  const s = normalizeText(status || "");
+  // Critical: Not Ordered, Canceled, Order Canceled
+  if (!s || s.includes("not ordered") || s.includes("canceled")) {
+    return { background: "#ffebee", border: "#c62828" };
+  }
+  // Info: Back Ordered
+  if (s.includes("back ordered")) {
+    return { background: "#e3f2fd", border: "#1976d2" };
+  }
+  // Success: Ordered, Received
+  if (s.includes("ordered") || s.includes("received") || s.includes("picked up")) {
+    return { background: "#e8f5e9", border: "#2e7d32" };
+  }
+  return { background: "#f4f6f8", border: "#5c6ac4" };
+}
+
 function getPaymentStatusTone(status) {
   const s = normalizeText(status);
   if (!s) return "subdued";
@@ -822,13 +840,12 @@ export default function OrderDetails() {
     >
       <style>{`
         .order-status-dropdown-wrapper {
-          background-color: #f4f6f8;
-          border: 2px solid #5c6ac4;
           border-radius: 8px;
           padding: 12px 16px;
           display: inline-flex;
           align-items: center;
           gap: 12px;
+          border: 2px solid;
         }
       `}</style>
       {/* Top bar: back link + order meta */}
@@ -1081,8 +1098,19 @@ export default function OrderDetails() {
                           <s-heading size="large" style={{ fontSize: "1.5rem" }}>
                             ORDER STATUS
                           </s-heading>
-                          <div className="order-status-dropdown-wrapper">
-                            <s-select
+                          {(() => {
+                            const colors = getOrderStatusWrapperColors(
+                              item.orderStatus
+                            );
+                            return (
+                              <div
+                                className="order-status-dropdown-wrapper"
+                                style={{
+                                  backgroundColor: colors.background,
+                                  borderColor: colors.border,
+                                }}
+                              >
+                                <s-select
                               value={item.orderStatus || "Not Ordered"}
                               onChange={(event) => {
                                 submit(
@@ -1105,11 +1133,13 @@ export default function OrderDetails() {
                               <s-option value="Order Canceled">
                                 Order Canceled
                               </s-option>
-                            </s-select>
-                            <s-badge tone={getOrderStatusTone(item.orderStatus)}>
-                              {item.orderStatus || "Not set"}
-                            </s-badge>
-                          </div>
+                                </s-select>
+                                <s-badge tone={getOrderStatusTone(item.orderStatus)}>
+                                  {item.orderStatus || "Not set"}
+                                </s-badge>
+                              </div>
+                            );
+                          })()}
                         </s-stack>
 
                         {/* Editable attributes (metafield-backed); Brand, Type, Style #, Size, Color always present */}
