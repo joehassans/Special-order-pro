@@ -114,8 +114,10 @@ function extractOrderStatuses(order) {
     if (mfValue) return { title, status: mfValue };
 
     const attrs = edge?.node?.customAttributes || [];
-    const attr = attrs.find((a) => a.key === "Order Status" && a.value);
-    if (attr) return { title, status: attr.value };
+    const orderStatusAttr = attrs.find((a) => a.key === "Order Status" && a.value);
+    if (orderStatusAttr) return { title, status: orderStatusAttr.value };
+    const initialStatusAttr = attrs.find((a) => a.key === "Initial Status" && a.value);
+    if (initialStatusAttr) return { title, status: initialStatusAttr.value };
 
     return { title, status: "Not set" };
   });

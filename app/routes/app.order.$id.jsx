@@ -127,13 +127,19 @@ function extractItemStatusFromMetafields(metafields, index, customAttributes) {
     }
   }
 
-  // Fallback to line item custom attribute "Order Status", like in your original app
+  // Fallback to line item custom attributes: "Order Status" or "Initial Status"
   if (customAttributes && customAttributes.length > 0) {
-    const attr = customAttributes.find(
+    const orderStatusAttr = customAttributes.find(
       (a) => a.key === "Order Status"
     );
-    if (attr && attr.value) {
-      return attr.value;
+    if (orderStatusAttr && orderStatusAttr.value) {
+      return orderStatusAttr.value;
+    }
+    const initialStatusAttr = customAttributes.find(
+      (a) => a.key === "Initial Status"
+    );
+    if (initialStatusAttr && initialStatusAttr.value) {
+      return initialStatusAttr.value;
     }
   }
 

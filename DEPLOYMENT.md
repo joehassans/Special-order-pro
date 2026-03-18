@@ -181,12 +181,14 @@ Click **+ New Variable** and add these **one by one**:
 | `SHOPIFY_API_SECRET` | Paste the value from `shopify app env show` |
 | `SCOPES` | Paste the value from `shopify app env show` |
 | `SHOPIFY_APP_URL` | Your Railway URL (e.g. `https://special-orders-pro-production.up.railway.app`) |
+| `PORT` | `3000` (Railway expects the app to listen on port 3000) |
 
 **Important:**
 
 - For `SHOPIFY_APP_URL`, use the full URL you copied in Part 4
 - Include `https://` in the URL
 - No trailing slash
+- `DATABASE_URL` is added automatically when you link PostgreSQL; if missing, add it via **Add Reference** → Postgres → `DATABASE_URL`
 
 ### 6.3 Save and redeploy
 
@@ -314,6 +316,31 @@ Railway will auto-redeploy when it detects the push.
 ---
 
 ## Troubleshooting
+
+### Service keeps crashing (crash loop)
+
+1. **Get the actual error:**
+   - In Railway, click your **Special-order-pro** service
+   - Go to **Deployments**
+   - Click the latest (crashed) deployment
+   - Click **View Logs** or open the deployment details
+   - Copy the last 30–50 lines of output — the error is usually at the end
+
+2. **Common causes and fixes:**
+
+   | Error in logs | Fix |
+   |---------------|-----|
+   | `DATABASE_URL` not found / Prisma can't connect | Add PostgreSQL service and link `DATABASE_URL` (Part 3). Or add it manually: Variables → Add Reference → Postgres → `DATABASE_URL` |
+   | `SHOPIFY_API_KEY` / `SHOPIFY_API_SECRET` missing | Add all 4 Shopify vars (Part 6): `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `SCOPES`, `SHOPIFY_APP_URL` |
+   | `EADDRINUSE` or port errors | Add variable `PORT=3000` (Railway expects port 3000) |
+   | Prisma migration failed | Check migration SQL. For PostgreSQL, use `TIMESTAMP(3)` not `DATETIME`. Run `prisma migrate deploy` locally against a Postgres DB to test |
+   | Out of memory / OOM killed | Upgrade Railway plan or reduce memory usage. The free tier has 1GB — try adding `NODE_OPTIONS=--max-old-space-size=768` |
+
+3. **Verify variables:**
+   - Variables tab must have: `DATABASE_URL`, `SHOPIFY_API_KEY`, `SHOPIFY_API_SECRET`, `SCOPES`, `SHOPIFY_APP_URL`, and optionally `PORT=3000`
+
+4. **Redeploy after changes:**
+   - After adding or changing variables, click **Restart** or trigger a new deployment
 
 ### "Example Domain" still shows
 

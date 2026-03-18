@@ -3,7 +3,7 @@
 
 client_id = "7449d0eb28cab43135c401964353eef4"
 name = "Special Orders Pro"
-application_url = "https://example.com"
+application_url = "https://special-order-pro-production.up.railway.app"
 embedded = true
 
 [build]
@@ -25,9 +25,9 @@ scopes = "write_products,write_metaobject_definitions,write_metaobjects,read_ord
 
 [auth]
 redirect_urls = [
-  "https://example.com/auth/callback",
-  "https://example.com/auth/shopify/callback",
-  "https://example.com/api/auth/callback"
+  "https://special-order-pro-production.up.railway.app/auth/callback",
+  "https://special-order-pro-production.up.railway.app/auth/shopify/callback",
+  "https://special-order-pro-production.up.railway.app/api/auth/callback"
 ]
 
 [product.metafields.app.demo_info]
