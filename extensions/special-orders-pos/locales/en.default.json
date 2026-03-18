@@ -20,6 +20,14 @@
   "filter_open": "Not Ordered, Ordered, Back Ordered & Received",
   "saving": "Saving...",
   "filters_heading": "Filters",
-  "clear_filters": "Clear filters"
+  "clear_filters": "Clear filters",
+  "column_order": "Order",
+  "column_customer": "Customer",
+  "column_order_status": "Order Status",
+  "column_payment": "Payment",
+  "column_contact": "Contact",
+  "column_actions": "Actions",
+  "column_created": "Created",
+  "view_details": "View"
 }
 

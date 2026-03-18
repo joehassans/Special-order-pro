@@ -20,6 +20,14 @@
   "filter_open": "Non commandé, Commandé, En rupture & Reçu",
   "saving": "Enregistrement...",
   "filters_heading": "Filtres",
-  "clear_filters": "Effacer les filtres"
+  "clear_filters": "Effacer les filtres",
+  "column_order": "Commande",
+  "column_customer": "Client",
+  "column_order_status": "Statut commande",
+  "column_payment": "Paiement",
+  "column_contact": "Contact",
+  "column_actions": "Actions",
+  "column_created": "Créé",
+  "view_details": "Voir"
 }
 
