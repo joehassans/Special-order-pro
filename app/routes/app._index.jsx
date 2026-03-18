@@ -477,9 +477,11 @@ export default function Index() {
         );
       } else if (statusFilter === "open") {
         // Only orders with at least one item in Not Ordered, Ordered, Back Ordered, or Received
-        // Excludes: contact status Picked Up - Sale Complete, and orders where all items are Canceled
+        // Excludes: contact status Picked Up - Sale Complete, contact status Order Canceled
+        // Orders with a canceled item are included if another item has an open status
         result = result.filter((order) => {
           if (order.contactStatus === "Picked Up - Sale Complete") return false;
+          if (order.contactStatus === "Order Canceled") return false;
           const statuses = order.orderStatuses || [];
           return statuses.some((item) => {
             const status =
