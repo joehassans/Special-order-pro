@@ -770,9 +770,9 @@ function Extension() {
                 const completed = isCompletedContactStatus(order.contactStatus);
                 const canceled = order.contactStatus === "Order Canceled";
                 const nameStyle = completed
-                  ? { backgroundColor: "#66bb6a", padding: "4px 8px", borderRadius: "4px", display: "inline-block" }
+                  ? { backgroundColor: "#66bb6a", padding: "6px 10px", borderRadius: "4px", display: "inline-block" }
                   : canceled
-                    ? { backgroundColor: "#e53935", padding: "4px 8px", borderRadius: "4px", display: "inline-block" }
+                    ? { backgroundColor: "#e53935", padding: "6px 10px", borderRadius: "4px", display: "inline-block" }
                     : {};
                 const statusItems = (order.orderStatuses || []).length > 0
                   ? order.orderStatuses
