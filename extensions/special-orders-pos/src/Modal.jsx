@@ -53,7 +53,7 @@ const COL_IPAD = {
 const MIN_TABLE_MOBILE = "755px";
 const MIN_TABLE_IPAD = "955px";
 
-const ROW_SEPARATOR = "\u2500".repeat(120);
+const ROW_SEPARATOR = "\u2014".repeat(120);
 
 const FILTER_OPTIONS = [
   { value: "", labelKey: "all_statuses" },
@@ -890,7 +890,7 @@ function Extension() {
                     </s-clickable>
                     {index < filteredOrders.length - 1 && (
                       <s-box minInlineSize={minTableWidth} paddingBlock="small-100 none">
-                        <s-text color="strong" type="small">{ROW_SEPARATOR}</s-text>
+                        <s-text color="subdued" type="small">{ROW_SEPARATOR}</s-text>
                       </s-box>
                     )}
                   </Fragment>
