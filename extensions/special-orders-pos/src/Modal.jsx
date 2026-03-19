@@ -39,19 +39,19 @@ const COL_MOBILE = {
   customer: "85px",
   status: "100px",
   payment: "85px",
-  contact: "120px",
-  created: "70px",
+  contact: "150px",
+  created: "55px",
 };
 const COL_IPAD = {
   order: "80px",
   customer: "110px",
   status: "300px",
   payment: "120px",
-  contact: "250px",
-  created: "100px",
+  contact: "150px",
+  created: "70px",
 };
-const MIN_TABLE_MOBILE = "580px";
-const MIN_TABLE_IPAD = "1010px";
+const MIN_TABLE_MOBILE = "595px";
+const MIN_TABLE_IPAD = "880px";
 
 const FILTER_OPTIONS = [
   { value: "", labelKey: "all_statuses" },
@@ -595,7 +595,7 @@ function Extension() {
     });
 
     return (
-      <s-page heading={order.name} inlineSize="large">
+      <s-page heading={order.name} inlineSize={isTablet ? "large" : "base"}>
         <s-scroll-box>
           <s-box padding="base">
             <s-stack gap="base">
@@ -740,7 +740,7 @@ function Extension() {
   }
 
   return (
-    <s-page heading={i18n.translate("modal_heading")} inlineSize="large">
+    <s-page heading={i18n.translate("modal_heading")} inlineSize={isTablet ? "large" : "base"}>
       <s-scroll-box>
         <s-box padding="base">
           <s-stack gap="base">
@@ -815,7 +815,7 @@ function Extension() {
                     </s-box>
                     <s-box inlineSize="auto" minInlineSize="0" />
                     <s-box inlineSize={col.created} minInlineSize={col.created}>
-                      <s-text type="strong">{i18n.translate("column_created")}</s-text>
+                      <s-text type="small">{i18n.translate("column_created")}</s-text>
                     </s-box>
                   </s-stack>
                 </s-box>
