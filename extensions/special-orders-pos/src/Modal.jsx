@@ -769,11 +769,6 @@ function Extension() {
               filteredOrders.map((order) => {
                 const completed = isCompletedContactStatus(order.contactStatus);
                 const canceled = order.contactStatus === "Order Canceled";
-                const cardBorderStyle = completed
-                  ? { borderLeft: "4px solid #66bb6a" }
-                  : canceled
-                    ? { borderLeft: "4px solid #e53935" }
-                    : {};
                 const statusItems = (order.orderStatuses || []).length > 0
                   ? order.orderStatuses
                   : [{ title: "Item", status: "Not set" }];
@@ -789,7 +784,14 @@ function Extension() {
                       );
                     }}
                   >
-                    <div style={cardBorderStyle}>
+                    <s-stack direction="inline" gap="none">
+                      {(completed || canceled) && (
+                        <s-box
+                          padding="none"
+                          inlineSize="8px"
+                          background={completed ? "success" : "critical"}
+                        />
+                      )}
                       <s-box padding="base" borderWidth="base" background="subdued">
                         <s-stack gap="small">
                           <s-stack direction="inline" gap="small-300">
@@ -834,7 +836,7 @@ function Extension() {
                         <s-text color="subdued">{i18n.translate("view_details")} →</s-text>
                       </s-stack>
                     </s-box>
-                    </div>
+                    </s-stack>
                   </s-clickable>
                 );
               })
