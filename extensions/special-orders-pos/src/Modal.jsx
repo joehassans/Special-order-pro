@@ -769,10 +769,10 @@ function Extension() {
               filteredOrders.map((order) => {
                 const completed = isCompletedContactStatus(order.contactStatus);
                 const canceled = order.contactStatus === "Order Canceled";
-                const nameStyle = completed
-                  ? { backgroundColor: "#66bb6a", padding: "6px 10px", borderRadius: "4px", display: "inline-block" }
+                const cardBorderStyle = completed
+                  ? { borderLeft: "4px solid #66bb6a" }
                   : canceled
-                    ? { backgroundColor: "#e53935", padding: "6px 10px", borderRadius: "4px", display: "inline-block" }
+                    ? { borderLeft: "4px solid #e53935" }
                     : {};
                 const statusItems = (order.orderStatuses || []).length > 0
                   ? order.orderStatuses
@@ -789,14 +789,13 @@ function Extension() {
                       );
                     }}
                   >
-                    <s-box padding="base" borderWidth="base" background="subdued">
-                      <s-stack gap="small">
-                        <s-stack direction="inline" gap="small-300">
-                          <s-text type="strong">{i18n.translate("column_order")}:</s-text>
-                          <span style={nameStyle}>
+                    <div style={cardBorderStyle}>
+                      <s-box padding="base" borderWidth="base" background="subdued">
+                        <s-stack gap="small">
+                          <s-stack direction="inline" gap="small-300">
+                            <s-text type="strong">{i18n.translate("column_order")}:</s-text>
                             <s-text type="strong">{order.name}</s-text>
-                          </span>
-                        </s-stack>
+                          </s-stack>
                         <s-stack direction="inline" gap="small-300">
                           <s-text type="strong">{i18n.translate("column_customer")}:</s-text>
                           <s-text>{order.customerName}</s-text>
@@ -835,6 +834,7 @@ function Extension() {
                         <s-text color="subdued">{i18n.translate("view_details")} →</s-text>
                       </s-stack>
                     </s-box>
+                    </div>
                   </s-clickable>
                 );
               })
