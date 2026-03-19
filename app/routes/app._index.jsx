@@ -162,6 +162,28 @@ function extractOverallOrderStatusFromMetafields(metafields) {
   return "Order Pending";
 }
 
+/** Raw value from contact_status when it holds legacy Overall Order Status (Picked Up / Order Canceled). */
+const LEGACY_OVERALL_STATUS_VALUES = [
+  "Picked Up - Sale Complete",
+  "Order Canceled",
+];
+
+function extractLegacyOverallStatusFromContactStatus(metafields) {
+  if (!metafields || !metafields.edges) return null;
+
+  const contactMf = metafields.edges.find(
+    (edge) => edge.node.key === "contact_status"
+  );
+  if (contactMf && contactMf.node.value) {
+    const value = contactMf.node.value.trim();
+    if (LEGACY_OVERALL_STATUS_VALUES.includes(value)) {
+      return value;
+    }
+  }
+
+  return null;
+}
+
 function getContactStatusTone(status) {
   const s = String(status || "").toLowerCase().trim();
   if (!s || s === "not set" || s === "not contacted") return "critical";
@@ -303,6 +325,7 @@ export const loader = async ({ request }) => {
       }
       const contactStatus = extractContactStatusFromMetafields(metafields);
       const overallOrderStatus = extractOverallOrderStatusFromMetafields(metafields);
+      const legacyOverallStatus = extractLegacyOverallStatusFromContactStatus(metafields);
       const paymentStatus = calculatePaymentStatus(order);
 
       return {
@@ -313,6 +336,7 @@ export const loader = async ({ request }) => {
         paymentStatus,
         contactStatus,
         overallOrderStatus,
+        legacyOverallStatus,
         createdAt: order.createdAt,
         createdDateLabel: new Date(order.createdAt).toLocaleDateString(),
       };
@@ -506,6 +530,11 @@ export default function Index() {
         result = result.filter(
           (order) => order.overallOrderStatus === "Order Canceled"
         );
+      } else if (statusFilter === "legacy-overall-status") {
+        // Temporary: show orders with Picked Up / Order Canceled in old contact_status metafield (needs migration)
+        result = result.filter(
+          (order) => order.legacyOverallStatus != null
+        );
       } else if (statusFilter === "open") {
         // Only orders with at least one item in Not Ordered, Ordered, Back Ordered, or Received
         // Excludes: overall order status Picked Up - Sale Complete, Order Canceled
@@ -574,6 +603,9 @@ export default function Index() {
               Picked Up - Sale Complete
             </s-option>
             <s-option value="Order Canceled">Order Canceled</s-option>
+            <s-option value="legacy-overall-status">
+              Legacy: Picked Up / Order Canceled (needs update)
+            </s-option>
             <s-option value="open">
               Not Ordered, Ordered, Back Ordered &amp; Received
             </s-option>
@@ -640,14 +672,17 @@ export default function Index() {
               </s-table-row>
             ) : (
               filteredOrders.map((order) => {
-                const completed = isCompletedOverallOrderStatus(
-                  order.overallOrderStatus
-                );
-                const orderCanceled =
-                  order.overallOrderStatus === "Order Canceled";
-                const orderPending =
+                // Use legacyOverallStatus from old contact_status when present (for migration)
+                const effectiveStatus =
                   order.overallOrderStatus === "Order Pending" ||
-                  !order.overallOrderStatus;
+                  !order.overallOrderStatus
+                    ? order.legacyOverallStatus || order.overallOrderStatus
+                    : order.overallOrderStatus;
+
+                const completed = isCompletedOverallOrderStatus(effectiveStatus);
+                const orderCanceled = effectiveStatus === "Order Canceled";
+                const orderPending =
+                  effectiveStatus === "Order Pending" || !effectiveStatus;
 
                 const orderCellClass =
                   completed
