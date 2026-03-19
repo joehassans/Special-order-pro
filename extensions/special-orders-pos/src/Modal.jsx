@@ -842,7 +842,7 @@ function Extension() {
                           );
                         }}
                       >
-                        <s-box padding="base" borderWidth="base" background="subdued" minInlineSize={minTableWidth}>
+                        <s-box padding="base" borderWidth="none none base none" borderColor="base" background="subdued" minInlineSize={minTableWidth}>
                         <s-stack direction="inline" gap="small">
                           <s-box inlineSize={col.order} minInlineSize={col.order}>
                             <s-badge tone={completed ? "success" : canceled ? "critical" : "neutral"}>
@@ -887,7 +887,7 @@ function Extension() {
                       </s-box>
                     </s-clickable>
                     {index < filteredOrders.length - 1 && (
-                      <s-box blockSize="4px" minInlineSize={minTableWidth} background="base" />
+                      <s-box blockSize="2px" minInlineSize={minTableWidth} borderWidth="base" borderColor="base" />
                     )}
                   </Fragment>
                   );
