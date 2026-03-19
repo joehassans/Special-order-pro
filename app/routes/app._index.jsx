@@ -488,10 +488,16 @@ export default function Index() {
       });
     }
 
-    // Status filter: contact status "Picked Up - Sale Complete", open orders, or line item order status
+    // Status filter: overall order status (Order Pending, Picked Up, Order Canceled) or line item order status
     const OPEN_STATUSES = ["Not Ordered", "Ordered", "Back Ordered", "Received"];
     if (statusFilter) {
-      if (statusFilter === "Picked Up - Sale Complete") {
+      if (statusFilter === "Order Pending") {
+        result = result.filter(
+          (order) =>
+            order.overallOrderStatus === "Order Pending" ||
+            !order.overallOrderStatus
+        );
+      } else if (statusFilter === "Picked Up - Sale Complete") {
         result = result.filter(
           (order) =>
             order.overallOrderStatus === "Picked Up - Sale Complete"
@@ -563,6 +569,11 @@ export default function Index() {
             onChange={(event) => setStatusFilter(event.currentTarget.value)}
           >
             <s-option value="">All Statuses</s-option>
+            <s-option value="Order Pending">Order Pending</s-option>
+            <s-option value="Picked Up - Sale Complete">
+              Picked Up - Sale Complete
+            </s-option>
+            <s-option value="Order Canceled">Order Canceled</s-option>
             <s-option value="open">
               Not Ordered, Ordered, Back Ordered &amp; Received
             </s-option>
@@ -570,10 +581,6 @@ export default function Index() {
             <s-option value="Ordered">Ordered</s-option>
             <s-option value="Back Ordered">Back Ordered</s-option>
             <s-option value="Received">Received</s-option>
-            <s-option value="Picked Up - Sale Complete">
-              Picked Up - Sale Complete
-            </s-option>
-            <s-option value="Order Canceled">Order Canceled</s-option>
           </s-select>
           <s-button
             id="clear-filters-button"
