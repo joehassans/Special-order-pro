@@ -961,7 +961,7 @@ export default function OrderDetails() {
                     order.contactStatus || ""
                   )
                     ? order.contactStatus || "Not Contacted"
-                    : ""
+                    : "Not Contacted"
                 }
                 onChange={(event) => {
                   submit(
@@ -974,7 +974,6 @@ export default function OrderDetails() {
                   );
                 }}
               >
-                <s-option value="">—</s-option>
                 <s-option value="Not Contacted">Not Contacted</s-option>
                 <s-option value="No Answer">No Answer</s-option>
                 <s-option value="Left Message">Left Message</s-option>
@@ -985,7 +984,7 @@ export default function OrderDetails() {
                   order.contactStatus || ""
                 )
                   ? order.contactStatus || "Not Contacted"
-                  : "—"}
+                  : "Not Contacted"}
               </s-badge>
             </s-stack>
           </s-box>
