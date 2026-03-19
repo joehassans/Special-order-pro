@@ -39,7 +39,7 @@ const COL_MOBILE = {
   customer: "85px",
   status: "100px",
   payment: "85px",
-  contact: "190px",
+  contact: "205px",
   created: "55px",
 };
 const COL_IPAD = {
@@ -47,11 +47,11 @@ const COL_IPAD = {
   customer: "110px",
   status: "300px",
   payment: "120px",
-  contact: "190px",
+  contact: "205px",
   created: "70px",
 };
-const MIN_TABLE_MOBILE = "635px";
-const MIN_TABLE_IPAD = "920px";
+const MIN_TABLE_MOBILE = "650px";
+const MIN_TABLE_IPAD = "935px";
 
 const FILTER_OPTIONS = [
   { value: "", labelKey: "all_statuses" },
