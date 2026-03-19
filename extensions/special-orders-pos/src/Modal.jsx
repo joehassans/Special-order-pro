@@ -34,6 +34,25 @@ const CONTACT_STATUS_OPTIONS = [
   "Order Canceled",
 ];
 
+const COL_MOBILE = {
+  order: "70px",
+  customer: "85px",
+  status: "100px",
+  payment: "85px",
+  contact: "120px",
+  created: "70px",
+};
+const COL_IPAD = {
+  order: "80px",
+  customer: "110px",
+  status: "300px",
+  payment: "120px",
+  contact: "250px",
+  created: "100px",
+};
+const MIN_TABLE_MOBILE = "580px";
+const MIN_TABLE_IPAD = "1010px";
+
 const FILTER_OPTIONS = [
   { value: "", labelKey: "all_statuses" },
   { value: "open", labelKey: "filter_open" },
@@ -236,6 +255,14 @@ function Extension() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [saving, setSaving] = useState(null);
+  const [isTablet, setIsTablet] = useState(null);
+
+  useEffect(() => {
+    shopify.device?.isTablet?.().then(setIsTablet).catch(() => setIsTablet(false));
+  }, []);
+
+  const col = isTablet ? COL_IPAD : COL_MOBILE;
+  const minTableWidth = isTablet ? MIN_TABLE_IPAD : MIN_TABLE_MOBILE;
 
   const normalizedOrders = useMemo(() => {
     return [...rawOrders]
@@ -568,7 +595,7 @@ function Extension() {
     });
 
     return (
-      <s-page heading={order.name}>
+      <s-page heading={order.name} inlineSize="large">
         <s-scroll-box>
           <s-box padding="base">
             <s-stack gap="base">
@@ -713,7 +740,7 @@ function Extension() {
   }
 
   return (
-    <s-page heading={i18n.translate("modal_heading")}>
+    <s-page heading={i18n.translate("modal_heading")} inlineSize="large">
       <s-scroll-box>
         <s-box padding="base">
           <s-stack gap="base">
@@ -766,80 +793,99 @@ function Extension() {
             ) : filteredOrders.length === 0 ? (
               <s-text color="subdued">{i18n.translate("empty")}</s-text>
             ) : (
-              filteredOrders.map((order) => {
-                const completed = isCompletedContactStatus(order.contactStatus);
-                const canceled = order.contactStatus === "Order Canceled";
-                const statusItems = (order.orderStatuses || []).length > 0
-                  ? order.orderStatuses
-                  : [{ title: "Item", status: "Not set" }];
-                return (
-                  <s-clickable
-                    key={order.id}
-                    onClick={() => {
-                      setSelectedOrder(order);
-                      setLocalNote(
-                        order.id?.includes("DraftOrder")
-                          ? order.note2 || ""
-                          : order.note || ""
-                      );
-                    }}
-                  >
-                    <s-stack direction="inline" gap="none">
-                      {(completed || canceled) && (
-                        <s-box
-                          padding="none"
-                          inlineSize="8px"
-                          background={completed ? "success" : "critical"}
-                        />
-                      )}
-                      <s-box padding="base" borderWidth="base" background="subdued">
-                        <s-stack gap="small">
-                          <s-stack direction="inline" gap="small-300">
-                            <s-text type="strong">{i18n.translate("column_order")}:</s-text>
-                            <s-text type="strong">{order.name}</s-text>
-                          </s-stack>
-                        <s-stack direction="inline" gap="small-300">
-                          <s-text type="strong">{i18n.translate("column_customer")}:</s-text>
-                          <s-text>{order.customerName}</s-text>
-                        </s-stack>
-                        <s-stack direction="inline" gap="small-300">
-                          <s-text type="strong">{i18n.translate("column_order_status")}:</s-text>
-                          <s-stack direction="inline" gap="small-300">
-                            {statusItems.map((item, i) => {
-                              const title = typeof item === "object" && item != null ? item.title : "Item";
-                              const status = typeof item === "object" && item != null ? item.status : item;
-                              const label = `${title} - ${String(status ?? "Not set").trim() || "Not set"}`;
-                              return (
-                                <s-badge key={i} tone={getTone(status, "order")}>
-                                  {label}
-                                </s-badge>
-                              );
-                            })}
-                          </s-stack>
-                        </s-stack>
-                        <s-stack direction="inline" gap="small-300">
-                          <s-text type="strong">{i18n.translate("column_payment")}:</s-text>
-                          <s-badge tone={getTone(order.paymentStatus, "payment")}>
-                            {order.paymentStatus}
-                          </s-badge>
-                        </s-stack>
-                        <s-stack direction="inline" gap="small-300">
-                          <s-text type="strong">{i18n.translate("column_contact")}:</s-text>
-                          <s-badge tone={getTone(order.contactStatus, "contact")}>
-                            {order.contactStatus || "Not Contacted"}
-                          </s-badge>
-                        </s-stack>
-                        <s-stack direction="inline" gap="small-300">
-                          <s-text type="strong">{i18n.translate("column_created")}:</s-text>
-                          <s-text color="subdued">{order.createdDateLabel || ""}</s-text>
-                        </s-stack>
-                        <s-text color="subdued">{i18n.translate("view_details")} →</s-text>
-                      </s-stack>
+              <s-box minInlineSize={minTableWidth}>
+                <s-stack gap="none">
+                  {/* Table header */}
+                  <s-box padding="base" background="subdued" borderWidth="base" minInlineSize={minTableWidth}>
+                    <s-stack direction="inline" gap="small">
+                    <s-box inlineSize={col.order} minInlineSize={col.order}>
+                      <s-text type="strong">{i18n.translate("column_order")}</s-text>
                     </s-box>
-                    </s-stack>
-                  </s-clickable>
-                );
-              })
+                    <s-box inlineSize={col.customer} minInlineSize={col.customer}>
+                      <s-text type="strong">{i18n.translate("column_customer")}</s-text>
+                    </s-box>
+                    <s-box inlineSize={col.status} minInlineSize={col.status}>
+                      <s-text type="strong">{i18n.translate("column_order_status")}</s-text>
+                    </s-box>
+                    <s-box inlineSize={col.payment} minInlineSize={col.payment}>
+                      <s-text type="strong">{i18n.translate("column_payment")}</s-text>
+                    </s-box>
+                    <s-box inlineSize={col.contact} minInlineSize={col.contact}>
+                      <s-text type="strong">{i18n.translate("column_contact")}</s-text>
+                    </s-box>
+                    <s-box inlineSize="auto" minInlineSize="0" />
+                    <s-box inlineSize={col.created} minInlineSize={col.created}>
+                      <s-text type="strong">{i18n.translate("column_created")}</s-text>
+                    </s-box>
+                  </s-stack>
+                </s-box>
+                {/* Table rows */}
+                {filteredOrders.map((order) => {
+                  const completed = isCompletedContactStatus(order.contactStatus);
+                  const canceled = order.contactStatus === "Order Canceled";
+                  const statusItems = (order.orderStatuses || []).length > 0
+                    ? order.orderStatuses
+                    : [{ title: "Item", status: "Not set" }];
+                  return (
+                    <s-clickable
+                      key={order.id}
+                      onClick={() => {
+                        setSelectedOrder(order);
+                        setLocalNote(
+                          order.id?.includes("DraftOrder")
+                            ? order.note2 || ""
+                            : order.note || ""
+                        );
+                      }}
+                    >
+                      <s-box padding="base" borderWidth="base" background="subdued" minInlineSize={minTableWidth}>
+                        <s-stack direction="inline" gap="small">
+                          <s-box inlineSize={col.order} minInlineSize={col.order}>
+                            <s-badge tone={completed ? "success" : canceled ? "critical" : "neutral"}>
+                              {order.name}
+                            </s-badge>
+                          </s-box>
+                          <s-box inlineSize={col.customer} minInlineSize={col.customer}>
+                            <s-text>{order.customerName}</s-text>
+                          </s-box>
+                          <s-box inlineSize={col.status} minInlineSize={col.status}>
+                            <s-stack direction="inline" gap="small-300">
+                              {statusItems.slice(0, isTablet ? 5 : 2).map((item, i) => {
+                                const title = typeof item === "object" && item != null ? item.title : "Item";
+                                const status = typeof item === "object" && item != null ? item.status : item;
+                                const label = `${title} - ${String(status ?? "Not set").trim() || "Not set"}`;
+                                return (
+                                  <s-badge key={i} tone={getTone(status, "order")}>
+                                    {label}
+                                  </s-badge>
+                                );
+                              })}
+                              {statusItems.length > (isTablet ? 5 : 2) && (
+                                <s-badge tone="info">+{statusItems.length - (isTablet ? 5 : 2)}</s-badge>
+                              )}
+                            </s-stack>
+                          </s-box>
+                          <s-box inlineSize={col.payment} minInlineSize={col.payment}>
+                            <s-badge tone={getTone(order.paymentStatus, "payment")}>
+                              {order.paymentStatus}
+                            </s-badge>
+                          </s-box>
+                          <s-box inlineSize={col.contact} minInlineSize={col.contact}>
+                            <s-badge tone={getTone(order.contactStatus, "contact")}>
+                              {order.contactStatus || "Not Contacted"}
+                            </s-badge>
+                          </s-box>
+                          <s-box inlineSize="auto" minInlineSize="0" />
+                          <s-box inlineSize={col.created} minInlineSize={col.created}>
+                            <s-text color="subdued">{order.createdDateLabel || ""}</s-text>
+                          </s-box>
+                        </s-stack>
+                      </s-box>
+                    </s-clickable>
+                  );
+                })}
+                </s-stack>
+              </s-box>
             )}
 
             <s-text color="subdued" type="bodySmall">
