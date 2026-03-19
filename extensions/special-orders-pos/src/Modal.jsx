@@ -53,6 +53,8 @@ const COL_IPAD = {
 const MIN_TABLE_MOBILE = "755px";
 const MIN_TABLE_IPAD = "955px";
 
+const ROW_SEPARATOR = "\u2500".repeat(120);
+
 const FILTER_OPTIONS = [
   { value: "", labelKey: "all_statuses" },
   { value: "open", labelKey: "filter_open" },
@@ -842,7 +844,7 @@ function Extension() {
                           );
                         }}
                       >
-                        <s-box padding="base" borderWidth="none none base none" borderColor="base" background="subdued" minInlineSize={minTableWidth}>
+                        <s-box padding="base" background="subdued" minInlineSize={minTableWidth}>
                         <s-stack direction="inline" gap="small">
                           <s-box inlineSize={col.order} minInlineSize={col.order}>
                             <s-badge tone={completed ? "success" : canceled ? "critical" : "neutral"}>
@@ -887,7 +889,9 @@ function Extension() {
                       </s-box>
                     </s-clickable>
                     {index < filteredOrders.length - 1 && (
-                      <s-box blockSize="2px" minInlineSize={minTableWidth} borderWidth="base" borderColor="base" />
+                      <s-box minInlineSize={minTableWidth} paddingBlock="small-100 none">
+                        <s-text color="strong" type="small">{ROW_SEPARATOR}</s-text>
+                      </s-box>
                     )}
                   </Fragment>
                   );
