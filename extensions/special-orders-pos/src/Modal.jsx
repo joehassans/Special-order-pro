@@ -632,19 +632,29 @@ function Extension() {
               <s-box padding="base" borderRadius="base" background="subdued">
                 <s-stack gap="small">
                   <s-text type="strong">{i18n.translate("contact_status")}</s-text>
-                  <s-choice-list
-                    values={[contactStatus]}
-                    onChange={(e) => {
-                      const vals = e.currentTarget?.values;
-                      if (vals?.length) handleUpdateContactStatus(order.id, vals[0]);
-                    }}
+                  <s-button
+                    variant="secondary"
+                    commandFor="contact-status-modal"
+                    command="--show"
+                    disabled={!!saving}
                   >
-                    {CONTACT_STATUS_OPTIONS.map((opt) => (
-                      <s-choice key={opt} value={opt} disabled={!!saving}>
-                        {opt}
-                      </s-choice>
-                    ))}
-                  </s-choice-list>
+                    {contactStatus}
+                  </s-button>
+                  <s-modal id="contact-status-modal" heading={i18n.translate("contact_status")}>
+                    <s-stack gap="small">
+                      {CONTACT_STATUS_OPTIONS.map((opt) => (
+                        <s-button
+                          key={opt}
+                          variant="secondary"
+                          commandFor="contact-status-modal"
+                          command="--hide"
+                          onClick={() => handleUpdateContactStatus(order.id, opt)}
+                        >
+                          {opt}
+                        </s-button>
+                      ))}
+                    </s-stack>
+                  </s-modal>
                   <s-badge tone={getTone(contactStatus, "contact")}>
                     {contactStatus}
                   </s-badge>
