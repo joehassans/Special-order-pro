@@ -39,7 +39,7 @@ const COL_MOBILE = {
   customer: "85px",
   status: "100px",
   payment: "85px",
-  contact: "150px",
+  contact: "190px",
   created: "55px",
 };
 const COL_IPAD = {
@@ -47,11 +47,11 @@ const COL_IPAD = {
   customer: "110px",
   status: "300px",
   payment: "120px",
-  contact: "150px",
+  contact: "190px",
   created: "70px",
 };
-const MIN_TABLE_MOBILE = "595px";
-const MIN_TABLE_IPAD = "880px";
+const MIN_TABLE_MOBILE = "635px";
+const MIN_TABLE_IPAD = "920px";
 
 const FILTER_OPTIONS = [
   { value: "", labelKey: "all_statuses" },
@@ -282,7 +282,11 @@ function Extension() {
           customerName,
           productTitles,
           createdDateLabel: order.createdAt
-            ? new Date(order.createdAt).toLocaleDateString()
+            ? new Date(order.createdAt).toLocaleDateString("en-US", {
+                month: "numeric",
+                day: "numeric",
+                year: "2-digit",
+              })
             : "",
         };
       })
