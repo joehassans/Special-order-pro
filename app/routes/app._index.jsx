@@ -125,6 +125,13 @@ function extractOrderStatuses(order) {
   return items.length > 0 ? items : [{ title: "Item", status: "Not set" }];
 }
 
+const VALID_CONTACT_STATUSES = [
+  "Not Contacted",
+  "No Answer",
+  "Left Message",
+  "Spoke to Customer",
+];
+
 function extractContactStatusFromMetafields(metafields) {
   if (!metafields || !metafields.edges) return "Not Contacted";
 
@@ -132,7 +139,11 @@ function extractContactStatusFromMetafields(metafields) {
     (edge) => edge.node.key === "contact_status"
   );
   if (contactMf && contactMf.node.value) {
-    return contactMf.node.value;
+    const value = contactMf.node.value.trim();
+    // Only return if it's a valid contact status (exclude Overall Order Status values)
+    if (VALID_CONTACT_STATUSES.includes(value)) {
+      return value;
+    }
   }
 
   return "Not Contacted";
@@ -712,7 +723,9 @@ export default function Index() {
                     </s-table-cell>
                     <s-table-cell id={`cell-contact-${order.id}`}>
                       <s-badge tone={getContactStatusTone(order.contactStatus)}>
-                        {order.contactStatus || "Not Contacted"}
+                        {VALID_CONTACT_STATUSES.includes(order.contactStatus)
+                          ? order.contactStatus
+                          : "Not Contacted"}
                       </s-badge>
                     </s-table-cell>
                     <s-table-cell id={`cell-actions-${order.id}`}>

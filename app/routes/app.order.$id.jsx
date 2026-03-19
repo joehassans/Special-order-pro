@@ -32,12 +32,23 @@ function formatUsPhone(phone) {
   return phone;
 }
 
+const VALID_CONTACT_STATUSES = [
+  "Not Contacted",
+  "No Answer",
+  "Left Message",
+  "Spoke to Customer",
+];
+
 function extractContactStatusFromMetafields(metafields) {
   if (!metafields || !metafields.edges) return "Not Contacted";
   const entry = metafields.edges.find(
     (edge) => edge.node.key === "contact_status"
   );
-  return entry?.node?.value || "Not Contacted";
+  const value = entry?.node?.value?.trim();
+  if (value && VALID_CONTACT_STATUSES.includes(value)) {
+    return value;
+  }
+  return "Not Contacted";
 }
 
 function extractOverallOrderStatusFromMetafields(metafields) {
