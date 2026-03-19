@@ -1,5 +1,5 @@
 import "@shopify/ui-extensions/preact";
-import { render } from "preact";
+import { render, Fragment } from "preact";
 import { useState, useEffect, useMemo, useCallback } from "preact/hooks";
 
 export default async () => {
@@ -798,7 +798,7 @@ function Extension() {
               <s-text color="subdued">{i18n.translate("empty")}</s-text>
             ) : (
               <s-box minInlineSize={minTableWidth}>
-                <s-stack gap="none">
+                <s-stack gap="small-100">
                   {/* Table header */}
                   <s-box padding="base" background="subdued" borderWidth="base" minInlineSize={minTableWidth}>
                     <s-stack direction="inline" gap="small">
@@ -824,25 +824,25 @@ function Extension() {
                   </s-stack>
                 </s-box>
                 {/* Table rows */}
-                {filteredOrders.map((order) => {
+                {filteredOrders.map((order, index) => {
                   const completed = isCompletedContactStatus(order.contactStatus);
                   const canceled = order.contactStatus === "Order Canceled";
                   const statusItems = (order.orderStatuses || []).length > 0
                     ? order.orderStatuses
                     : [{ title: "Item", status: "Not set" }];
                   return (
-                    <s-clickable
-                      key={order.id}
-                      onClick={() => {
-                        setSelectedOrder(order);
-                        setLocalNote(
-                          order.id?.includes("DraftOrder")
-                            ? order.note2 || ""
-                            : order.note || ""
-                        );
-                      }}
-                    >
-                      <s-box padding="base" borderWidth="base" background="subdued" minInlineSize={minTableWidth}>
+                    <Fragment key={order.id}>
+                      <s-clickable
+                        onClick={() => {
+                          setSelectedOrder(order);
+                          setLocalNote(
+                            order.id?.includes("DraftOrder")
+                              ? order.note2 || ""
+                              : order.note || ""
+                          );
+                        }}
+                      >
+                        <s-box padding="base" borderWidth="base" background="subdued" minInlineSize={minTableWidth}>
                         <s-stack direction="inline" gap="small">
                           <s-box inlineSize={col.order} minInlineSize={col.order}>
                             <s-badge tone={completed ? "success" : canceled ? "critical" : "neutral"}>
@@ -886,6 +886,10 @@ function Extension() {
                         </s-stack>
                       </s-box>
                     </s-clickable>
+                    {index < filteredOrders.length - 1 && (
+                      <s-box blockSize="4px" minInlineSize={minTableWidth} background="base" />
+                    )}
+                  </Fragment>
                   );
                 })}
                 </s-stack>
