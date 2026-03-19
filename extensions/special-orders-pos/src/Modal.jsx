@@ -615,61 +615,59 @@ function Extension() {
                 ← {i18n.translate("back")}
               </s-button>
 
-              {/* Customer */}
-              <s-box padding="base" borderRadius="base" background="subdued">
-                <s-stack gap="small">
-                  <s-text type="strong">{i18n.translate("customer")}</s-text>
-                  <s-text>
-                    {order.customer?.displayName || "No customer"}
-                  </s-text>
-                  {order.customer?.email && (
-                    <s-text color="subdued">{order.customer.email}</s-text>
-                  )}
-                </s-stack>
-              </s-box>
-
-              {/* Contact Status */}
-              <s-box padding="base" borderRadius="base" background="subdued">
-                <s-stack gap="small">
-                  <s-text type="strong">{i18n.translate("contact_status")}</s-text>
-                  <s-button
-                    variant="secondary"
-                    commandFor="contact-status-modal"
-                    command="--show"
-                    disabled={!!saving}
-                  >
-                    {contactStatus}
-                  </s-button>
-                  <s-modal id="contact-status-modal" heading={i18n.translate("contact_status")}>
-                    <s-stack gap="small">
-                      {CONTACT_STATUS_OPTIONS.map((opt) => (
-                        <s-button
-                          key={opt}
-                          variant="secondary"
-                          commandFor="contact-status-modal"
-                          command="--hide"
-                          onClick={() => handleUpdateContactStatus(order.id, opt)}
-                        >
-                          {opt}
-                        </s-button>
-                      ))}
-                    </s-stack>
-                  </s-modal>
-                  <s-badge tone={getTone(contactStatus, "contact")}>
-                    {contactStatus}
-                  </s-badge>
-                </s-stack>
-              </s-box>
-
-              {/* Payment Status */}
-              <s-box padding="base" borderRadius="base" background="subdued">
-                <s-stack gap="small">
-                  <s-text type="strong">{i18n.translate("payment_status")}</s-text>
-                  <s-badge tone={getTone(paymentStatus, "payment")}>
-                    {paymentStatus}
-                  </s-badge>
-                </s-stack>
-              </s-box>
+              {/* Customer, Contact Status, Payment Status - side by side cards */}
+              <s-stack direction="inline" gap="small" blockSize="auto">
+                <s-box padding="base" borderRadius="base" background="subdued" minInlineSize="150px" inlineSize="1fr">
+                  <s-stack gap="small">
+                    <s-text type="strong">{i18n.translate("customer")}</s-text>
+                    <s-text>
+                      {order.customer?.displayName || "No customer"}
+                    </s-text>
+                    {order.customer?.email && (
+                      <s-text color="subdued" type="small">{order.customer.email}</s-text>
+                    )}
+                  </s-stack>
+                </s-box>
+                <s-box padding="base" borderRadius="base" background="subdued" minInlineSize="150px" inlineSize="1fr">
+                  <s-stack gap="small">
+                    <s-text type="strong">{i18n.translate("contact_status")}</s-text>
+                    <s-button
+                      variant="secondary"
+                      commandFor="contact-status-modal"
+                      command="--show"
+                      disabled={!!saving}
+                    >
+                      {contactStatus}
+                    </s-button>
+                    <s-modal id="contact-status-modal" heading={i18n.translate("contact_status")}>
+                      <s-stack gap="small">
+                        {CONTACT_STATUS_OPTIONS.map((opt) => (
+                          <s-button
+                            key={opt}
+                            variant="secondary"
+                            commandFor="contact-status-modal"
+                            command="--hide"
+                            onClick={() => handleUpdateContactStatus(order.id, opt)}
+                          >
+                            {opt}
+                          </s-button>
+                        ))}
+                      </s-stack>
+                    </s-modal>
+                    <s-badge tone={getTone(contactStatus, "contact")}>
+                      {contactStatus}
+                    </s-badge>
+                  </s-stack>
+                </s-box>
+                <s-box padding="base" borderRadius="base" background="subdued" minInlineSize="150px" inlineSize="1fr">
+                  <s-stack gap="small">
+                    <s-text type="strong">{i18n.translate("payment_status")}</s-text>
+                    <s-badge tone={getTone(paymentStatus, "payment")}>
+                      {paymentStatus}
+                    </s-badge>
+                  </s-stack>
+                </s-box>
+              </s-stack>
 
               {/* Note */}
               <s-box padding="base" borderRadius="base" background="subdued">
