@@ -632,19 +632,19 @@ function Extension() {
               <s-box padding="base" borderRadius="base" background="subdued">
                 <s-stack gap="small">
                   <s-text type="strong">{i18n.translate("contact_status")}</s-text>
-                  <s-select
-                    value={contactStatus}
-                    onChange={(e) =>
-                      handleUpdateContactStatus(order.id, e.currentTarget.value)
-                    }
-                    disabled={!!saving}
+                  <s-choice-list
+                    values={[contactStatus]}
+                    onChange={(e) => {
+                      const vals = e.currentTarget?.values;
+                      if (vals?.length) handleUpdateContactStatus(order.id, vals[0]);
+                    }}
                   >
                     {CONTACT_STATUS_OPTIONS.map((opt) => (
-                      <s-option key={opt} value={opt}>
+                      <s-choice key={opt} value={opt} disabled={!!saving}>
                         {opt}
-                      </s-option>
+                      </s-choice>
                     ))}
-                  </s-select>
+                  </s-choice-list>
                   <s-badge tone={getTone(contactStatus, "contact")}>
                     {contactStatus}
                   </s-badge>
