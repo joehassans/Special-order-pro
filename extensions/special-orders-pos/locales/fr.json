@@ -9,6 +9,8 @@
   "back": "Retour à la liste",
   "customer": "Client",
   "contact_status": "Statut de contact",
+  "overall_order_status": "Statut global de la commande",
+  "select": "Sélectionner",
   "payment_status": "Statut de paiement",
   "note": "Note",
   "line_items": "Articles",

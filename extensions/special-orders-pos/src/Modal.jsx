@@ -30,6 +30,10 @@ const CONTACT_STATUS_OPTIONS = [
   "No Answer",
   "Left Message",
   "Spoke to Customer",
+];
+
+const OVERALL_ORDER_STATUS_OPTIONS = [
+  "Order Pending",
   "Picked Up - Sale Complete",
   "Order Canceled",
 ];
@@ -182,6 +186,7 @@ function getTone(status, type) {
   if (type === "contact") {
     if (!s || s.includes("not contacted") || s.includes("order canceled"))
       return "critical";
+    if (s.includes("order pending")) return "neutral";
     if (s.includes("no answer")) return "critical";
     if (s.includes("left message")) return "warning";
     if (s.includes("spoke") || s.includes("picked up")) return "success";
@@ -615,7 +620,7 @@ function Extension() {
                 ← {i18n.translate("back")}
               </s-button>
 
-              {/* Customer, Contact Status, Payment Status - side by side cards */}
+              {/* Customer, Contact Status, Overall Order Status, Payment Status - side by side cards */}
               <s-stack direction="inline" gap="small" blockSize="auto">
                 <s-box padding="base" borderRadius="base" background="subdued" inlineSize="220px">
                   <s-stack gap="small">
@@ -637,7 +642,7 @@ function Extension() {
                       command="--show"
                       disabled={!!saving}
                     >
-                      {contactStatus}
+                      {CONTACT_STATUS_OPTIONS.includes(contactStatus) ? contactStatus : i18n.translate("select")}
                     </s-button>
                     <s-modal id="contact-status-modal" heading={i18n.translate("contact_status")}>
                       <s-stack gap="small">
@@ -655,7 +660,38 @@ function Extension() {
                       </s-stack>
                     </s-modal>
                     <s-badge tone={getTone(contactStatus, "contact")}>
-                      {contactStatus}
+                      {CONTACT_STATUS_OPTIONS.includes(contactStatus) ? contactStatus : ""}
+                    </s-badge>
+                  </s-stack>
+                </s-box>
+                <s-box padding="base" borderRadius="base" background="subdued" inlineSize="220px">
+                  <s-stack gap="small">
+                    <s-text type="strong">{i18n.translate("overall_order_status")}</s-text>
+                    <s-button
+                      variant="secondary"
+                      commandFor="overall-order-status-modal"
+                      command="--show"
+                      disabled={!!saving}
+                    >
+                      {OVERALL_ORDER_STATUS_OPTIONS.includes(contactStatus) ? contactStatus : "Order Pending"}
+                    </s-button>
+                    <s-modal id="overall-order-status-modal" heading={i18n.translate("overall_order_status")}>
+                      <s-stack gap="small">
+                        {OVERALL_ORDER_STATUS_OPTIONS.map((opt) => (
+                          <s-button
+                            key={opt}
+                            variant="secondary"
+                            commandFor="overall-order-status-modal"
+                            command="--hide"
+                            onClick={() => handleUpdateContactStatus(order.id, opt)}
+                          >
+                            {opt}
+                          </s-button>
+                        ))}
+                      </s-stack>
+                    </s-modal>
+                    <s-badge tone={getTone(contactStatus, "contact")}>
+                      {OVERALL_ORDER_STATUS_OPTIONS.includes(contactStatus) ? contactStatus : "Order Pending"}
                     </s-badge>
                   </s-stack>
                 </s-box>

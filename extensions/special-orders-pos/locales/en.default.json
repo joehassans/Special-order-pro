@@ -9,6 +9,8 @@
   "back": "Back to list",
   "customer": "Customer",
   "contact_status": "Contact Status",
+  "overall_order_status": "Overall Order Status",
+  "select": "Select",
   "payment_status": "Payment Status",
   "note": "Note",
   "line_items": "Line Items",

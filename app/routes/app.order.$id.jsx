@@ -90,6 +90,7 @@ function getContactStatusTone(status) {
   const s = String(status || "").toLowerCase().trim();
   if (!s || s === "not set" || s === "not contacted") return "critical";
   if (s.includes("order canceled") || s.includes("canceled")) return "critical";
+  if (s.includes("order pending")) return "neutral";
   if (s.includes("no answer")) return "critical";
   if (s.includes("left message")) return "warning";
   if (s.includes("spoke to customer")) return "success";
@@ -955,7 +956,13 @@ export default function OrderDetails() {
                 ☎️ CONTACT STATUS
               </s-heading>
               <s-select
-                value={order.contactStatus || "Not Contacted"}
+                value={
+                  ["Not Contacted", "No Answer", "Left Message", "Spoke to Customer"].includes(
+                    order.contactStatus || ""
+                  )
+                    ? order.contactStatus || "Not Contacted"
+                    : ""
+                }
                 onChange={(event) => {
                   submit(
                     {
@@ -967,17 +974,65 @@ export default function OrderDetails() {
                   );
                 }}
               >
+                <s-option value="">—</s-option>
                 <s-option value="Not Contacted">Not Contacted</s-option>
                 <s-option value="No Answer">No Answer</s-option>
                 <s-option value="Left Message">Left Message</s-option>
                 <s-option value="Spoke to Customer">Spoke to Customer</s-option>
+              </s-select>
+              <s-badge tone={getContactStatusTone(order.contactStatus)}>
+                {["Not Contacted", "No Answer", "Left Message", "Spoke to Customer"].includes(
+                  order.contactStatus || ""
+                )
+                  ? order.contactStatus || "Not Contacted"
+                  : "—"}
+              </s-badge>
+            </s-stack>
+          </s-box>
+
+          {/* Overall order status */}
+          <s-box
+            padding="base"
+            borderRadius="base"
+            borderWidth="base"
+            background="subdued"
+            flex="1"
+          >
+            <s-stack gap="small">
+              <s-heading size="large" style={{ fontSize: "1.6rem" }}>
+                ✓ OVERALL ORDER STATUS
+              </s-heading>
+              <s-select
+                value={
+                  ["Order Pending", "Picked Up - Sale Complete", "Order Canceled"].includes(
+                    order.contactStatus || ""
+                  )
+                    ? order.contactStatus
+                    : "Order Pending"
+                }
+                onChange={(event) => {
+                  submit(
+                    {
+                      intent: "updateContactStatus",
+                      orderId: order.id,
+                      contactStatus: event.currentTarget.value,
+                    },
+                    { method: "post" }
+                  );
+                }}
+              >
+                <s-option value="Order Pending">Order Pending</s-option>
                 <s-option value="Picked Up - Sale Complete">
                   Picked Up - Sale Complete
                 </s-option>
                 <s-option value="Order Canceled">Order Canceled</s-option>
               </s-select>
               <s-badge tone={getContactStatusTone(order.contactStatus)}>
-                {order.contactStatus || "Not Contacted"}
+                {["Order Pending", "Picked Up - Sale Complete", "Order Canceled"].includes(
+                  order.contactStatus || ""
+                )
+                  ? order.contactStatus
+                  : "Order Pending"}
               </s-badge>
             </s-stack>
           </s-box>
