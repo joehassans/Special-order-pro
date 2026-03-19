@@ -138,18 +138,30 @@ function extractContactStatusFromMetafields(metafields) {
   return "Not Contacted";
 }
 
+function extractOverallOrderStatusFromMetafields(metafields) {
+  if (!metafields || !metafields.edges) return "Order Pending";
+
+  const mf = metafields.edges.find(
+    (edge) => edge.node.key === "overall_order_status"
+  );
+  if (mf && mf.node.value) {
+    return mf.node.value;
+  }
+
+  return "Order Pending";
+}
+
 function getContactStatusTone(status) {
   const s = String(status || "").toLowerCase().trim();
   if (!s || s === "not set" || s === "not contacted") return "critical";
   if (s.includes("no answer")) return "critical";
   if (s.includes("left message")) return "warning";
   if (s.includes("spoke to customer")) return "success";
-  if (s.includes("picked up") || s.includes("sale complete")) return "success";
   return "critical";
 }
 
-// Treat "Picked Up - Sale Complete" as completed
-function isCompletedContactStatus(status) {
+// Treat "Picked Up - Sale Complete" as completed (overall order status)
+function isCompletedOverallOrderStatus(status) {
   if (!status || typeof status !== "string") return false;
   const s = String(status).trim();
   return s === "Picked Up - Sale Complete";
@@ -279,6 +291,7 @@ export const loader = async ({ request }) => {
         orderStatuses = [{ title: "Item", status: "Not set" }];
       }
       const contactStatus = extractContactStatusFromMetafields(metafields);
+      const overallOrderStatus = extractOverallOrderStatusFromMetafields(metafields);
       const paymentStatus = calculatePaymentStatus(order);
 
       return {
@@ -288,6 +301,7 @@ export const loader = async ({ request }) => {
         orderStatuses,
         paymentStatus,
         contactStatus,
+        overallOrderStatus,
         createdAt: order.createdAt,
         createdDateLabel: new Date(order.createdAt).toLocaleDateString(),
       };
@@ -295,8 +309,8 @@ export const loader = async ({ request }) => {
     // Open orders first; Picked Up - Sale Complete second; Order Canceled last. Within each group, newest first.
     .sort((a, b) => {
       const getTier = (order) => {
-        if (order.contactStatus === "Order Canceled") return 2;
-        if (isCompletedContactStatus(order.contactStatus)) return 1;
+        if (order.overallOrderStatus === "Order Canceled") return 2;
+        if (isCompletedOverallOrderStatus(order.overallOrderStatus)) return 1;
         return 0;
       };
       const aTier = getTier(a);
@@ -469,19 +483,19 @@ export default function Index() {
       if (statusFilter === "Picked Up - Sale Complete") {
         result = result.filter(
           (order) =>
-            order.contactStatus === "Picked Up - Sale Complete"
+            order.overallOrderStatus === "Picked Up - Sale Complete"
         );
       } else if (statusFilter === "Order Canceled") {
         result = result.filter(
-          (order) => order.contactStatus === "Order Canceled"
+          (order) => order.overallOrderStatus === "Order Canceled"
         );
       } else if (statusFilter === "open") {
         // Only orders with at least one item in Not Ordered, Ordered, Back Ordered, or Received
-        // Excludes: contact status Picked Up - Sale Complete, contact status Order Canceled
+        // Excludes: overall order status Picked Up - Sale Complete, Order Canceled
         // Orders with a canceled item are included if another item has an open status
         result = result.filter((order) => {
-          if (order.contactStatus === "Picked Up - Sale Complete") return false;
-          if (order.contactStatus === "Order Canceled") return false;
+          if (order.overallOrderStatus === "Picked Up - Sale Complete") return false;
+          if (order.overallOrderStatus === "Order Canceled") return false;
           const statuses = order.orderStatuses || [];
           return statuses.some((item) => {
             const status =
@@ -515,6 +529,9 @@ export default function Index() {
         }
         s-table-cell.order-cell-canceled {
           background-color: #e53935 !important;
+        }
+        s-table-cell.order-cell-pending {
+          background-color: #ff9800 !important;
         }
       `}</style>
       {/* Filters section */}
@@ -605,11 +622,32 @@ export default function Index() {
               </s-table-row>
             ) : (
               filteredOrders.map((order) => {
-                const completed = isCompletedContactStatus(
-                  order.contactStatus
+                const completed = isCompletedOverallOrderStatus(
+                  order.overallOrderStatus
                 );
                 const orderCanceled =
-                  order.contactStatus === "Order Canceled";
+                  order.overallOrderStatus === "Order Canceled";
+                const orderPending =
+                  order.overallOrderStatus === "Order Pending" ||
+                  !order.overallOrderStatus;
+
+                const orderCellClass =
+                  completed
+                    ? "order-cell-completed"
+                    : orderCanceled
+                      ? "order-cell-canceled"
+                      : orderPending
+                        ? "order-cell-pending"
+                        : "";
+
+                const orderSpanBg =
+                  completed
+                    ? "#66bb6a"
+                    : orderCanceled
+                      ? "#e53935"
+                      : orderPending
+                        ? "#ff9800"
+                        : undefined;
 
                 return (
                   <s-table-row
@@ -618,31 +656,18 @@ export default function Index() {
                   >
                     <s-table-cell
                       id={`cell-order-${order.id}`}
-                      className={
-                        completed
-                          ? "order-cell-completed"
-                          : orderCanceled
-                            ? "order-cell-canceled"
-                            : ""
-                      }
+                      className={orderCellClass}
                     >
                       <span
                         style={
-                          completed
+                          orderSpanBg
                             ? {
-                                backgroundColor: "#66bb6a",
+                                backgroundColor: orderSpanBg,
                                 padding: "6px 10px",
                                 borderRadius: "4px",
                                 display: "inline-block",
                               }
-                            : orderCanceled
-                              ? {
-                                  backgroundColor: "#e53935",
-                                  padding: "6px 10px",
-                                  borderRadius: "4px",
-                                  display: "inline-block",
-                                }
-                              : undefined
+                            : undefined
                         }
                       >
                         <s-text type="strong">{order.name}</s-text>

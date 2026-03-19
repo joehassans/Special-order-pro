@@ -93,6 +93,12 @@ function extractContactStatus(metafields) {
   return mf?.node?.value || "Not Contacted";
 }
 
+function extractOverallOrderStatus(metafields) {
+  if (!metafields?.edges) return "Order Pending";
+  const mf = metafields.edges.find((e) => e?.node?.key === "overall_order_status");
+  return mf?.node?.value || "Order Pending";
+}
+
 function extractOrderStatuses(order) {
   const edges = order.metafields?.edges || [];
   const byKey = Object.fromEntries(
@@ -192,6 +198,12 @@ function getTone(status, type) {
     if (s.includes("spoke") || s.includes("picked up")) return "success";
     return "critical";
   }
+  if (type === "overall") {
+    if (s.includes("order pending")) return "warning";
+    if (s.includes("picked up") || s.includes("sale complete")) return "success";
+    if (s.includes("order canceled")) return "critical";
+    return "warning";
+  }
   if (type === "payment") {
     if (s.includes("not paid")) return "critical";
     if (s.includes("partially")) return "warning";
@@ -275,6 +287,7 @@ function Extension() {
     return [...rawOrders]
       .map((order) => {
         const contactStatus = extractContactStatus(order.metafields);
+        const overallOrderStatus = extractOverallOrderStatus(order.metafields);
         const orderStatuses = extractOrderStatuses(order);
         const paymentStatus = calculatePaymentStatus(order);
         const customerName = order.customer?.displayName || "No customer";
@@ -284,6 +297,7 @@ function Extension() {
         return {
           ...order,
           contactStatus,
+          overallOrderStatus,
           orderStatuses,
           paymentStatus,
           customerName,
@@ -299,8 +313,8 @@ function Extension() {
       })
       .sort((a, b) => {
         const tier = (o) => {
-          if (o.contactStatus === "Order Canceled") return 2;
-          if (isCompletedContactStatus(o.contactStatus)) return 1;
+          if (o.overallOrderStatus === "Order Canceled") return 2;
+          if (o.overallOrderStatus === "Picked Up - Sale Complete") return 1;
           return 0;
         };
         const ta = tier(a);
@@ -323,13 +337,13 @@ function Extension() {
     }
     if (statusFilter) {
       if (statusFilter === "Picked Up - Sale Complete") {
-        result = result.filter((o) => o.contactStatus === "Picked Up - Sale Complete");
+        result = result.filter((o) => o.overallOrderStatus === "Picked Up - Sale Complete");
       } else if (statusFilter === "Order Canceled") {
-        result = result.filter((o) => o.contactStatus === "Order Canceled");
+        result = result.filter((o) => o.overallOrderStatus === "Order Canceled");
       } else if (statusFilter === "open") {
         result = result.filter((o) => {
-          if (o.contactStatus === "Picked Up - Sale Complete") return false;
-          if (o.contactStatus === "Order Canceled") return false;
+          if (o.overallOrderStatus === "Picked Up - Sale Complete") return false;
+          if (o.overallOrderStatus === "Order Canceled") return false;
           return o.orderStatuses?.some((item) =>
             OPEN_STATUSES.includes(item.status)
           );
@@ -412,6 +426,60 @@ function Extension() {
           setSelectedOrder((prev) => ({
             ...prev,
             contactStatus: value,
+          }));
+        }
+      } finally {
+        setSaving(null);
+      }
+    },
+    [selectedOrder]
+  );
+
+  const handleUpdateOverallOrderStatus = useCallback(
+    async (orderId, value) => {
+      setSaving("overall");
+      try {
+        const res = await graphql(
+          `mutation SetMetafield($metafields: [MetafieldsSetInput!]!) {
+            metafieldsSet(metafields: $metafields) {
+              userErrors { field message }
+            }
+          }`,
+          {
+            metafields: [
+              {
+                ownerId: orderId,
+                namespace: "custom",
+                key: "overall_order_status",
+                value: String(value),
+                type: "single_line_text_field",
+              },
+            ],
+          }
+        );
+        const errs = res?.data?.metafieldsSet?.userErrors ?? [];
+        if (errs.length) throw new Error(errs.map((e) => e.message).join(", "));
+        setRawOrders((prev) =>
+          prev.map((o) =>
+            o.id === orderId
+              ? {
+                  ...o,
+                  metafields: {
+                    edges: [
+                      ...(o.metafields?.edges || []).filter(
+                        (e) => e.node.key !== "overall_order_status"
+                      ),
+                      { node: { key: "overall_order_status", value } },
+                    ],
+                  },
+                }
+              : o
+          )
+        );
+        if (selectedOrder?.id === orderId) {
+          setSelectedOrder((prev) => ({
+            ...prev,
+            overallOrderStatus: value,
           }));
         }
       } finally {
@@ -584,6 +652,7 @@ function Extension() {
       }
     });
     const contactStatus = extractContactStatus(metafields);
+    const overallOrderStatus = extractOverallOrderStatus(metafields);
     const paymentStatus = calculatePaymentStatus(order);
     const lineItems = (order.lineItems?.edges || []).map((edge, idx) => {
       const li = edge.node;
@@ -673,7 +742,7 @@ function Extension() {
                       command="--show"
                       disabled={!!saving}
                     >
-                      {OVERALL_ORDER_STATUS_OPTIONS.includes(contactStatus) ? contactStatus : "Order Pending"}
+                      {OVERALL_ORDER_STATUS_OPTIONS.includes(overallOrderStatus) ? overallOrderStatus : "Order Pending"}
                     </s-button>
                     <s-modal id="overall-order-status-modal" heading={i18n.translate("overall_order_status")}>
                       <s-stack gap="small">
@@ -683,15 +752,15 @@ function Extension() {
                             variant="secondary"
                             commandFor="overall-order-status-modal"
                             command="--hide"
-                            onClick={() => handleUpdateContactStatus(order.id, opt)}
+                            onClick={() => handleUpdateOverallOrderStatus(order.id, opt)}
                           >
                             {opt}
                           </s-button>
                         ))}
                       </s-stack>
                     </s-modal>
-                    <s-badge tone={getTone(contactStatus, "contact")}>
-                      {OVERALL_ORDER_STATUS_OPTIONS.includes(contactStatus) ? contactStatus : "Order Pending"}
+                    <s-badge tone={getTone(overallOrderStatus, "overall")}>
+                      {OVERALL_ORDER_STATUS_OPTIONS.includes(overallOrderStatus) ? overallOrderStatus : "Order Pending"}
                     </s-badge>
                   </s-stack>
                 </s-box>
@@ -871,8 +940,9 @@ function Extension() {
                 </s-box>
                 {/* Table rows */}
                 {filteredOrders.map((order, index) => {
-                  const completed = isCompletedContactStatus(order.contactStatus);
-                  const canceled = order.contactStatus === "Order Canceled";
+                  const completed = order.overallOrderStatus === "Picked Up - Sale Complete";
+                  const canceled = order.overallOrderStatus === "Order Canceled";
+                  const orderBadgeTone = completed ? "success" : canceled ? "critical" : "warning";
                   const statusItems = (order.orderStatuses || []).length > 0
                     ? order.orderStatuses
                     : [{ title: "Item", status: "Not set" }];
@@ -891,7 +961,7 @@ function Extension() {
                         <s-box padding="base" background="subdued" minInlineSize={minTableWidth}>
                         <s-stack direction="inline" gap="small">
                           <s-box inlineSize={col.order} minInlineSize={col.order}>
-                            <s-badge tone={completed ? "success" : canceled ? "critical" : "neutral"}>
+                            <s-badge tone={orderBadgeTone}>
                               {order.name}
                             </s-badge>
                           </s-box>

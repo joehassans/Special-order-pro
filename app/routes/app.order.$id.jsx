@@ -40,6 +40,14 @@ function extractContactStatusFromMetafields(metafields) {
   return entry?.node?.value || "Not Contacted";
 }
 
+function extractOverallOrderStatusFromMetafields(metafields) {
+  if (!metafields || !metafields.edges) return "Order Pending";
+  const entry = metafields.edges.find(
+    (edge) => edge.node.key === "overall_order_status"
+  );
+  return entry?.node?.value || "Order Pending";
+}
+
 function normalizeText(text) {
   return String(text || "").toLowerCase().trim();
 }
@@ -96,6 +104,14 @@ function getContactStatusTone(status) {
   if (s.includes("spoke to customer")) return "success";
   if (s.includes("picked up") || s.includes("sale complete")) return "success";
   return "critical";
+}
+
+function getOverallOrderStatusTone(status) {
+  const s = String(status || "").toLowerCase().trim();
+  if (s.includes("order pending")) return "warning";
+  if (s.includes("picked up") || s.includes("sale complete")) return "success";
+  if (s.includes("order canceled")) return "critical";
+  return "warning";
 }
 
 function isCompletedContactStatus(status) {
@@ -287,6 +303,7 @@ export const loader = async ({ request, params }) => {
     });
 
     const contactStatus = extractContactStatusFromMetafields(metafields);
+    const overallOrderStatus = extractOverallOrderStatusFromMetafields(metafields);
 
     const normalized = {
       type: "draft",
@@ -297,6 +314,7 @@ export const loader = async ({ request, params }) => {
       tags: draftOrder.tags || [],
       note: draftOrder.note2 || "",
       contactStatus,
+      overallOrderStatus,
       subtotal: formatMoneySet(draftOrder.subtotalPriceSet),
       tax: formatMoneySet(draftOrder.totalTaxSet),
       total: formatMoneySet(draftOrder.totalPriceSet),
@@ -441,6 +459,7 @@ export const loader = async ({ request, params }) => {
     });
 
     const contactStatus = extractContactStatusFromMetafields(metafields);
+    const overallOrderStatus = extractOverallOrderStatusFromMetafields(metafields);
 
     let paid = null;
     if (
@@ -464,6 +483,7 @@ export const loader = async ({ request, params }) => {
       tags: order.tags || [],
       note: order.note || "",
       contactStatus,
+      overallOrderStatus,
       subtotal: formatMoneySet(order.subtotalPriceSet),
       tax: formatMoneySet(order.totalTaxSet),
       total: formatMoneySet(order.totalPriceSet),
@@ -627,6 +647,36 @@ export const action = async ({ request }) => {
       throw new Error(
         metaErrors.map((e) => e.message).join(", ") ||
           "Failed to update contact status."
+      );
+    }
+
+    return redirect(request.url);
+  }
+
+  if (intent === "updateOverallOrderStatus") {
+    const overallOrderStatus = formData.get("overallOrderStatus") ?? "Order Pending";
+
+    const metaResponse = await admin.graphql(METAFIELDS_SET, {
+      variables: {
+        metafields: [
+          {
+            ownerId: orderId,
+            namespace: "custom",
+            key: "overall_order_status",
+            value: String(overallOrderStatus),
+            type: "single_line_text_field",
+          },
+        ],
+      },
+    });
+
+    const metaJson = await metaResponse.json();
+    const metaErrors = metaJson.data?.metafieldsSet?.userErrors ?? [];
+
+    if (metaErrors.length > 0) {
+      throw new Error(
+        metaErrors.map((e) => e.message).join(", ") ||
+          "Failed to update overall order status."
       );
     }
 
@@ -1004,17 +1054,17 @@ export default function OrderDetails() {
               <s-select
                 value={
                   ["Order Pending", "Picked Up - Sale Complete", "Order Canceled"].includes(
-                    order.contactStatus || ""
+                    order.overallOrderStatus || ""
                   )
-                    ? order.contactStatus
+                    ? order.overallOrderStatus
                     : "Order Pending"
                 }
                 onChange={(event) => {
                   submit(
                     {
-                      intent: "updateContactStatus",
+                      intent: "updateOverallOrderStatus",
                       orderId: order.id,
-                      contactStatus: event.currentTarget.value,
+                      overallOrderStatus: event.currentTarget.value,
                     },
                     { method: "post" }
                   );
@@ -1026,11 +1076,11 @@ export default function OrderDetails() {
                 </s-option>
                 <s-option value="Order Canceled">Order Canceled</s-option>
               </s-select>
-              <s-badge tone={getContactStatusTone(order.contactStatus)}>
+              <s-badge tone={getOverallOrderStatusTone(order.overallOrderStatus)}>
                 {["Order Pending", "Picked Up - Sale Complete", "Order Canceled"].includes(
-                  order.contactStatus || ""
+                  order.overallOrderStatus || ""
                 )
-                  ? order.contactStatus
+                  ? order.overallOrderStatus
                   : "Order Pending"}
               </s-badge>
             </s-stack>
