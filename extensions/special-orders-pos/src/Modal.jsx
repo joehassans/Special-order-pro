@@ -53,7 +53,7 @@ const COL_IPAD = {
 const MIN_TABLE_MOBILE = "755px";
 const MIN_TABLE_IPAD = "955px";
 
-const ROW_SEPARATOR = "\u2014".repeat(120);
+const ROW_SEPARATOR = "\u2014".repeat(72);
 
 const FILTER_OPTIONS = [
   { value: "", labelKey: "all_statuses" },
