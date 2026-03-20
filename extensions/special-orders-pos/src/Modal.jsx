@@ -78,6 +78,24 @@ function getFilterLabel(value, i18n) {
     : i18n.translate("all_statuses");
 }
 
+function formatUsPhone(phone) {
+  if (!phone) return "";
+  const digits = String(phone).replace(/\D/g, "");
+  if (digits.length === 10) {
+    const area = digits.slice(0, 3);
+    const prefix = digits.slice(3, 6);
+    const line = digits.slice(6);
+    return `+1 (${area}) ${prefix}-${line}`;
+  }
+  if (digits.length === 11 && digits.startsWith("1")) {
+    const area = digits.slice(1, 4);
+    const prefix = digits.slice(4, 7);
+    const line = digits.slice(7);
+    return `+1 (${area}) ${prefix}-${line}`;
+  }
+  return phone;
+}
+
 function graphql(query, variables = {}) {
   return fetch("shopify:admin/api/graphql.json", {
     method: "POST",
@@ -924,7 +942,7 @@ function Extension() {
                       <s-text color="subdued" type="small">{order.customer.email}</s-text>
                     )}
                     {order.customer?.phone && (
-                      <s-text color="subdued" type="small">{order.customer.phone}</s-text>
+                      <s-text type="strong">{formatUsPhone(order.customer.phone)}</s-text>
                     )}
                   </s-stack>
                 </s-box>
