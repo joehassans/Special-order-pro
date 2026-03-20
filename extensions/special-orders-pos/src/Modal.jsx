@@ -1226,11 +1226,11 @@ function Extension() {
                             {order.name}
                           </s-badge>
                           <s-stack direction="inline" gap="small">
-                            <s-text type="strong" tone="neutral" color="subdued">{i18n.translate("customer")}</s-text>
+                            <s-text type="strong" tone="info">{i18n.translate("customer")}</s-text>
                             <s-text>{order.customerName}</s-text>
                           </s-stack>
                           <s-stack direction="inline" gap="small">
-                            <s-text type="strong" tone="neutral" color="subdued">{i18n.translate("column_order_status")}</s-text>
+                            <s-text type="strong" tone="info">{i18n.translate("column_order_status")}</s-text>
                             <s-stack direction="block" gap="small-300">
                               {statusItems.map((item, i) => {
                                 const title = typeof item === "object" && item != null ? item.title : "Item";
@@ -1245,13 +1245,13 @@ function Extension() {
                             </s-stack>
                           </s-stack>
                           <s-stack direction="inline" gap="small">
-                            <s-text type="strong" tone="neutral" color="subdued">{i18n.translate("payment_status")}</s-text>
+                            <s-text type="strong" tone="info">{i18n.translate("payment_status")}</s-text>
                             <s-badge tone={getTone(order.paymentStatus, "payment")}>
                               {order.paymentStatus}
                             </s-badge>
                           </s-stack>
                           <s-stack direction="inline" gap="small">
-                            <s-text type="strong" tone="neutral" color="subdued">{i18n.translate("contact_status")}</s-text>
+                            <s-text type="strong" tone="info">{i18n.translate("contact_status")}</s-text>
                             <s-badge tone={getTone(order.contactStatus, "contact")}>
                               {order.contactStatus || "Not Contacted"}
                             </s-badge>
