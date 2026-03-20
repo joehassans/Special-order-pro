@@ -1378,7 +1378,7 @@ function Extension() {
                           </s-box>
                           <s-box inlineSize={col.status} minInlineSize={col.status}>
                             <s-stack direction="inline" gap="small-300">
-                              {statusItems.slice(0, 5).map((item, i) => {
+                              {statusItems.map((item, i) => {
                                 const title = typeof item === "object" && item != null ? item.title : "Item";
                                 const status = typeof item === "object" && item != null ? item.status : item;
                                 const label = `${title} - ${String(status ?? "Not set").trim() || "Not set"}`;
@@ -1388,9 +1388,6 @@ function Extension() {
                                   </s-badge>
                                 );
                               })}
-                              {statusItems.length > 5 && (
-                                <s-badge tone="info">+{statusItems.length - 5}</s-badge>
-                              )}
                             </s-stack>
                           </s-box>
                           <s-box inlineSize={col.payment} minInlineSize={col.payment}>
