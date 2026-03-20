@@ -748,15 +748,15 @@ function Extension() {
           : order.note;
 
     const getNoteRows = (text) => {
-      const t = text || "";
-      if (!t) return 3;
+      const t = (text || "").trim();
+      if (!t) return 1;
       const lines = t.split("\n");
       const charsPerLine = 50;
       let rows = 0;
       for (const line of lines) {
         rows += Math.max(1, Math.ceil(line.length / charsPerLine));
       }
-      return Math.min(12, Math.max(3, rows + 1));
+      return Math.min(12, Math.max(1, rows));
     };
     const metafields = order.metafields || { edges: [] };
     const attrsByIndex = {};
