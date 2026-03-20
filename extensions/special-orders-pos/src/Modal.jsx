@@ -1082,7 +1082,7 @@ function Extension() {
                         <s-text color="subdued">{item.variantTitle}</s-text>
                       )}
                       <s-stack gap="small">
-                        <s-text type="bodySmall">{i18n.translate("order_status")}</s-text>
+                        <s-text type="bodySmall">{i18n.translate("item_order_status")}</s-text>
                         <s-box inlineSize="100%">
                           <s-stack gap="small">
                             <s-button
@@ -1094,7 +1094,7 @@ function Extension() {
                             >
                               {ORDER_STATUS_OPTIONS.includes(item.orderStatus) ? item.orderStatus : "Not Ordered"}
                             </s-button>
-                            <s-modal id={`order-status-modal-${item.id}`} heading={i18n.translate("order_status")}>
+                            <s-modal id={`order-status-modal-${item.id}`} heading={i18n.translate("item_order_status")}>
                               <s-stack gap="base">
                                 {ORDER_STATUS_OPTIONS.map((opt) => (
                                   <s-button

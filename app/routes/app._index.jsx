@@ -599,7 +599,7 @@ export default function Index() {
               Customer
             </s-table-header>
             <s-table-header id="header-status" listSlot="labeled">
-              Order Status
+              Item Order Status
             </s-table-header>
             <s-table-header id="header-payment" listSlot="labeled">
               Payment Status

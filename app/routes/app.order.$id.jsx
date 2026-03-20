@@ -1208,10 +1208,10 @@ export default function OrderDetails() {
                           </s-text>
                         )}
 
-                        {/* ORDER STATUS - right under title */}
+                        {/* ITEM ORDER STATUS - right under title */}
                         <s-stack gap="small" style={{ paddingTop: "1rem" }}>
                           <s-heading size="large" style={{ fontSize: "1.5rem" }}>
-                            ORDER STATUS
+                            ITEM ORDER STATUS
                           </s-heading>
                           {(() => {
                             const colors = getOrderStatusWrapperColors(
