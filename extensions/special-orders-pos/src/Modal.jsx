@@ -786,6 +786,7 @@ function Extension() {
                     )}
                   </s-stack>
                 </s-box>
+                <s-stack direction="inline" gap="100px" blockSize="auto">
                 <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
                     <s-text type="strong">{i18n.translate("contact_status")}</s-text>
@@ -888,6 +889,7 @@ function Extension() {
                     })()}
                   </s-stack>
                 </s-box>
+                </s-stack>
               </s-stack>
 
               {/* Note */}
