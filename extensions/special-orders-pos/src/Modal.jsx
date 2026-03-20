@@ -285,6 +285,8 @@ const LIST_QUERY = `
             edges {
               node {
                 id title variantTitle
+                quantity
+                originalUnitPriceSet { shopMoney { amount currencyCode } }
                 customAttributes { key value }
               }
             }
@@ -307,6 +309,8 @@ const LIST_QUERY = `
             edges {
               node {
                 id title
+                quantity
+                originalUnitPriceSet { shopMoney { amount currencyCode } }
                 variant { title }
                 customAttributes { key value }
               }
@@ -747,11 +751,16 @@ function Extension() {
         idx,
         overrides || li.customAttributes
       );
+      const priceSet = li.originalUnitPriceSet?.shopMoney;
+      const priceLabel = priceSet
+        ? `${priceSet.currencyCode} ${parseFloat(priceSet.amount).toFixed(2)}`
+        : null;
       return {
         id: li.id,
         title: li.title,
         variantTitle: li.variant?.title ?? li.variantTitle,
         quantity: li.quantity,
+        priceLabel,
         customAttributes: attrs,
         orderStatus: orderStatus || "Not Ordered",
         rawAttributes: overrides || li.customAttributes || [],
@@ -1101,6 +1110,9 @@ function Extension() {
                         />
                       </s-stack>
                     ))}
+                    {!isTablet && item.priceLabel && (
+                      <s-text type="strong">{item.priceLabel}</s-text>
+                    )}
                   </s-stack>
                 </s-box>
               ))}
