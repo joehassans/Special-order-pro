@@ -1048,73 +1048,76 @@ function Extension() {
               {/* Line Items */}
               <s-text type="strong">{i18n.translate("line_items")}</s-text>
               {lineItems.map((item, idx) => (
-                <s-box
-                  key={item.id}
-                  padding="base"
-                  borderRadius="base"
-                  borderWidth="base"
-                  background="subdued"
-                >
-                  <s-stack gap="small">
-                    <s-text type="strong">{item.title}</s-text>
-                    {item.variantTitle && (
-                      <s-text color="subdued">{item.variantTitle}</s-text>
-                    )}
+                <Fragment key={item.id}>
+                  <s-divider />
+                  <s-box
+                    padding="base"
+                    borderRadius="base"
+                    borderWidth="base"
+                    background="subdued"
+                  >
                     <s-stack gap="small">
-                      <s-text type="bodySmall">{i18n.translate("order_status")}</s-text>
-                      <s-box inlineSize="100%">
-                        <s-stack gap="small">
-                          <s-button
-                            variant="secondary"
-                            commandFor={`order-status-modal-${item.id}`}
-                            command="--show"
-                            disabled={!!saving}
-                          >
-                            {ORDER_STATUS_OPTIONS.includes(item.orderStatus) ? item.orderStatus : "Not Ordered"}
-                          </s-button>
-                          <s-modal id={`order-status-modal-${item.id}`} heading={i18n.translate("order_status")}>
-                            <s-stack gap="base">
-                              {ORDER_STATUS_OPTIONS.map((opt) => (
-                                <s-button
-                                  key={opt}
-                                  variant="secondary"
-                                  commandFor={`order-status-modal-${item.id}`}
-                                  command="--hide"
-                                  onClick={() => handleUpdateOrderStatus(order.id, item.id, opt)}
-                                >
-                                  {opt}
-                                </s-button>
-                              ))}
-                            </s-stack>
-                          </s-modal>
-                          <s-box inlineSize="100%" padding="base" borderRadius="base" background="subdued">
-                            <s-heading size="large">{item.orderStatus}</s-heading>
-                          </s-box>
-                        </s-stack>
-                      </s-box>
-                    </s-stack>
-                    {item.customAttributes.map((attr) => (
-                      <s-stack key={attr.key} gap="small-300">
-                        <s-text type="bodySmall">{attr.key}</s-text>
-                        <s-text-field
-                          value={attr.value}
-                          onBlur={(e) => {
-                            const newVal = e.currentTarget.value;
-                            const newAttrs = item.customAttributes.map((a) => ({
-                              key: a.key,
-                              value: a.key === attr.key ? newVal : a.value,
-                            }));
-                            handleUpdateAttributes(order.id, idx, newAttrs);
-                          }}
-                          disabled={!!saving}
-                        />
+                      <s-text type="strong">{item.title}</s-text>
+                      {item.variantTitle && (
+                        <s-text color="subdued">{item.variantTitle}</s-text>
+                      )}
+                      <s-stack gap="small">
+                        <s-text type="bodySmall">{i18n.translate("order_status")}</s-text>
+                        <s-box inlineSize="100%">
+                          <s-stack gap="small">
+                            <s-button
+                              variant="secondary"
+                              commandFor={`order-status-modal-${item.id}`}
+                              command="--show"
+                              disabled={!!saving}
+                            >
+                              {ORDER_STATUS_OPTIONS.includes(item.orderStatus) ? item.orderStatus : "Not Ordered"}
+                            </s-button>
+                            <s-modal id={`order-status-modal-${item.id}`} heading={i18n.translate("order_status")}>
+                              <s-stack gap="base">
+                                {ORDER_STATUS_OPTIONS.map((opt) => (
+                                  <s-button
+                                    key={opt}
+                                    variant="secondary"
+                                    commandFor={`order-status-modal-${item.id}`}
+                                    command="--hide"
+                                    onClick={() => handleUpdateOrderStatus(order.id, item.id, opt)}
+                                  >
+                                    {opt}
+                                  </s-button>
+                                ))}
+                              </s-stack>
+                            </s-modal>
+                            <s-box inlineSize="100%" padding="base" borderRadius="base" background="subdued">
+                              <s-heading size="large">{item.orderStatus}</s-heading>
+                            </s-box>
+                          </s-stack>
+                        </s-box>
                       </s-stack>
-                    ))}
-                    {!isTablet && item.priceLabel && (
-                      <s-text type="strong">{item.priceLabel}</s-text>
-                    )}
-                  </s-stack>
-                </s-box>
+                      {item.customAttributes.map((attr) => (
+                        <s-stack key={attr.key} gap="small-300">
+                          <s-text type="bodySmall">{attr.key}</s-text>
+                          <s-text-field
+                            value={attr.value}
+                            onBlur={(e) => {
+                              const newVal = e.currentTarget.value;
+                              const newAttrs = item.customAttributes.map((a) => ({
+                                key: a.key,
+                                value: a.key === attr.key ? newVal : a.value,
+                              }));
+                              handleUpdateAttributes(order.id, idx, newAttrs);
+                            }}
+                            disabled={!!saving}
+                          />
+                        </s-stack>
+                      ))}
+                      {!isTablet && item.priceLabel && (
+                        <s-text type="strong">{item.priceLabel}</s-text>
+                      )}
+                    </s-stack>
+                  </s-box>
+                  <s-divider />
+                </Fragment>
               ))}
 
               {saving && (
