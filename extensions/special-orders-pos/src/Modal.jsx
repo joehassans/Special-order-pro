@@ -1222,9 +1222,7 @@ function Extension() {
                     <Fragment key={order.id}>
                       <s-box padding="base" borderRadius="base" background="subdued">
                         <s-stack gap="base">
-                          <s-badge tone={orderBadgeTone}>
-                            {order.name}
-                          </s-badge>
+                          <s-banner tone={orderBadgeTone} heading={order.name} />
                           <s-heading>{order.customerName}</s-heading>
                           <s-stack direction="inline" gap="small">
                             <s-text type="strong">{i18n.translate("column_order_status")}</s-text>
