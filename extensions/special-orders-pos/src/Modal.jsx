@@ -771,9 +771,8 @@ function Extension() {
               </s-button>
 
               {/* Customer, Contact Status, Overall Order Status, Payment Status - side by side cards */}
-              <s-stack direction="inline" gap="small" blockSize="auto">
-                <div style={{ backgroundColor: "#f4f6f8", border: "1px solid #d1d5db", borderRadius: "8px", padding: "12px", minWidth: "220px" }}>
-                  <s-box padding="none" inlineSize="220px">
+              <s-stack direction="inline" gap="base" blockSize="auto">
+                <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
                     <s-text type="strong">{i18n.translate("customer_information")}</s-text>
                     <s-text>
@@ -786,10 +785,8 @@ function Extension() {
                       <s-text color="subdued" type="small">{order.customer.phone}</s-text>
                     )}
                   </s-stack>
-                  </s-box>
-                </div>
-                <div style={{ backgroundColor: "#f4f6f8", border: "1px solid #d1d5db", borderRadius: "8px", padding: "12px", minWidth: "220px" }}>
-                  <s-box padding="none" inlineSize="220px">
+                </s-box>
+                <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
                     <s-text type="strong">{i18n.translate("contact_status")}</s-text>
                     <s-button
@@ -819,10 +816,8 @@ function Extension() {
                       {CONTACT_STATUS_OPTIONS.includes(contactStatus) ? contactStatus : ""}
                     </s-badge>
                   </s-stack>
-                  </s-box>
-                </div>
-                <div style={{ backgroundColor: "#f4f6f8", border: "1px solid #d1d5db", borderRadius: "8px", padding: "12px", minWidth: "220px" }}>
-                  <s-box padding="none" inlineSize="220px">
+                </s-box>
+                <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
                     <s-text type="strong">{i18n.translate("overall_order_status")}</s-text>
                     <s-button
@@ -852,10 +847,8 @@ function Extension() {
                       {OVERALL_ORDER_STATUS_OPTIONS.includes(overallOrderStatus) ? overallOrderStatus : "Order Pending"}
                     </s-badge>
                   </s-stack>
-                  </s-box>
-                </div>
-                <div style={{ backgroundColor: "#f4f6f8", border: "1px solid #d1d5db", borderRadius: "8px", padding: "12px", minWidth: "220px" }}>
-                  <s-box padding="none" inlineSize="220px">
+                </s-box>
+                <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
                     <s-text type="strong">{i18n.translate("payment_status")}</s-text>
                     <s-badge tone={getTone(paymentStatus, "payment")}>
@@ -894,8 +887,7 @@ function Extension() {
                       );
                     })()}
                   </s-stack>
-                  </s-box>
-                </div>
+                </s-box>
               </s-stack>
 
               {/* Note */}
