@@ -919,9 +919,7 @@ function Extension() {
                 <s-box padding="base" inlineSize="300px" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
                     <s-text type="strong">{i18n.translate("customer_information")}</s-text>
-                    <s-text>
-                      {order.customer?.displayName || "No customer"}
-                    </s-text>
+                    <s-heading>{order.customer?.displayName || "No customer"}</s-heading>
                     {order.customer?.email && (
                       <s-text color="subdued" type="small">{order.customer.email}</s-text>
                     )}
