@@ -998,7 +998,9 @@ function Extension() {
             {/* Filters section - search + dropdown */}
             <s-box padding="base" borderRadius="base" background="subdued">
               <s-stack gap="base">
-                <s-text type="strong">{i18n.translate("filters_heading")}</s-text>
+                {isTablet && (
+                  <s-text type="strong">{i18n.translate("filters_heading")}</s-text>
+                )}
                 <s-text-field
                   label={i18n.translate("search")}
                   value={searchTerm}
