@@ -36,6 +36,7 @@
   "column_contact": "Contact",
   "column_actions": "Actions",
   "column_created": "Created",
+  "date_created": "Date Created",
   "view_details": "View Details",
   "refresh": "Refresh"
 }

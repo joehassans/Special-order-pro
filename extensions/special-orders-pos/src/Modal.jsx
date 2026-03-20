@@ -1075,7 +1075,7 @@ function Extension() {
                           <s-stack direction="inline" gap="small">
                             <s-text type="strong">{i18n.translate("column_order_status")}</s-text>
                             <s-stack direction="block" gap="small-300">
-                              {statusItems.slice(0, 2).map((item, i) => {
+                              {statusItems.map((item, i) => {
                                 const title = typeof item === "object" && item != null ? item.title : "Item";
                                 const status = typeof item === "object" && item != null ? item.status : item;
                                 const label = `${title} - ${String(status ?? "Not set").trim() || "Not set"}`;
@@ -1085,9 +1085,6 @@ function Extension() {
                                   </s-badge>
                                 );
                               })}
-                              {statusItems.length > 2 && (
-                                <s-badge tone="info">+{statusItems.length - 2}</s-badge>
-                              )}
                             </s-stack>
                           </s-stack>
                           <s-stack direction="inline" gap="small">
@@ -1102,24 +1099,21 @@ function Extension() {
                               {order.contactStatus || "Not Contacted"}
                             </s-badge>
                           </s-stack>
+                          <s-button
+                            variant="secondary"
+                            onClick={() => {
+                              setSelectedOrder(order);
+                              setLocalNote(
+                                order.id?.includes("DraftOrder")
+                                  ? order.note2 || ""
+                                  : order.note || ""
+                              );
+                            }}
+                          >
+                            {i18n.translate("view_details")}
+                          </s-button>
                           <s-stack direction="inline" gap="small">
-                            <s-text type="strong">{i18n.translate("column_actions")}</s-text>
-                            <s-button
-                              variant="secondary"
-                              onClick={() => {
-                                setSelectedOrder(order);
-                                setLocalNote(
-                                  order.id?.includes("DraftOrder")
-                                    ? order.note2 || ""
-                                    : order.note || ""
-                                );
-                              }}
-                            >
-                              {i18n.translate("view_details")}
-                            </s-button>
-                          </s-stack>
-                          <s-stack direction="inline" gap="small">
-                            <s-box inlineSize="100%" />
+                            <s-text type="strong">{i18n.translate("date_created")}</s-text>
                             <s-text color="subdued" type="small">{order.createdDateLabel || ""}</s-text>
                           </s-stack>
                         </s-stack>
