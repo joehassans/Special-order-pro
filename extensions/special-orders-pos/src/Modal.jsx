@@ -1154,8 +1154,13 @@ function Extension() {
                           />
                         </s-stack>
                       ))}
-                      {!isTablet && item.priceLabel && (
-                        <s-text type="strong">{item.priceLabel}</s-text>
+                      {!isTablet && (
+                        <s-stack gap="small-300">
+                          <s-text type="strong">{i18n.translate("quantity")}: {item.quantity}</s-text>
+                          {item.priceLabel && (
+                            <s-text type="strong">{item.priceLabel}</s-text>
+                          )}
+                        </s-stack>
                       )}
                     </s-stack>
                   </s-box>
