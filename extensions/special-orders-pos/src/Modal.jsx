@@ -951,10 +951,8 @@ function Extension() {
                               ))}
                             </s-stack>
                           </s-modal>
-                          <s-box inlineSize="100%" padding="large-500">
-                            <s-badge tone={getTone(item.orderStatus, "order")}>
-                              {item.orderStatus}
-                            </s-badge>
+                          <s-box inlineSize="100%" padding="base" borderRadius="base" background="subdued">
+                            <s-heading size="large">{item.orderStatus}</s-heading>
                           </s-box>
                         </s-stack>
                       </s-box>
