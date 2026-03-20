@@ -798,9 +798,7 @@ function Extension() {
                   <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
                     <s-stack gap="small">
                       <s-text type="strong">{i18n.translate("customer_information")}</s-text>
-                      <s-text>
-                        {order.customer?.displayName || "No customer"}
-                      </s-text>
+                      <s-heading>{order.customer?.displayName || "No customer"}</s-heading>
                       {order.customer?.email && (
                         <s-text color="subdued" type="small">{order.customer.email}</s-text>
                       )}
@@ -836,9 +834,10 @@ function Extension() {
                         ))}
                       </s-stack>
                     </s-modal>
-                    <s-badge tone={getTone(contactStatus, "contact")}>
-                      {CONTACT_STATUS_OPTIONS.includes(contactStatus) ? contactStatus : ""}
-                    </s-badge>
+                    <s-banner
+                      tone={getTone(contactStatus, "contact") === "subdued" || getTone(contactStatus, "contact") === "neutral" ? "auto" : getTone(contactStatus, "contact")}
+                      heading={CONTACT_STATUS_OPTIONS.includes(contactStatus) ? contactStatus : ""}
+                    />
                   </s-stack>
                 </s-box>
                 <s-divider />
@@ -868,18 +867,20 @@ function Extension() {
                         ))}
                       </s-stack>
                     </s-modal>
-                    <s-badge tone={getTone(overallOrderStatus, "overall")}>
-                      {OVERALL_ORDER_STATUS_OPTIONS.includes(overallOrderStatus) ? overallOrderStatus : "Order Pending"}
-                    </s-badge>
+                    <s-banner
+                      tone={getTone(overallOrderStatus, "overall") === "subdued" || getTone(overallOrderStatus, "overall") === "neutral" ? "auto" : getTone(overallOrderStatus, "overall")}
+                      heading={OVERALL_ORDER_STATUS_OPTIONS.includes(overallOrderStatus) ? overallOrderStatus : "Order Pending"}
+                    />
                   </s-stack>
                 </s-box>
                 <s-divider />
                 <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
                     <s-text type="strong">{i18n.translate("payment_status")}</s-text>
-                    <s-badge tone={getTone(paymentStatus, "payment")}>
-                      {paymentStatus}
-                    </s-badge>
+                    <s-banner
+                      tone={getTone(paymentStatus, "payment") === "subdued" || getTone(paymentStatus, "payment") === "neutral" ? "auto" : getTone(paymentStatus, "payment")}
+                      heading={paymentStatus}
+                    />
                     {(() => {
                       const details = getPaymentDetails(order);
                       return (
