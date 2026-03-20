@@ -1036,7 +1036,6 @@ function Extension() {
                   />
                 </s-stack>
               </s-box>
-              </s-stack>
 
               {/* Line Items */}
               <s-text type="strong">{i18n.translate("line_items")}</s-text>
