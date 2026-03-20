@@ -916,8 +916,9 @@ function Extension() {
               ) : (
                 /* iPad: side by side layout - dividers between cards */
               <s-stack direction="inline" gap="50px" blockSize="auto">
-                <s-section heading={i18n.translate("customer_information")}>
+                <s-box padding="base" inlineSize="300px" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
+                    <s-text type="strong">{i18n.translate("customer_information")}</s-text>
                     <s-text>
                       {order.customer?.displayName || "No customer"}
                     </s-text>
@@ -928,7 +929,7 @@ function Extension() {
                       <s-text color="subdued" type="small">{order.customer.phone}</s-text>
                     )}
                   </s-stack>
-                </s-section>
+                </s-box>
                 <s-divider />
                 <s-stack direction="inline" gap="100px" blockSize="auto">
                 <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
