@@ -59,15 +59,16 @@ const MIN_TABLE_IPAD = "955px";
 
 const ROW_SEPARATOR = "\u2014".repeat(72);
 
+// Same order and names as admin interface
 const FILTER_OPTIONS = [
   { value: "", labelKey: "all_statuses" },
+  { value: "Picked Up - Sale Complete", label: "Picked Up - Sale Complete" },
+  { value: "Order Canceled", label: "Order Canceled" },
   { value: "open", labelKey: "filter_open" },
   { value: "Not Ordered", label: "Not Ordered" },
   { value: "Ordered", label: "Ordered" },
   { value: "Back Ordered", label: "Back Ordered" },
   { value: "Received", label: "Received" },
-  { value: "Picked Up - Sale Complete", label: "Picked Up - Sale Complete" },
-  { value: "Order Canceled", label: "Order Canceled" },
 ];
 
 function getFilterLabel(value, i18n) {
@@ -326,37 +327,66 @@ function Extension() {
 
   const filteredOrders = useMemo(() => {
     let result = normalizedOrders;
+
+    // Search: match customer name, order number, or product name (same as admin)
     if (searchTerm?.trim()) {
       const term = searchTerm.trim().toLowerCase();
-      result = result.filter(
-        (o) =>
-          o.customerName?.toLowerCase().includes(term) ||
-          o.name?.toLowerCase().includes(term) ||
-          o.productTitles?.some((t) => t?.toLowerCase().includes(term))
-      );
+      result = result.filter((order) => {
+        if (
+          order.customerName &&
+          String(order.customerName).toLowerCase().includes(term)
+        )
+          return true;
+        if (order.name && String(order.name).toLowerCase().includes(term))
+          return true;
+        const statuses = order.orderStatuses || [];
+        const hasMatchingProduct = statuses.some((item) => {
+          const title =
+            typeof item === "object" && item != null ? item.title : "";
+          return title && String(title).toLowerCase().includes(term);
+        });
+        return hasMatchingProduct;
+      });
     }
+
+    // Status filter: same logic as admin
     if (statusFilter) {
       if (statusFilter === "Picked Up - Sale Complete") {
-        result = result.filter((o) => o.overallOrderStatus === "Picked Up - Sale Complete");
+        result = result.filter(
+          (order) =>
+            order.overallOrderStatus === "Picked Up - Sale Complete"
+        );
       } else if (statusFilter === "Order Canceled") {
-        result = result.filter((o) => o.overallOrderStatus === "Order Canceled");
+        result = result.filter(
+          (order) => order.overallOrderStatus === "Order Canceled"
+        );
       } else if (statusFilter === "open") {
-        result = result.filter((o) => {
-          if (o.overallOrderStatus === "Picked Up - Sale Complete") return false;
-          if (o.overallOrderStatus === "Order Canceled") return false;
-          return o.orderStatuses?.some((item) =>
-            OPEN_STATUSES.includes(item.status)
-          );
+        result = result.filter((order) => {
+          if (order.overallOrderStatus === "Picked Up - Sale Complete")
+            return false;
+          if (order.overallOrderStatus === "Order Canceled") return false;
+          const statuses = order.orderStatuses || [];
+          return statuses.some((item) => {
+            const status =
+              typeof item === "object" && item != null ? item.status : item;
+            return status && OPEN_STATUSES.includes(status);
+          });
         });
       } else {
-        result = result.filter((o) =>
-          o.orderStatuses?.some((item) => {
-            const status = typeof item === "object" ? item.status : item;
-            return status && status.toLowerCase() === statusFilter.toLowerCase();
-          })
-        );
+        result = result.filter((order) => {
+          const statuses = order.orderStatuses || [];
+          return statuses.some((item) => {
+            const status =
+              typeof item === "object" && item != null ? item.status : item;
+            return (
+              status &&
+              String(status).toLowerCase() === statusFilter.toLowerCase()
+            );
+          });
+        });
       }
     }
+
     return result;
   }, [normalizedOrders, searchTerm, statusFilter]);
 
