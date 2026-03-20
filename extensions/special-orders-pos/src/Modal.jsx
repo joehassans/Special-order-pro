@@ -1070,11 +1070,7 @@ function Extension() {
                     background="subdued"
                   >
                     <s-stack gap="small">
-                      {!isTablet ? (
-                        <s-heading>{item.title}</s-heading>
-                      ) : (
-                        <s-text type="strong">{item.title}</s-text>
-                      )}
+                      <s-heading>{item.title}</s-heading>
                       {item.variantTitle && (
                         <s-text color="subdued">{item.variantTitle}</s-text>
                       )}
