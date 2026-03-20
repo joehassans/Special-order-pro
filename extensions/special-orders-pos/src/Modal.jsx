@@ -1096,9 +1096,10 @@ function Extension() {
                                 ))}
                               </s-stack>
                             </s-modal>
-                            <s-box inlineSize="100%" padding="base" borderRadius="base" background="subdued">
-                              <s-heading size="large">{item.orderStatus}</s-heading>
-                            </s-box>
+                            <s-banner
+                              tone={getTone(item.orderStatus, "order") === "subdued" ? "auto" : getTone(item.orderStatus, "order")}
+                              heading={ORDER_STATUS_OPTIONS.includes(item.orderStatus) ? item.orderStatus : "Not Ordered"}
+                            />
                           </s-stack>
                         </s-box>
                       </s-stack>
