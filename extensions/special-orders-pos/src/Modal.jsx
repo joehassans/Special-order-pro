@@ -267,6 +267,14 @@ function getTone(status, type) {
   return "subdued";
 }
 
+function getOrderButtonTone(status) {
+  const t = getTone(status, "order");
+  if (t === "critical") return "critical";
+  if (t === "info") return "neutral";
+  if (t === "success") return "neutral";
+  return "auto";
+}
+
 const LIST_QUERY = `
   query GetSpecialOrders($query: String) {
     orders(first: 50, query: $query, sortKey: CREATED_AT, reverse: true) {
@@ -1075,6 +1083,7 @@ function Extension() {
                           <s-stack gap="small">
                             <s-button
                               variant="secondary"
+                              tone={getOrderButtonTone(item.orderStatus)}
                               commandFor={`order-status-modal-${item.id}`}
                               command="--show"
                               disabled={!!saving}
