@@ -773,8 +773,132 @@ function Extension() {
                 ← {i18n.translate("back")}
               </s-button>
 
-              {/* Customer, Contact Status, Overall Order Status, Payment Status - side by side cards */}
+              {/* Customer, Contact Status, Overall Order Status, Payment Status */}
               <s-stack gap="10px" blockSize="auto">
+              {!isTablet ? (
+                /* iPhone: Customer info as full-width block above status cards */
+                <s-stack gap="10px" blockSize="auto">
+                  <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
+                    <s-stack gap="small">
+                      <s-text type="strong">{i18n.translate("customer_information")}</s-text>
+                      <s-text>
+                        {order.customer?.displayName || "No customer"}
+                      </s-text>
+                      {order.customer?.email && (
+                        <s-text color="subdued" type="small">{order.customer.email}</s-text>
+                      )}
+                      {order.customer?.phone && (
+                        <s-text color="subdued" type="small">{order.customer.phone}</s-text>
+                      )}
+                    </s-stack>
+                  </s-box>
+                  <s-stack direction="inline" gap="100px" blockSize="auto">
+                <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
+                  <s-stack gap="small">
+                    <s-text type="strong">{i18n.translate("contact_status")}</s-text>
+                    <s-button
+                      variant="secondary"
+                      commandFor="contact-status-modal"
+                      command="--show"
+                      disabled={!!saving}
+                    >
+                      {CONTACT_STATUS_OPTIONS.includes(contactStatus) ? contactStatus : i18n.translate("select")}
+                    </s-button>
+                    <s-modal id="contact-status-modal" heading={i18n.translate("contact_status")}>
+                      <s-stack gap="small">
+                        {CONTACT_STATUS_OPTIONS.map((opt) => (
+                          <s-button
+                            key={opt}
+                            variant="secondary"
+                            commandFor="contact-status-modal"
+                            command="--hide"
+                            onClick={() => handleUpdateContactStatus(order.id, opt)}
+                          >
+                            {opt}
+                          </s-button>
+                        ))}
+                      </s-stack>
+                    </s-modal>
+                    <s-badge tone={getTone(contactStatus, "contact")}>
+                      {CONTACT_STATUS_OPTIONS.includes(contactStatus) ? contactStatus : ""}
+                    </s-badge>
+                  </s-stack>
+                </s-box>
+                <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
+                  <s-stack gap="small">
+                    <s-text type="strong">{i18n.translate("overall_order_status")}</s-text>
+                    <s-button
+                      variant="secondary"
+                      commandFor="overall-order-status-modal"
+                      command="--show"
+                      disabled={!!saving}
+                    >
+                      {OVERALL_ORDER_STATUS_OPTIONS.includes(overallOrderStatus) ? overallOrderStatus : "Order Pending"}
+                    </s-button>
+                    <s-modal id="overall-order-status-modal" heading={i18n.translate("overall_order_status")}>
+                      <s-stack gap="small">
+                        {OVERALL_ORDER_STATUS_OPTIONS.map((opt) => (
+                          <s-button
+                            key={opt}
+                            variant="secondary"
+                            commandFor="overall-order-status-modal"
+                            command="--hide"
+                            onClick={() => handleUpdateOverallOrderStatus(order.id, opt)}
+                          >
+                            {opt}
+                          </s-button>
+                        ))}
+                      </s-stack>
+                    </s-modal>
+                    <s-badge tone={getTone(overallOrderStatus, "overall")}>
+                      {OVERALL_ORDER_STATUS_OPTIONS.includes(overallOrderStatus) ? overallOrderStatus : "Order Pending"}
+                    </s-badge>
+                  </s-stack>
+                </s-box>
+                <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
+                  <s-stack gap="small">
+                    <s-text type="strong">{i18n.translate("payment_status")}</s-text>
+                    <s-badge tone={getTone(paymentStatus, "payment")}>
+                      {paymentStatus}
+                    </s-badge>
+                    {(() => {
+                      const details = getPaymentDetails(order);
+                      return (
+                        <>
+                          {details.subtotal && (
+                            <s-text color="subdued" type="small">
+                              {i18n.translate("subtotal")}: {details.subtotal}
+                            </s-text>
+                          )}
+                          {details.tax && (
+                            <s-text color="subdued" type="small">
+                              {i18n.translate("tax")}: {details.tax}
+                            </s-text>
+                          )}
+                          {details.total && (
+                            <s-text color="subdued" type="small">
+                              {i18n.translate("total")}: {details.total}
+                            </s-text>
+                          )}
+                          {details.outstanding && (
+                            <s-text color="subdued" type="small">
+                              {i18n.translate("balance")}: {details.outstanding}
+                            </s-text>
+                          )}
+                          {details.paid && (
+                            <s-text color="subdued" type="small">
+                              {i18n.translate("paid")}: {details.paid}
+                            </s-text>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </s-stack>
+                </s-box>
+                </s-stack>
+                </s-stack>
+              ) : (
+                /* iPad: side by side layout */
               <s-stack direction="inline" gap="50px" blockSize="auto">
                 <s-box padding="base" inlineSize="325px" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
@@ -894,6 +1018,8 @@ function Extension() {
                   </s-stack>
                 </s-box>
                 </s-stack>
+              </s-stack>
+              )}
               </s-stack>
 
               {/* Note - 10px gap above */}
