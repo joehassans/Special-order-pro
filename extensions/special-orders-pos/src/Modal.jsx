@@ -441,26 +441,28 @@ function Extension() {
     return result;
   }, [normalizedOrders, searchTerm, statusFilter]);
 
-  useEffect(() => {
-    async function fetchOrders() {
-      try {
-        const data = await graphql(LIST_QUERY, {
-          query: `tag:${SPECIAL_ORDER_TAG}`,
-        });
-        const orderNodes = data?.data?.orders?.edges?.map((e) => e.node) ?? [];
-        let draftNodes =
-          data?.data?.draftOrders?.edges?.map((e) => e.node) ?? [];
-        draftNodes = draftNodes.filter((d) => d.status !== "COMPLETED");
-        setRawOrders([...orderNodes, ...draftNodes]);
-      } catch (err) {
-        console.error("Failed to fetch special orders:", err);
-        setRawOrders([]);
-      } finally {
-        setLoading(false);
-      }
+  const fetchOrders = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await graphql(LIST_QUERY, {
+        query: `tag:${SPECIAL_ORDER_TAG}`,
+      });
+      const orderNodes = data?.data?.orders?.edges?.map((e) => e.node) ?? [];
+      let draftNodes =
+        data?.data?.draftOrders?.edges?.map((e) => e.node) ?? [];
+      draftNodes = draftNodes.filter((d) => d.status !== "COMPLETED");
+      setRawOrders([...orderNodes, ...draftNodes]);
+    } catch (err) {
+      console.error("Failed to fetch special orders:", err);
+      setRawOrders([]);
+    } finally {
+      setLoading(false);
     }
-    fetchOrders();
   }, []);
+
+  useEffect(() => {
+    fetchOrders();
+  }, [fetchOrders]);
 
   const handleUpdateContactStatus = useCallback(
     async (orderId, value) => {
@@ -1034,6 +1036,11 @@ function Extension() {
                     {i18n.translate("clear_filters")}
                   </s-button>
                 )}
+                {!isTablet && (
+                  <s-button variant="secondary" onClick={fetchOrders} disabled={loading}>
+                    {i18n.translate("refresh")}
+                  </s-button>
+                )}
               </s-stack>
             </s-box>
 
@@ -1041,10 +1048,92 @@ function Extension() {
               <s-text>{i18n.translate("loading")}</s-text>
             ) : filteredOrders.length === 0 ? (
               <s-text color="subdued">{i18n.translate("empty")}</s-text>
+            ) : !isTablet ? (
+              /* iPhone: stacked card layout */
+              <s-stack gap="base">
+                {filteredOrders.map((order, index) => {
+                  const completed = order.overallOrderStatus === "Picked Up - Sale Complete";
+                  const canceled = order.overallOrderStatus === "Order Canceled";
+                  const orderBadgeTone = completed ? "success" : canceled ? "critical" : "warning";
+                  const statusItems = (order.orderStatuses || []).length > 0
+                    ? order.orderStatuses
+                    : [{ title: "Item", status: "Not set" }];
+                  return (
+                    <Fragment key={order.id}>
+                      <s-box padding="base" borderRadius="base" background="subdued">
+                        <s-stack gap="base">
+                          <s-badge tone={orderBadgeTone}>
+                            {order.name}
+                          </s-badge>
+                          <s-stack direction="inline" gap="small">
+                            <s-text type="strong">{i18n.translate("customer")}</s-text>
+                            <s-text>{order.customerName}</s-text>
+                          </s-stack>
+                          <s-stack direction="inline" gap="small">
+                            <s-text type="strong">{i18n.translate("column_order_status")}</s-text>
+                            <s-stack direction="block" gap="small-300">
+                              {statusItems.slice(0, 2).map((item, i) => {
+                                const title = typeof item === "object" && item != null ? item.title : "Item";
+                                const status = typeof item === "object" && item != null ? item.status : item;
+                                const label = `${title} - ${String(status ?? "Not set").trim() || "Not set"}`;
+                                return (
+                                  <s-badge key={i} tone={getTone(status, "order")}>
+                                    {label}
+                                  </s-badge>
+                                );
+                              })}
+                              {statusItems.length > 2 && (
+                                <s-badge tone="info">+{statusItems.length - 2}</s-badge>
+                              )}
+                            </s-stack>
+                          </s-stack>
+                          <s-stack direction="inline" gap="small">
+                            <s-text type="strong">{i18n.translate("payment_status")}</s-text>
+                            <s-badge tone={getTone(order.paymentStatus, "payment")}>
+                              {order.paymentStatus}
+                            </s-badge>
+                          </s-stack>
+                          <s-stack direction="inline" gap="small">
+                            <s-text type="strong">{i18n.translate("contact_status")}</s-text>
+                            <s-badge tone={getTone(order.contactStatus, "contact")}>
+                              {order.contactStatus || "Not Contacted"}
+                            </s-badge>
+                          </s-stack>
+                          <s-stack direction="inline" gap="small">
+                            <s-text type="strong">{i18n.translate("column_actions")}</s-text>
+                            <s-button
+                              variant="secondary"
+                              onClick={() => {
+                                setSelectedOrder(order);
+                                setLocalNote(
+                                  order.id?.includes("DraftOrder")
+                                    ? order.note2 || ""
+                                    : order.note || ""
+                                );
+                              }}
+                            >
+                              {i18n.translate("view_details")}
+                            </s-button>
+                          </s-stack>
+                          <s-stack direction="inline" gap="small">
+                            <s-box inlineSize="100%" />
+                            <s-text color="subdued" type="small">{order.createdDateLabel || ""}</s-text>
+                          </s-stack>
+                        </s-stack>
+                      </s-box>
+                      {index < filteredOrders.length - 1 && (
+                        <s-box paddingBlock="small-100 none">
+                          <s-text color="subdued" type="small">{ROW_SEPARATOR}</s-text>
+                        </s-box>
+                      )}
+                    </Fragment>
+                  );
+                })}
+              </s-stack>
             ) : (
+              /* iPad: table layout */
               <s-box minInlineSize={minTableWidth}>
                 <s-stack gap="small-100">
-                  {/* Table header */}
                   <s-box padding="base" background="subdued" borderWidth="base" minInlineSize={minTableWidth}>
                     <s-stack direction="inline" gap="small">
                     <s-box inlineSize={col.order} minInlineSize={col.order}>
@@ -1068,7 +1157,6 @@ function Extension() {
                     </s-box>
                   </s-stack>
                 </s-box>
-                {/* Table rows */}
                 {filteredOrders.map((order, index) => {
                   const completed = order.overallOrderStatus === "Picked Up - Sale Complete";
                   const canceled = order.overallOrderStatus === "Order Canceled";
@@ -1100,7 +1188,7 @@ function Extension() {
                           </s-box>
                           <s-box inlineSize={col.status} minInlineSize={col.status}>
                             <s-stack direction="inline" gap="small-300">
-                              {statusItems.slice(0, isTablet ? 5 : 2).map((item, i) => {
+                              {statusItems.slice(0, 5).map((item, i) => {
                                 const title = typeof item === "object" && item != null ? item.title : "Item";
                                 const status = typeof item === "object" && item != null ? item.status : item;
                                 const label = `${title} - ${String(status ?? "Not set").trim() || "Not set"}`;
@@ -1110,8 +1198,8 @@ function Extension() {
                                   </s-badge>
                                 );
                               })}
-                              {statusItems.length > (isTablet ? 5 : 2) && (
-                                <s-badge tone="info">+{statusItems.length - (isTablet ? 5 : 2)}</s-badge>
+                              {statusItems.length > 5 && (
+                                <s-badge tone="info">+{statusItems.length - 5}</s-badge>
                               )}
                             </s-stack>
                           </s-box>
