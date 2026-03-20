@@ -785,7 +785,7 @@ function Extension() {
               {/* Customer, Contact Status, Overall Order Status, Payment Status */}
               <s-stack gap="10px" blockSize="auto">
               {!isTablet ? (
-                /* iPhone: Customer info as full-width card */
+                /* iPhone: Customer info and status cards stacked with dividers */
                 <s-stack gap="10px" blockSize="auto">
                   <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
                     <s-stack gap="small">
@@ -801,8 +801,8 @@ function Extension() {
                       )}
                     </s-stack>
                   </s-box>
-                  <s-stack direction="inline" gap="100px" blockSize="auto">
-                <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
+                  <s-divider />
+                <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
                     <s-text type="strong">{i18n.translate("contact_status")}</s-text>
                     <s-button
@@ -833,7 +833,8 @@ function Extension() {
                     </s-badge>
                   </s-stack>
                 </s-box>
-                <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
+                <s-divider />
+                <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
                     <s-text type="strong">{i18n.translate("overall_order_status")}</s-text>
                     <s-button
@@ -864,7 +865,8 @@ function Extension() {
                     </s-badge>
                   </s-stack>
                 </s-box>
-                <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
+                <s-divider />
+                <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
                     <s-text type="strong">{i18n.translate("payment_status")}</s-text>
                     <s-badge tone={getTone(paymentStatus, "payment")}>
@@ -905,9 +907,8 @@ function Extension() {
                   </s-stack>
                 </s-box>
                 </s-stack>
-                </s-stack>
               ) : (
-                /* iPad: side by side layout */
+                /* iPad: side by side layout - dividers between cards */
               <s-stack direction="inline" gap="50px" blockSize="auto">
                 <s-section heading={i18n.translate("customer_information")}>
                   <s-stack gap="small">
@@ -922,6 +923,7 @@ function Extension() {
                     )}
                   </s-stack>
                 </s-section>
+                <s-divider />
                 <s-stack direction="inline" gap="100px" blockSize="auto">
                 <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
@@ -954,6 +956,7 @@ function Extension() {
                     </s-badge>
                   </s-stack>
                 </s-box>
+                <s-divider />
                 <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
                     <s-text type="strong">{i18n.translate("overall_order_status")}</s-text>
@@ -985,6 +988,7 @@ function Extension() {
                     </s-badge>
                   </s-stack>
                 </s-box>
+                <s-divider />
                 <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
                     <s-text type="strong">{i18n.translate("payment_status")}</s-text>
