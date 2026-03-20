@@ -772,7 +772,7 @@ function Extension() {
 
               {/* Customer, Contact Status, Overall Order Status, Payment Status - side by side cards */}
               <s-stack direction="inline" gap="small" blockSize="auto">
-                <s-box padding="base" borderRadius="base" background="subdued" inlineSize="220px">
+                <s-box padding="base" borderRadius="base" borderWidth="base" borderColor="subdued" background="subdued" inlineSize="220px">
                   <s-stack gap="small">
                     <s-text type="strong">{i18n.translate("customer_information")}</s-text>
                     <s-text>
@@ -786,7 +786,7 @@ function Extension() {
                     )}
                   </s-stack>
                 </s-box>
-                <s-box padding="base" borderRadius="base" background="subdued" inlineSize="220px">
+                <s-box padding="base" borderRadius="base" borderWidth="base" borderColor="subdued" background="subdued" inlineSize="220px">
                   <s-stack gap="small">
                     <s-text type="strong">{i18n.translate("contact_status")}</s-text>
                     <s-button
@@ -817,7 +817,7 @@ function Extension() {
                     </s-badge>
                   </s-stack>
                 </s-box>
-                <s-box padding="base" borderRadius="base" background="subdued" inlineSize="220px">
+                <s-box padding="base" borderRadius="base" borderWidth="base" borderColor="subdued" background="subdued" inlineSize="220px">
                   <s-stack gap="small">
                     <s-text type="strong">{i18n.translate("overall_order_status")}</s-text>
                     <s-button
@@ -848,7 +848,7 @@ function Extension() {
                     </s-badge>
                   </s-stack>
                 </s-box>
-                <s-box padding="base" borderRadius="base" background="subdued" inlineSize="220px">
+                <s-box padding="base" borderRadius="base" borderWidth="base" borderColor="subdued" background="subdued" inlineSize="220px">
                   <s-stack gap="small">
                     <s-text type="strong">{i18n.translate("payment_status")}</s-text>
                     <s-badge tone={getTone(paymentStatus, "payment")}>
