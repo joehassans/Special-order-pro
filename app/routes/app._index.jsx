@@ -563,10 +563,6 @@ export default function Index() {
             onChange={(event) => setStatusFilter(event.currentTarget.value)}
           >
             <s-option value="">All Statuses</s-option>
-            <s-option value="Picked Up - Sale Complete">
-              Picked Up - Sale Complete
-            </s-option>
-            <s-option value="Order Canceled">Order Canceled</s-option>
             <s-option value="open">
               Not Ordered, Ordered, Back Ordered &amp; Received
             </s-option>
@@ -574,6 +570,10 @@ export default function Index() {
             <s-option value="Ordered">Ordered</s-option>
             <s-option value="Back Ordered">Back Ordered</s-option>
             <s-option value="Received">Received</s-option>
+            <s-option value="Picked Up - Sale Complete">
+              Picked Up - Sale Complete
+            </s-option>
+            <s-option value="Order Canceled">Order Canceled</s-option>
           </s-select>
           <s-button
             id="clear-filters-button"

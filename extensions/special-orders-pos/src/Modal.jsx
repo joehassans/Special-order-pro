@@ -59,16 +59,16 @@ const MIN_TABLE_IPAD = "955px";
 
 const ROW_SEPARATOR = "\u2014".repeat(72);
 
-// Same order and names as admin interface
+// Same names as admin; Picked Up and Order Canceled at bottom
 const FILTER_OPTIONS = [
   { value: "", labelKey: "all_statuses" },
-  { value: "Picked Up - Sale Complete", label: "Picked Up - Sale Complete" },
-  { value: "Order Canceled", label: "Order Canceled" },
   { value: "open", labelKey: "filter_open" },
   { value: "Not Ordered", label: "Not Ordered" },
   { value: "Ordered", label: "Ordered" },
   { value: "Back Ordered", label: "Back Ordered" },
   { value: "Received", label: "Received" },
+  { value: "Picked Up - Sale Complete", label: "Picked Up - Sale Complete" },
+  { value: "Order Canceled", label: "Order Canceled" },
 ];
 
 function getFilterLabel(value, i18n) {
