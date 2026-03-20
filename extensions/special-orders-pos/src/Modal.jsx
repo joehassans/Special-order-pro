@@ -771,6 +771,7 @@ function Extension() {
               </s-button>
 
               {/* Customer, Contact Status, Overall Order Status, Payment Status - side by side cards */}
+              <s-stack gap="30px" blockSize="auto">
               <s-stack direction="inline" gap="50px" blockSize="auto">
                 <s-box padding="base" inlineSize="325px" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
@@ -892,7 +893,7 @@ function Extension() {
                 </s-stack>
               </s-stack>
 
-              {/* Note */}
+              {/* Note - 30px gap above (reduced from base) */}
               <s-box padding="base" borderRadius="base" background="subdued">
                 <s-stack gap="small">
                   <s-text type="strong">{i18n.translate("note")}</s-text>
@@ -906,6 +907,7 @@ function Extension() {
                   />
                 </s-stack>
               </s-box>
+              </s-stack>
 
               {/* Line Items */}
               <s-text type="strong">{i18n.translate("line_items")}</s-text>
