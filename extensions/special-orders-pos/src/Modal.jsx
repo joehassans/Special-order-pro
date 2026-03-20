@@ -926,23 +926,29 @@ function Extension() {
                     )}
                     <s-stack gap="small">
                       <s-text type="bodySmall">{i18n.translate("order_status")}</s-text>
-                      <s-select
-                        value={item.orderStatus}
-                        onChange={(e) =>
-                          handleUpdateOrderStatus(
-                            order.id,
-                            item.id,
-                            e.currentTarget.value
-                          )
-                        }
+                      <s-button
+                        variant="secondary"
+                        commandFor={`order-status-modal-${item.id}`}
+                        command="--show"
                         disabled={!!saving}
                       >
-                        {ORDER_STATUS_OPTIONS.map((opt) => (
-                          <s-option key={opt} value={opt}>
-                            {opt}
-                          </s-option>
-                        ))}
-                      </s-select>
+                        {ORDER_STATUS_OPTIONS.includes(item.orderStatus) ? item.orderStatus : "Not Ordered"}
+                      </s-button>
+                      <s-modal id={`order-status-modal-${item.id}`} heading={i18n.translate("order_status")}>
+                        <s-stack gap="base">
+                          {ORDER_STATUS_OPTIONS.map((opt) => (
+                            <s-button
+                              key={opt}
+                              variant="secondary"
+                              commandFor={`order-status-modal-${item.id}`}
+                              command="--hide"
+                              onClick={() => handleUpdateOrderStatus(order.id, item.id, opt)}
+                            >
+                              {opt}
+                            </s-button>
+                          ))}
+                        </s-stack>
+                      </s-modal>
                       <s-badge tone={getTone(item.orderStatus, "order")}>
                         {item.orderStatus}
                       </s-badge>
