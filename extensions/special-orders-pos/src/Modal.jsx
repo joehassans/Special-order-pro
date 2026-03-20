@@ -1165,7 +1165,7 @@ function Extension() {
                   onInput={(e) => setSearchTerm(e.currentTarget.value)}
                   placeholder={i18n.translate("search_placeholder")}
                 />
-                <s-text type="strong" {...(!isTablet && { tone: "neutral", color: "subdued" })}>{i18n.translate("filter")}</s-text>
+                <s-text type="strong">{i18n.translate("filter")}</s-text>
                 <s-button
                   variant="secondary"
                   commandFor="filter-modal"
@@ -1222,15 +1222,12 @@ function Extension() {
                     <Fragment key={order.id}>
                       <s-box padding="base" borderRadius="base" background="subdued">
                         <s-stack gap="base">
+                          <s-text type="strong" tone="info">{order.customerName}</s-text>
                           <s-badge tone={orderBadgeTone}>
                             {order.name}
                           </s-badge>
                           <s-stack direction="inline" gap="small">
-                            <s-text type="strong" tone="info">{i18n.translate("customer")}</s-text>
-                            <s-text>{order.customerName}</s-text>
-                          </s-stack>
-                          <s-stack direction="inline" gap="small">
-                            <s-text type="strong" tone="info">{i18n.translate("column_order_status")}</s-text>
+                            <s-text type="strong">{i18n.translate("column_order_status")}</s-text>
                             <s-stack direction="block" gap="small-300">
                               {statusItems.map((item, i) => {
                                 const title = typeof item === "object" && item != null ? item.title : "Item";
@@ -1245,13 +1242,13 @@ function Extension() {
                             </s-stack>
                           </s-stack>
                           <s-stack direction="inline" gap="small">
-                            <s-text type="strong" tone="info">{i18n.translate("payment_status")}</s-text>
+                            <s-text type="strong">{i18n.translate("payment_status")}</s-text>
                             <s-badge tone={getTone(order.paymentStatus, "payment")}>
                               {order.paymentStatus}
                             </s-badge>
                           </s-stack>
                           <s-stack direction="inline" gap="small">
-                            <s-text type="strong" tone="info">{i18n.translate("contact_status")}</s-text>
+                            <s-text type="strong">{i18n.translate("contact_status")}</s-text>
                             <s-badge tone={getTone(order.contactStatus, "contact")}>
                               {order.contactStatus || "Not Contacted"}
                             </s-badge>
