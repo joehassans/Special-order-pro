@@ -746,6 +746,18 @@ function Extension() {
         : order.id?.includes("DraftOrder")
           ? order.note2
           : order.note;
+
+    const getNoteRows = (text) => {
+      const t = text || "";
+      if (!t) return 3;
+      const lines = t.split("\n");
+      const charsPerLine = 50;
+      let rows = 0;
+      for (const line of lines) {
+        rows += Math.max(1, Math.ceil(line.length / charsPerLine));
+      }
+      return Math.min(12, Math.max(3, rows + 1));
+    };
     const metafields = order.metafields || { edges: [] };
     const attrsByIndex = {};
     metafields.edges.forEach((e) => {
@@ -1065,8 +1077,9 @@ function Extension() {
               <s-box padding="base" borderRadius="base" background="subdued">
                 <s-stack gap="small">
                   <s-text type="strong">{i18n.translate("note")}</s-text>
-                  <s-text-field
+                  <s-text-area
                     value={noteValue || ""}
+                    rows={getNoteRows(noteValue)}
                     onInput={(e) => setLocalNote(e.currentTarget.value)}
                     onBlur={(e) =>
                       handleUpdateNote(order.id, e.currentTarget.value)
