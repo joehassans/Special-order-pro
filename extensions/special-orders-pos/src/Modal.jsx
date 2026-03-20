@@ -228,7 +228,7 @@ const LIST_QUERY = `
         node {
           id name createdAt note displayFinancialStatus
           totalOutstandingSet { shopMoney { amount currencyCode } }
-          customer { id displayName email }
+          customer { id displayName email phone }
           metafields(first: 250, namespace: "custom") {
             edges { node { key value } }
           }
@@ -247,7 +247,7 @@ const LIST_QUERY = `
       edges {
         node {
           id name status createdAt note2
-          customer { id displayName email }
+          customer { id displayName email phone }
           metafields(first: 250, namespace: "custom") {
             edges { node { key value } }
           }
@@ -723,12 +723,15 @@ function Extension() {
               <s-stack direction="inline" gap="small" blockSize="auto">
                 <s-box padding="base" borderRadius="base" background="subdued" inlineSize="220px">
                   <s-stack gap="small">
-                    <s-text type="strong">{i18n.translate("customer")}</s-text>
+                    <s-text type="strong">{i18n.translate("customer_information")}</s-text>
                     <s-text>
                       {order.customer?.displayName || "No customer"}
                     </s-text>
                     {order.customer?.email && (
                       <s-text color="subdued" type="small">{order.customer.email}</s-text>
+                    )}
+                    {order.customer?.phone && (
+                      <s-text color="subdued" type="small">{order.customer.phone}</s-text>
                     )}
                   </s-stack>
                 </s-box>
