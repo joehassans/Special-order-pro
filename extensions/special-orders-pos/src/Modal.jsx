@@ -780,17 +780,15 @@ function Extension() {
                 <s-stack gap="10px" blockSize="auto">
                   <s-divider />
                   <s-banner tone="info" heading={i18n.translate("customer_information")}>
-                    <s-stack gap="small">
-                      <s-text>
-                        {order.customer?.displayName || "No customer"}
-                      </s-text>
-                      {order.customer?.email && (
-                        <s-text color="subdued" type="small">{order.customer.email}</s-text>
-                      )}
-                      {order.customer?.phone && (
-                        <s-text color="subdued" type="small">{order.customer.phone}</s-text>
-                      )}
-                    </s-stack>
+                    <s-text>
+                      {[
+                        order.customer?.displayName || "No customer",
+                        order.customer?.email,
+                        order.customer?.phone,
+                      ]
+                        .filter(Boolean)
+                        .join("\n")}
+                    </s-text>
                   </s-banner>
                   <s-divider />
                   <s-stack direction="inline" gap="100px" blockSize="auto">
