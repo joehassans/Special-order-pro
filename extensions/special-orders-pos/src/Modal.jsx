@@ -751,7 +751,7 @@ function Extension() {
       const t = (text || "").trim();
       if (!t) return 1;
       const lines = t.split("\n");
-      const charsPerLine = 50;
+      const charsPerLine = isTablet ? 50 : 35;
       let rows = 0;
       for (const line of lines) {
         rows += Math.max(1, Math.ceil(line.length / charsPerLine));
