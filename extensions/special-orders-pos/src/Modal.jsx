@@ -776,21 +776,22 @@ function Extension() {
               {/* Customer, Contact Status, Overall Order Status, Payment Status */}
               <s-stack gap="10px" blockSize="auto">
               {!isTablet ? (
-                /* iPhone: s-banner with info tone for colored background */
+                /* iPhone: Customer info as full-width card */
                 <s-stack gap="10px" blockSize="auto">
-                  <s-divider />
-                  <s-banner tone="info" heading={i18n.translate("customer_information")}>
-                    <s-text>
-                      {[
-                        order.customer?.displayName || "No customer",
-                        order.customer?.email,
-                        order.customer?.phone,
-                      ]
-                        .filter(Boolean)
-                        .join("\n")}
-                    </s-text>
-                  </s-banner>
-                  <s-divider />
+                  <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
+                    <s-stack gap="small">
+                      <s-text type="strong">{i18n.translate("customer_information")}</s-text>
+                      <s-text>
+                        {order.customer?.displayName || "No customer"}
+                      </s-text>
+                      {order.customer?.email && (
+                        <s-text color="subdued" type="small">{order.customer.email}</s-text>
+                      )}
+                      {order.customer?.phone && (
+                        <s-text color="subdued" type="small">{order.customer.phone}</s-text>
+                      )}
+                    </s-stack>
+                  </s-box>
                   <s-stack direction="inline" gap="100px" blockSize="auto">
                 <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
