@@ -14,6 +14,7 @@
   "payment_status": "Statut de paiement",
   "note": "Note",
   "line_items": "Articles",
+  "quantity": "Qté",
   "order_status": "Statut de commande",
   "item_order_status": "Statut de commande de l'article",
   "search": "Rechercher",

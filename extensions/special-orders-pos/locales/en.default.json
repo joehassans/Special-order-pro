@@ -20,6 +20,7 @@
   "paid": "Paid",
   "note": "Note",
   "line_items": "Line Items",
+  "quantity": "Qty",
   "order_status": "Order Status",
   "item_order_status": "Item Order Status",
   "search": "Search",
