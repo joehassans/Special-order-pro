@@ -1030,7 +1030,9 @@ function Extension() {
               )}
               </s-stack>
 
-              {/* Note - 10px gap above */}
+              <s-divider />
+
+              {/* Note */}
               <s-box padding="base" borderRadius="base" background="subdued">
                 <s-stack gap="small">
                   <s-text type="strong">{i18n.translate("note")}</s-text>
@@ -1044,6 +1046,8 @@ function Extension() {
                   />
                 </s-stack>
               </s-box>
+
+              <s-divider />
 
               {/* Line Items */}
               <s-text type="strong">{i18n.translate("line_items")}</s-text>
