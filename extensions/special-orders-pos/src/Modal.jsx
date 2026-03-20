@@ -829,7 +829,7 @@ function Extension() {
                         <s-text color="subdued" type="small">{order.customer.email}</s-text>
                       )}
                       {order.customer?.phone && (
-                        <s-text color="subdued" type="small">{order.customer.phone}</s-text>
+                        <s-text type="strong">{formatUsPhone(order.customer.phone)}</s-text>
                       )}
                     </s-stack>
                   </s-box>
