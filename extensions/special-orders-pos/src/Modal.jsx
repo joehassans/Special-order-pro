@@ -138,6 +138,51 @@ function extractOrderStatuses(order) {
   });
 }
 
+function formatMoneySet(moneySet) {
+  if (!moneySet?.shopMoney) return null;
+  const { amount, currencyCode } = moneySet.shopMoney;
+  return `${amount} ${currencyCode}`;
+}
+
+function formatMoney(amount, currencyCode) {
+  if (amount == null || currencyCode == null) return null;
+  return `${amount} ${currencyCode}`;
+}
+
+function getPaymentDetails(order) {
+  const isDraft = order.id?.includes("DraftOrder");
+  const subtotal = formatMoneySet(order.subtotalPriceSet);
+  const tax = formatMoneySet(order.totalTaxSet);
+  const total = formatMoneySet(order.totalPriceSet);
+
+  if (isDraft) {
+    return {
+      subtotal,
+      tax,
+      total,
+      outstanding: total,
+      paid: null,
+    };
+  }
+
+  let outstanding = null;
+  let paid = null;
+  if (order.totalPriceSet?.shopMoney && order.totalOutstandingSet?.shopMoney) {
+    const totalAmount = parseFloat(order.totalPriceSet.shopMoney.amount);
+    const outstandingAmount = parseFloat(
+      order.totalOutstandingSet.shopMoney.amount
+    );
+    const paidAmount = totalAmount - outstandingAmount;
+    paid = formatMoney(
+      paidAmount.toFixed(2),
+      order.totalPriceSet.shopMoney.currencyCode
+    );
+    outstanding = formatMoneySet(order.totalOutstandingSet);
+  }
+
+  return { subtotal, tax, total, outstanding, paid };
+}
+
 function calculatePaymentStatus(order) {
   if (order.id?.includes("DraftOrder")) return "Not Paid";
   if (order.displayFinancialStatus === "PAID") return "Paid in Full";
@@ -227,6 +272,9 @@ const LIST_QUERY = `
       edges {
         node {
           id name createdAt note displayFinancialStatus
+          subtotalPriceSet { shopMoney { amount currencyCode } }
+          totalTaxSet { shopMoney { amount currencyCode } }
+          totalPriceSet { shopMoney { amount currencyCode } }
           totalOutstandingSet { shopMoney { amount currencyCode } }
           customer { id displayName email phone }
           metafields(first: 250, namespace: "custom") {
@@ -247,6 +295,9 @@ const LIST_QUERY = `
       edges {
         node {
           id name status createdAt note2
+          subtotalPriceSet { shopMoney { amount currencyCode } }
+          totalTaxSet { shopMoney { amount currencyCode } }
+          totalPriceSet { shopMoney { amount currencyCode } }
           customer { id displayName email phone }
           metafields(first: 250, namespace: "custom") {
             edges { node { key value } }
@@ -803,6 +854,38 @@ function Extension() {
                     <s-badge tone={getTone(paymentStatus, "payment")}>
                       {paymentStatus}
                     </s-badge>
+                    {(() => {
+                      const details = getPaymentDetails(order);
+                      return (
+                        <>
+                          {details.subtotal && (
+                            <s-text color="subdued" type="small">
+                              {i18n.translate("subtotal")}: {details.subtotal}
+                            </s-text>
+                          )}
+                          {details.tax && (
+                            <s-text color="subdued" type="small">
+                              {i18n.translate("tax")}: {details.tax}
+                            </s-text>
+                          )}
+                          {details.total && (
+                            <s-text color="subdued" type="small">
+                              {i18n.translate("total")}: {details.total}
+                            </s-text>
+                          )}
+                          {details.outstanding && (
+                            <s-text color="subdued" type="small">
+                              {i18n.translate("balance")}: {details.outstanding}
+                            </s-text>
+                          )}
+                          {details.paid && (
+                            <s-text color="subdued" type="small">
+                              {i18n.translate("paid")}: {details.paid}
+                            </s-text>
+                          )}
+                        </>
+                      );
+                    })()}
                   </s-stack>
                 </s-box>
               </s-stack>
