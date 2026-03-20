@@ -58,7 +58,6 @@ const MIN_TABLE_MOBILE = "755px";
 const MIN_TABLE_IPAD = "955px";
 
 const ROW_SEPARATOR = "\u2014".repeat(72);
-const ROW_SEPARATOR_MOBILE = "\u2014".repeat(27);
 
 // Same names as admin; Picked Up and Order Canceled at bottom
 const FILTER_OPTIONS = [
@@ -1274,9 +1273,7 @@ function Extension() {
                         </s-stack>
                       </s-box>
                       {index < filteredOrders.length - 1 && (
-                        <s-box paddingBlock="small-100 none">
-                          <s-text color="subdued" type="small">{ROW_SEPARATOR_MOBILE}</s-text>
-                        </s-box>
+                        <s-divider />
                       )}
                     </Fragment>
                   );
