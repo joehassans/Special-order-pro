@@ -1107,14 +1107,12 @@ function Extension() {
                       {item.variantTitle && (
                         <s-text color="subdued">{item.variantTitle}</s-text>
                       )}
-                      {isTablet && (
-                        <s-stack direction="inline" gap="small">
-                          <s-text type="strong">{i18n.translate("quantity")}: {item.quantity}</s-text>
-                          {item.priceLabel && (
-                            <s-text type="strong">{item.priceLabel}</s-text>
-                          )}
-                        </s-stack>
-                      )}
+                      <s-stack direction="inline" gap="small">
+                        <s-text type="strong">{i18n.translate("quantity")}: {item.quantity}</s-text>
+                        {item.priceLabel && (
+                          <s-text type="strong">{item.priceLabel}</s-text>
+                        )}
+                      </s-stack>
                       <s-stack gap="small">
                         <s-text type="bodySmall">{i18n.translate("item_order_status")}</s-text>
                         <s-box inlineSize="100%">
@@ -1167,14 +1165,6 @@ function Extension() {
                           />
                         </s-stack>
                       ))}
-                      {!isTablet && (
-                        <s-stack gap="small-300">
-                          <s-text type="strong">{i18n.translate("quantity")}: {item.quantity}</s-text>
-                          {item.priceLabel && (
-                            <s-text type="strong">{item.priceLabel}</s-text>
-                          )}
-                        </s-stack>
-                      )}
                     </s-stack>
                   </s-box>
                   <s-divider />
