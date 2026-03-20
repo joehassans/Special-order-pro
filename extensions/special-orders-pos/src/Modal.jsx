@@ -22,7 +22,6 @@ const ORDER_STATUS_OPTIONS = [
   "Back Ordered",
   "Received",
   "Canceled",
-  "Order Canceled",
 ];
 
 const CONTACT_STATUS_OPTIONS = [
