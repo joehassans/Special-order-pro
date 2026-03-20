@@ -778,7 +778,7 @@ function Extension() {
               {!isTablet ? (
                 /* iPhone: Customer info as full-width block above status cards */
                 <s-stack gap="10px" blockSize="auto">
-                  <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
+                  <s-box padding="large" inlineSize="100%" background="base" border="large" borderRadius="base">
                     <s-stack gap="small">
                       <s-text type="strong">{i18n.translate("customer_information")}</s-text>
                       <s-text>
@@ -900,7 +900,7 @@ function Extension() {
               ) : (
                 /* iPad: side by side layout */
               <s-stack direction="inline" gap="50px" blockSize="auto">
-                <s-box padding="base" inlineSize="325px" background="subdued" border="base" borderRadius="base">
+                <s-box padding="large" inlineSize="325px" background="base" border="large" borderRadius="base">
                   <s-stack gap="small">
                     <s-text type="strong">{i18n.translate("customer_information")}</s-text>
                     <s-text>
