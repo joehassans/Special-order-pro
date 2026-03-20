@@ -57,8 +57,6 @@ const COL_IPAD = {
 const MIN_TABLE_MOBILE = "755px";
 const MIN_TABLE_IPAD = "955px";
 
-const ROW_SEPARATOR = "\u2014".repeat(72);
-
 // Same names as admin; Picked Up and Order Canceled at bottom
 const FILTER_OPTIONS = [
   { value: "", labelKey: "all_statuses" },
@@ -1372,9 +1370,7 @@ function Extension() {
                       </s-box>
                     </s-clickable>
                     {index < filteredOrders.length - 1 && (
-                      <s-box minInlineSize={minTableWidth} paddingBlock="small-100 none">
-                        <s-text color="subdued" type="small">{ROW_SEPARATOR}</s-text>
-                      </s-box>
+                      <s-divider />
                     )}
                   </Fragment>
                   );
