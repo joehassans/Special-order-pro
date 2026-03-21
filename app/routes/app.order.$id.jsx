@@ -1302,19 +1302,50 @@ export default function OrderDetails() {
                           })()}
                         </s-stack>
 
-                        {/* Editable attributes (metafield-backed); Brand, Type, Style #, Size, Color always present */}
+                        {/* Editable attributes (metafield-backed); Brand, Type, Style #, Size on one row */}
                         <s-stack gap="small-300">
-                          {(item.customAttributes || []).map((attr) => (
-                            <s-stack key={attr.key} gap="small-300">
-                              <s-text type="strong">{attr.key}</s-text>
-                              <s-text-field
-                                data-attr-key={attr.key}
-                                label=""
-                                labelAccessibilityVisibility="hidden"
-                                value={attr.value || ""}
-                              />
-                            </s-stack>
-                          ))}
+                          <s-stack
+                            direction="inline"
+                            gap="small"
+                            alignItems="stretch"
+                            style={{ flexWrap: "wrap" }}
+                          >
+                            {(item.customAttributes || [])
+                              .filter((a) =>
+                                ["Brand", "Type", "Style #", "Size"].includes(a.key)
+                              )
+                              .map((attr) => (
+                                <s-stack
+                                  key={attr.key}
+                                  gap="small-300"
+                                  style={{ flex: "1 1 120px", minWidth: "100px" }}
+                                >
+                                  <s-text type="strong">{attr.key}</s-text>
+                                  <s-text-field
+                                    data-attr-key={attr.key}
+                                    label=""
+                                    labelAccessibilityVisibility="hidden"
+                                    value={attr.value || ""}
+                                  />
+                                </s-stack>
+                              ))}
+                          </s-stack>
+                          {(item.customAttributes || [])
+                            .filter(
+                              (a) =>
+                                !["Brand", "Type", "Style #", "Size"].includes(a.key)
+                            )
+                            .map((attr) => (
+                              <s-stack key={attr.key} gap="small-300">
+                                <s-text type="strong">{attr.key}</s-text>
+                                <s-text-field
+                                  data-attr-key={attr.key}
+                                  label=""
+                                  labelAccessibilityVisibility="hidden"
+                                  value={attr.value || ""}
+                                />
+                              </s-stack>
+                            ))}
                               <s-stack direction="inline" justifyContent="end">
                                 <s-button
                                   variant="secondary"
