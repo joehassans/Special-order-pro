@@ -1458,7 +1458,7 @@ function Extension() {
                     </s-box>
                   </s-stack>
                 </s-box>
-                <s-divider />
+                <s-text color="subdued">{"-".repeat(72)}</s-text>
                 {filteredOrders.map((order, index) => {
                   const completed = order.overallOrderStatus === "Picked Up - Sale Complete";
                   const canceled = order.overallOrderStatus === "Order Canceled";
