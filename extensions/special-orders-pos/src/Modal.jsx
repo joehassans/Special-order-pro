@@ -1028,6 +1028,11 @@ function Extension() {
                       tone={getTone(overallOrderStatus, "overall") === "subdued" || getTone(overallOrderStatus, "overall") === "neutral" ? "auto" : getTone(overallOrderStatus, "overall")}
                       heading={OVERALL_ORDER_STATUS_OPTIONS.includes(overallOrderStatus) ? overallOrderStatus : "Order Pending"}
                     />
+                    {order.createdAt && (
+                      <s-text color="subdued" type="small">
+                        {i18n.translate("date_created")}: {new Date(order.createdAt).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" })}
+                      </s-text>
+                    )}
                   </s-stack>
                 </s-box>
                 <s-divider />
