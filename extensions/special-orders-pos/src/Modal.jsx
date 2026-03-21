@@ -974,7 +974,7 @@ function Extension() {
                       command="--show"
                       disabled={!!saving}
                     >
-                      {CONTACT_STATUS_OPTIONS.includes(contactStatus) ? contactStatus : i18n.translate("select")}
+                      {CONTACT_STATUS_OPTIONS.includes(contactStatus) ? `${contactStatus}${" ".repeat(10)}↕️` : i18n.translate("select")}
                     </s-button>
                     <s-modal id="contact-status-modal" heading={i18n.translate("contact_status")}>
                       <s-stack gap="small">
@@ -1007,7 +1007,7 @@ function Extension() {
                       command="--show"
                       disabled={!!saving}
                     >
-                      {OVERALL_ORDER_STATUS_OPTIONS.includes(overallOrderStatus) ? overallOrderStatus : "Order Pending"}
+                      {OVERALL_ORDER_STATUS_OPTIONS.includes(overallOrderStatus) ? `${overallOrderStatus}${" ".repeat(10)}↕️` : "Order Pending"}
                     </s-button>
                     <s-modal id="overall-order-status-modal" heading={i18n.translate("overall_order_status")}>
                       <s-stack gap="small">
