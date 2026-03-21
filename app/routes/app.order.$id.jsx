@@ -1302,7 +1302,7 @@ export default function OrderDetails() {
                           })()}
                         </s-stack>
 
-                        {/* Editable attributes (metafield-backed); Brand, Type, Style #, Size on one row */}
+                        {/* Editable attributes (metafield-backed); Brand, Type, Style #, Size, Color on one row */}
                         <s-stack gap="small-300">
                           <s-stack
                             direction="inline"
@@ -1312,13 +1312,13 @@ export default function OrderDetails() {
                           >
                             {(item.customAttributes || [])
                               .filter((a) =>
-                                ["Brand", "Type", "Style #", "Size"].includes(a.key)
+                                ["Brand", "Type", "Style #", "Size", "Color"].includes(a.key)
                               )
                               .map((attr) => (
                                 <s-stack
                                   key={attr.key}
                                   gap="small-300"
-                                  style={{ flex: "1 1 120px", minWidth: "100px" }}
+                                  style={{ flex: "1 1 180px", minWidth: "140px" }}
                                 >
                                   <s-text type="strong">{attr.key}</s-text>
                                   <s-text-field
@@ -1326,6 +1326,7 @@ export default function OrderDetails() {
                                     label=""
                                     labelAccessibilityVisibility="hidden"
                                     value={attr.value || ""}
+                                    style={{ minWidth: "120px" }}
                                   />
                                 </s-stack>
                               ))}
@@ -1333,16 +1334,17 @@ export default function OrderDetails() {
                           {(item.customAttributes || [])
                             .filter(
                               (a) =>
-                                !["Brand", "Type", "Style #", "Size"].includes(a.key)
+                                !["Brand", "Type", "Style #", "Size", "Color"].includes(a.key)
                             )
                             .map((attr) => (
-                              <s-stack key={attr.key} gap="small-300">
+                              <s-stack key={attr.key} gap="small-300" style={{ minWidth: "200px" }}>
                                 <s-text type="strong">{attr.key}</s-text>
                                 <s-text-field
                                   data-attr-key={attr.key}
                                   label=""
                                   labelAccessibilityVisibility="hidden"
                                   value={attr.value || ""}
+                                  style={{ minWidth: "180px" }}
                                 />
                               </s-stack>
                             ))}
