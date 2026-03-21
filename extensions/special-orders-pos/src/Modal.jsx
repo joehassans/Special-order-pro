@@ -1099,11 +1099,9 @@ function Extension() {
 
               <s-divider />
 
-              {/* Line Items */}
-              <s-text type="strong">{i18n.translate("line_items")}</s-text>
               {lineItems.map((item, idx) => (
                 <Fragment key={item.id}>
-                  <s-divider />
+                  {idx > 0 && <s-divider />}
                   <s-box
                     padding="base"
                     borderRadius="base"
