@@ -205,6 +205,7 @@ export const loader = async ({ request }) => {
               id
               displayName
               email
+              phone
             }
             metafields(first: 250, namespace: "custom") {
               edges {
@@ -242,6 +243,7 @@ export const loader = async ({ request }) => {
               id
               displayName
               email
+              phone
             }
             metafields(first: 250, namespace: "custom") {
               edges {
@@ -309,6 +311,7 @@ export const loader = async ({ request }) => {
         id: order.id,
         name: order.name,
         customerName: order.customer?.displayName || "No customer",
+        customerPhone: order.customer?.phone || "",
         orderStatuses,
         paymentStatus,
         contactStatus,
@@ -467,9 +470,10 @@ export default function Index() {
   const filteredOrders = useMemo(() => {
     let result = orders;
 
-    // Search: match customer name, order number, or product name
+    // Search: match customer name, order number, product name, or phone number
     if (searchTerm && searchTerm.trim()) {
       const term = searchTerm.trim().toLowerCase();
+      const termDigits = term.replace(/\D/g, "");
       result = result.filter((order) => {
         if (
           order.customerName &&
@@ -478,6 +482,11 @@ export default function Index() {
           return true;
         if (order.name && String(order.name).toLowerCase().includes(term))
           return true;
+        if (termDigits && order.customerPhone) {
+          const phoneDigits = String(order.customerPhone).replace(/\D/g, "");
+          if (phoneDigits.includes(termDigits))
+            return true;
+        }
         const statuses = order.orderStatuses || [];
         const hasMatchingProduct = statuses.some((item) => {
           const title =
@@ -552,7 +561,7 @@ export default function Index() {
             id="order-search"
             label="Search orders"
             labelAccessibilityVisibility="exclusive"
-            placeholder="Search by customer, order number, or product..."
+            placeholder="Search by customer, order number, phone, or product..."
             value={searchTerm}
             onInput={(event) => setSearchTerm(event.currentTarget.value)}
           />

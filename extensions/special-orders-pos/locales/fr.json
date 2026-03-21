@@ -18,7 +18,7 @@
   "order_status": "Statut de commande",
   "item_order_status": "Statut de commande de l'article",
   "search": "Rechercher",
-  "search_placeholder": "Client, n° commande ou produit...",
+  "search_placeholder": "Client, n° commande, tél. ou produit...",
   "filter": "Filtrer par statut",
   "all_statuses": "Tous les statuts",
   "filter_open": "Non commandé, Commandé, En rupture, Drop Ship & Reçu",

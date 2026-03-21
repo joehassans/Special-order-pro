@@ -410,9 +410,10 @@ function Extension() {
   const filteredOrders = useMemo(() => {
     let result = normalizedOrders;
 
-    // Search: match customer name, order number, or product name (same as admin)
+    // Search: match customer name, order number, product name, or phone number (same as admin)
     if (searchTerm?.trim()) {
       const term = searchTerm.trim().toLowerCase();
+      const termDigits = term.replace(/\D/g, "");
       result = result.filter((order) => {
         if (
           order.customerName &&
@@ -421,6 +422,11 @@ function Extension() {
           return true;
         if (order.name && String(order.name).toLowerCase().includes(term))
           return true;
+        if (termDigits && order.customer?.phone) {
+          const phoneDigits = String(order.customer.phone).replace(/\D/g, "");
+          if (phoneDigits.includes(termDigits))
+            return true;
+        }
         const statuses = order.orderStatuses || [];
         const hasMatchingProduct = statuses.some((item) => {
           const title =
