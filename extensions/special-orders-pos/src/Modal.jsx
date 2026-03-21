@@ -1296,7 +1296,7 @@ function Extension() {
                   commandFor="filter-modal"
                   command="--show"
                 >
-                  {getFilterLabel(statusFilter, i18n)}
+                  {isTablet ? `↕️ ${getFilterLabel(statusFilter, i18n)} ↕️` : getFilterLabel(statusFilter, i18n)}
                 </s-button>
                 <s-modal id="filter-modal" heading={i18n.translate("filter")}>
                   <s-stack gap="base">
