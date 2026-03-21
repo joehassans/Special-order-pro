@@ -1077,8 +1077,6 @@ function Extension() {
               )}
               </s-stack>
 
-              <s-divider />
-
               {/* Note */}
               <s-box
                 padding={isTablet ? "small-500" : "base"}
@@ -1098,8 +1096,6 @@ function Extension() {
                   />
                 </s-stack>
               </s-box>
-
-              <s-divider />
 
               {lineItems.map((item, idx) => (
                 <Fragment key={item.id}>
