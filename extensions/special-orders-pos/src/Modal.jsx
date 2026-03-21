@@ -1452,7 +1452,6 @@ function Extension() {
                     <s-box inlineSize={col.contact} minInlineSize={col.contact}>
                       <s-text type="strong">{i18n.translate("column_contact")}</s-text>
                     </s-box>
-                    <s-box inlineSize="auto" minInlineSize="0" />
                     <s-box inlineSize={col.created} minInlineSize={col.created}>
                       <s-text type="small">{i18n.translate("column_created")}</s-text>
                     </s-box>
@@ -1512,7 +1511,6 @@ function Extension() {
                               {order.contactStatus || "Not Contacted"}
                             </s-badge>
                           </s-box>
-                          <s-box inlineSize="auto" minInlineSize="0" />
                           <s-box inlineSize={col.created} minInlineSize={col.created}>
                             <s-text color="subdued">{order.createdDateLabel || ""}</s-text>
                           </s-box>
