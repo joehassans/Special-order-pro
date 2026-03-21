@@ -1513,7 +1513,7 @@ function Extension() {
                             </s-badge>
                           </s-box>
                           <s-box inlineSize={col.created} minInlineSize={col.created}>
-                            <s-text color="subdued">{`${order.createdDateLabel || ""}${" ".repeat(10)}↕️`}</s-text>
+                            <s-text color="subdued">{`${order.createdDateLabel || ""}${" ".repeat(8)}↕️`}</s-text>
                           </s-box>
                         </s-stack>
                       </s-box>
