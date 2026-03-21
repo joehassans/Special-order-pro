@@ -25,7 +25,7 @@
   "saving": "Enregistrement...",
   "filters_heading": "Filtres",
   "clear_filters": "Effacer les filtres",
-  "column_order": "Commande",
+  "column_order": "Commande #",
   "column_customer": "Client",
   "column_order_status": "Statut de commande de l'article",
   "column_payment": "Paiement",
