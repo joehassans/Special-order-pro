@@ -1282,7 +1282,7 @@ function Extension() {
             <s-box padding="base" borderRadius="base" background="subdued">
               <s-stack gap="base">
                 {isTablet && (
-                  <s-text type="strong">{i18n.translate("filters_heading")}</s-text>
+                  <s-heading>🔍 Search</s-heading>
                 )}
                 <s-text-field
                   label={i18n.translate("search")}
