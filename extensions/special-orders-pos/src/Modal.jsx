@@ -1436,7 +1436,7 @@ function Extension() {
               <s-box minInlineSize={minTableWidth}>
                 <s-stack gap="small-100">
                   <s-box padding="base" background="subdued" borderWidth="base" minInlineSize={minTableWidth}>
-                    <s-stack direction="inline" gap="small">
+                    <s-stack direction="inline" gap="small-100">
                     <s-box inlineSize={col.order} minInlineSize={col.order}>
                       <s-text type="strong">{i18n.translate("column_order")}</s-text>
                     </s-box>
@@ -1477,7 +1477,7 @@ function Extension() {
                         }}
                       >
                         <s-box padding="base" background="subdued" minInlineSize={minTableWidth}>
-                        <s-stack direction="inline" gap="small">
+                        <s-stack direction="inline" gap="small-100">
                           <s-box inlineSize={col.order} minInlineSize={col.order}>
                             <s-badge tone={orderBadgeTone}>
                               {order.name}
