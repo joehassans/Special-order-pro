@@ -1311,7 +1311,7 @@ function Extension() {
                       commandFor="filter-modal"
                       command="--show"
                     >
-                      {`${getFilterLabel(statusFilter, i18n)}${" ".repeat(20)}↕️`}
+                      <s-heading>{`${getFilterLabel(statusFilter, i18n)}${" ".repeat(20)}↕️`}</s-heading>
                     </s-button>
                   </>
                 ) : (
