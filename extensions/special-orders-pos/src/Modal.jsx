@@ -1458,7 +1458,7 @@ function Extension() {
                     </s-box>
                   </s-stack>
                 </s-box>
-                <s-box blockSize="4px" inlineSize="100%" background="base" minInlineSize={minTableWidth} />
+                <s-banner tone="info" heading=" " />
                 {filteredOrders.map((order, index) => {
                   const completed = order.overallOrderStatus === "Picked Up - Sale Complete";
                   const canceled = order.overallOrderStatus === "Order Canceled";
