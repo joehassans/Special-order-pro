@@ -1074,8 +1074,12 @@ function Extension() {
               <s-divider />
 
               {/* Note */}
-              <s-box padding="base" borderRadius="base" background="subdued">
-                <s-stack gap="small">
+              <s-box
+                padding={isTablet ? "small-100" : "base"}
+                borderRadius="base"
+                background="subdued"
+              >
+                <s-stack gap={isTablet ? "small-300" : "small"}>
                   <s-text type="strong">{i18n.translate("note")}</s-text>
                   <s-text-area
                     value={noteValue || ""}
