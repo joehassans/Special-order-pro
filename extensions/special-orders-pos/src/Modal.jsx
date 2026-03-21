@@ -1438,23 +1438,41 @@ function Extension() {
                   <s-box padding="base" background="subdued" border="base" borderRadius="base" minInlineSize={minTableWidth}>
                     <s-stack direction="inline" gap="small">
                     <s-box inlineSize={col.order} minInlineSize={col.order}>
-                      <s-text type="strong">{i18n.translate("column_order")}</s-text>
+                      <s-stack gap="none">
+                        <s-text type="strong">{i18n.translate("column_order").toUpperCase()}</s-text>
+                        <s-box blockSize="1px" inlineSize="100%" background="base" />
+                      </s-stack>
                     </s-box>
                     <s-box inlineSize="auto" minInlineSize="0" />
                     <s-box inlineSize={col.customer} minInlineSize={col.customer}>
-                      <s-text type="strong">{i18n.translate("column_customer")}</s-text>
+                      <s-stack gap="none">
+                        <s-text type="strong">{i18n.translate("column_customer").toUpperCase()}</s-text>
+                        <s-box blockSize="1px" inlineSize="100%" background="base" />
+                      </s-stack>
                     </s-box>
                     <s-box inlineSize={col.status} minInlineSize={col.status}>
-                      <s-text type="strong">{i18n.translate("column_order_status")}</s-text>
+                      <s-stack gap="none">
+                        <s-text type="strong">{i18n.translate("column_order_status").toUpperCase()}</s-text>
+                        <s-box blockSize="1px" inlineSize="100%" background="base" />
+                      </s-stack>
                     </s-box>
                     <s-box inlineSize={col.payment} minInlineSize={col.payment}>
-                      <s-text type="strong">{i18n.translate("column_payment")}</s-text>
+                      <s-stack gap="none">
+                        <s-text type="strong">{i18n.translate("column_payment").toUpperCase()}</s-text>
+                        <s-box blockSize="1px" inlineSize="100%" background="base" />
+                      </s-stack>
                     </s-box>
                     <s-box inlineSize={col.contact} minInlineSize={col.contact}>
-                      <s-text type="strong">{i18n.translate("column_contact")}</s-text>
+                      <s-stack gap="none">
+                        <s-text type="strong">{i18n.translate("column_contact").toUpperCase()}</s-text>
+                        <s-box blockSize="1px" inlineSize="100%" background="base" />
+                      </s-stack>
                     </s-box>
                     <s-box inlineSize={col.created} minInlineSize={col.created}>
-                      <s-text type="strong">{i18n.translate("column_created")}</s-text>
+                      <s-stack gap="none">
+                        <s-text type="strong">{i18n.translate("column_created").toUpperCase()}</s-text>
+                        <s-box blockSize="1px" inlineSize="100%" background="base" />
+                      </s-stack>
                     </s-box>
                   </s-stack>
                 </s-box>
