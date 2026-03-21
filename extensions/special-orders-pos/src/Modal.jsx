@@ -1313,7 +1313,7 @@ function Extension() {
                       inlineSize="fill"
                     >
                       <s-box padding="large">
-                        <s-heading>{`${getFilterLabel(statusFilter, i18n)}${" ".repeat(20)}↕️`}</s-heading>
+                        <span style={{ fontSize: "28px", fontWeight: "600" }}>{`${getFilterLabel(statusFilter, i18n)}${" ".repeat(20)}↕️`}</span>
                       </s-box>
                     </s-button>
                   </>
