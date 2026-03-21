@@ -1455,7 +1455,6 @@ function Extension() {
                     <s-box inlineSize={col.created} minInlineSize={col.created}>
                       <s-text type="small">{i18n.translate("column_created")}</s-text>
                     </s-box>
-                    <s-box inlineSize="24px" minInlineSize="24px" />
                   </s-stack>
                 </s-box>
                 {filteredOrders.map((order, index) => {
@@ -1512,10 +1511,7 @@ function Extension() {
                             </s-badge>
                           </s-box>
                           <s-box inlineSize={col.created} minInlineSize={col.created}>
-                            <s-text color="subdued">{order.createdDateLabel || ""}</s-text>
-                          </s-box>
-                          <s-box inlineSize="24px" minInlineSize="24px">
-                            <s-text>↕️</s-text>
+                            <s-text color="subdued">{`${order.createdDateLabel || ""}${" ".repeat(10)}↕️`}</s-text>
                           </s-box>
                         </s-stack>
                       </s-box>
