@@ -53,7 +53,7 @@ const COL_IPAD = {
   status: "275px",
   payment: "100px",
   contact: "210px",
-  created: "80px",
+  created: "95px",
 };
 const MIN_TABLE_MOBILE = "755px";
 const MIN_TABLE_IPAD = "955px";
