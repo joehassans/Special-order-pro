@@ -1458,7 +1458,8 @@ function Extension() {
                     </s-box>
                   </s-stack>
                 </s-box>
-                <s-banner tone="info" heading=" " />
+                <s-divider />
+                <s-divider />
                 {filteredOrders.map((order, index) => {
                   const completed = order.overallOrderStatus === "Picked Up - Sale Complete";
                   const canceled = order.overallOrderStatus === "Order Canceled";
