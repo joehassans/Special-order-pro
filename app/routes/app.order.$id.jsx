@@ -133,7 +133,7 @@ function isCompletedContactStatus(status) {
   return normalized.includes("pickedupsalecomplete");
 }
 
-const ALWAYS_PRESENT_ATTRIBUTES = ["Brand", "Type", "Style #", "Size", "Color"];
+const ALWAYS_PRESENT_ATTRIBUTES = ["Brand", "Type", "Style #", "Size", "Color", "Date Ordered"];
 const HIDDEN_ATTRIBUTES = new Set([
   "_shopify_item_type",
   "Order Status",
@@ -1327,18 +1327,28 @@ export default function OrderDetails() {
                           >
                             {(item.customAttributes || [])
                               .filter((a) =>
-                                ["Brand", "Type", "Style #", "Size", "Color"].includes(a.key)
+                                ["Brand", "Type", "Style #", "Size", "Color", "Date Ordered"].includes(a.key)
                               )
                               .map((attr) => (
                                 <div key={attr.key} className="item-detail-field">
                                   <s-stack gap="small-300">
                                     <span className="field-label" style={{ fontWeight: 700 }}>{attr.key}</span>
-                                    <s-text-field
-                                      data-attr-key={attr.key}
-                                      label=""
-                                      labelAccessibilityVisibility="hidden"
-                                      value={attr.value || ""}
-                                    />
+                                    {attr.key === "Date Ordered" ? (
+                                      <s-date-field
+                                        data-attr-key={attr.key}
+                                        label=""
+                                        labelAccessibilityVisibility="hidden"
+                                        value={attr.value || ""}
+                                        placeholder="Select date"
+                                      />
+                                    ) : (
+                                      <s-text-field
+                                        data-attr-key={attr.key}
+                                        label=""
+                                        labelAccessibilityVisibility="hidden"
+                                        value={attr.value || ""}
+                                      />
+                                    )}
                                   </s-stack>
                                 </div>
                               ))}
@@ -1346,7 +1356,7 @@ export default function OrderDetails() {
                           {(item.customAttributes || [])
                             .filter(
                               (a) =>
-                                !["Brand", "Type", "Style #", "Size", "Color"].includes(a.key)
+                                !["Brand", "Type", "Style #", "Size", "Color", "Date Ordered"].includes(a.key)
                             )
                             .map((attr) => (
                               <div key={attr.key} className="item-detail-field">
@@ -1370,9 +1380,13 @@ export default function OrderDetails() {
                                         "[data-line-index]"
                                       );
                                     if (!container) return;
-                                    const fields = Array.from(
+                                    const textFields = Array.from(
                                       container.querySelectorAll("s-text-field")
                                     );
+                                    const dateFields = Array.from(
+                                      container.querySelectorAll("s-date-field")
+                                    );
+                                    const fields = [...textFields, ...dateFields];
                                     const updatedAttrs = fields
                                       .map((field) => {
                                         const key =
