@@ -53,7 +53,7 @@ const COL_IPAD = {
   status: "275px",
   payment: "100px",
   contact: "210px",
-  created: "95px",
+  created: "100px",
 };
 const MIN_TABLE_MOBILE = "755px";
 const MIN_TABLE_IPAD = "955px";
@@ -1440,6 +1440,7 @@ function Extension() {
                     <s-box inlineSize={col.order} minInlineSize={col.order}>
                       <s-text type="strong">{i18n.translate("column_order")}</s-text>
                     </s-box>
+                    <s-box inlineSize="auto" minInlineSize="0" />
                     <s-box inlineSize={col.customer} minInlineSize={col.customer}>
                       <s-text type="strong">{i18n.translate("column_customer")}</s-text>
                     </s-box>
@@ -1452,7 +1453,6 @@ function Extension() {
                     <s-box inlineSize={col.contact} minInlineSize={col.contact}>
                       <s-text type="strong">{i18n.translate("column_contact")}</s-text>
                     </s-box>
-                    <s-box inlineSize="auto" minInlineSize="0" />
                     <s-box inlineSize={col.created} minInlineSize={col.created}>
                       <s-text type="small">{i18n.translate("column_created")}</s-text>
                     </s-box>
@@ -1484,6 +1484,7 @@ function Extension() {
                               {order.name}
                             </s-badge>
                           </s-box>
+                          <s-box inlineSize="auto" minInlineSize="0" />
                           <s-box inlineSize={col.customer} minInlineSize={col.customer}>
                             <s-text>{order.customerName}</s-text>
                           </s-box>
@@ -1511,7 +1512,6 @@ function Extension() {
                               {order.contactStatus || "Not Contacted"}
                             </s-badge>
                           </s-box>
-                          <s-box inlineSize="auto" minInlineSize="0" />
                           <s-box inlineSize={col.created} minInlineSize={col.created}>
                             <s-text color="subdued">{`${order.createdDateLabel || ""}${" ".repeat(2)}↕️`}</s-text>
                           </s-box>
