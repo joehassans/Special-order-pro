@@ -933,6 +933,9 @@ export default function OrderDetails() {
           width: 100%;
           min-width: 100%;
         }
+        .item-detail-field .field-label {
+          font-weight: 700 !important;
+        }
       `}</style>
       {/* Top bar: back link + order meta */}
       <s-section>
@@ -1329,7 +1332,7 @@ export default function OrderDetails() {
                               .map((attr) => (
                                 <div key={attr.key} className="item-detail-field">
                                   <s-stack gap="small-300">
-                                    <s-text type="strong">{attr.key}</s-text>
+                                    <span className="field-label" style={{ fontWeight: 700 }}>{attr.key}</span>
                                     <s-text-field
                                       data-attr-key={attr.key}
                                       label=""
@@ -1348,7 +1351,7 @@ export default function OrderDetails() {
                             .map((attr) => (
                               <div key={attr.key} className="item-detail-field">
                                 <s-stack gap="small-300">
-                                  <s-text type="strong">{attr.key}</s-text>
+                                  <span className="field-label" style={{ fontWeight: 700 }}>{attr.key}</span>
                                   <s-text-field
                                     data-attr-key={attr.key}
                                     label=""
