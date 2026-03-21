@@ -312,6 +312,7 @@ export const loader = async ({ request }) => {
         name: order.name,
         customerName: order.customer?.displayName || "No customer",
         customerPhone: order.customer?.phone || "",
+        customerEmail: order.customer?.email || "",
         orderStatuses,
         paymentStatus,
         contactStatus,
@@ -470,7 +471,7 @@ export default function Index() {
   const filteredOrders = useMemo(() => {
     let result = orders;
 
-    // Search: match customer name, order number, product name, or phone number
+    // Search: match customer name, order number, email, phone, or product name
     if (searchTerm && searchTerm.trim()) {
       const term = searchTerm.trim().toLowerCase();
       const termDigits = term.replace(/\D/g, "");
@@ -561,7 +562,7 @@ export default function Index() {
             id="order-search"
             label="Search orders"
             labelAccessibilityVisibility="exclusive"
-            placeholder="Search by customer, order number, phone, or product..."
+            placeholder="Search by customer, order number, email, phone, or product..."
             value={searchTerm}
             onInput={(event) => setSearchTerm(event.currentTarget.value)}
           />
