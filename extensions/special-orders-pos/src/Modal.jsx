@@ -1107,16 +1107,18 @@ function Extension() {
                     background="subdued"
                   >
                     <s-stack gap="small">
-                      <s-heading>{item.title}</s-heading>
+                      <s-stack direction="inline" gap="small" inlineSize="100%" justifyContent="space-between" alignItems="center">
+                        <s-heading>{item.title}</s-heading>
+                        <s-stack direction="inline" gap="small">
+                          <s-heading>{i18n.translate("quantity")}: {item.quantity}</s-heading>
+                          {item.priceLabel && (
+                            <s-heading>{item.priceLabel}</s-heading>
+                          )}
+                        </s-stack>
+                      </s-stack>
                       {item.variantTitle && (
                         <s-text color="subdued">{item.variantTitle}</s-text>
                       )}
-                      <s-stack direction="inline" gap="small" inlineSize="100%" justifyContent="end">
-                        <s-text type="strong">{i18n.translate("quantity")}: {item.quantity}</s-text>
-                        {item.priceLabel && (
-                          <s-text type="strong">{item.priceLabel}</s-text>
-                        )}
-                      </s-stack>
                       <s-stack gap="small">
                         <s-box inlineSize="100%">
                           <s-stack gap="small">
