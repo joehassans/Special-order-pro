@@ -1500,9 +1500,13 @@ function Extension() {
                         <s-box padding="base" background="subdued" minInlineSize={minTableWidth}>
                         <s-stack direction="inline" gap="small">
                           <s-box inlineSize={col.order} minInlineSize={col.order}>
-                            <s-badge tone={orderBadgeTone}>
-                              {order.name}
-                            </s-badge>
+                            {completed || canceled ? (
+                              <s-badge tone={orderBadgeTone}>
+                                {order.name}
+                              </s-badge>
+                            ) : (
+                              <s-text>{order.name}</s-text>
+                            )}
                           </s-box>
                           <s-box inlineSize="auto" minInlineSize="0" />
                           <s-box inlineSize={col.customer} minInlineSize={col.customer}>
