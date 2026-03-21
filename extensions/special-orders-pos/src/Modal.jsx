@@ -1156,38 +1156,105 @@ function Extension() {
                           </s-stack>
                         </s-box>
                       </s-stack>
-                      {item.customAttributes.map((attr) => (
-                        <s-stack key={attr.key} gap="small-300">
-                          <s-text type="bodySmall">{attr.key}</s-text>
-                          {attr.key === "Date Ordered" ? (
-                            <s-date-field
-                              value={attr.value || ""}
-                              onBlur={(e) => {
-                                const newVal = e.currentTarget?.value ?? "";
-                                const newAttrs = item.customAttributes.map((a) => ({
-                                  key: a.key,
-                                  value: a.key === attr.key ? newVal : a.value,
-                                }));
-                                handleUpdateAttributes(order.id, idx, newAttrs);
-                              }}
-                              disabled={!!saving}
-                            />
-                          ) : (
-                            <s-text-field
-                              value={attr.value}
-                              onBlur={(e) => {
-                                const newVal = e.currentTarget.value;
-                                const newAttrs = item.customAttributes.map((a) => ({
-                                  key: a.key,
-                                  value: a.key === attr.key ? newVal : a.value,
-                                }));
-                                handleUpdateAttributes(order.id, idx, newAttrs);
-                              }}
-                              disabled={!!saving}
-                            />
-                          )}
-                        </s-stack>
-                      ))}
+                      {isTablet ? (
+                        <>
+                          <s-stack direction="inline" gap="small" alignItems="stretch">
+                            {(item.customAttributes || [])
+                              .filter((a) =>
+                                ["Brand", "Type", "Style #", "Size", "Color", "Date Ordered", "Order Confirmation Number"].includes(a.key)
+                              )
+                              .map((attr) => (
+                                <s-box key={attr.key} minInlineSize="100px">
+                                  <s-stack gap="small-300">
+                                    <s-text type="strong">{attr.key}</s-text>
+                                    {attr.key === "Date Ordered" ? (
+                                      <s-date-field
+                                        value={attr.value || ""}
+                                        onBlur={(e) => {
+                                          const newVal = e.currentTarget?.value ?? "";
+                                          const newAttrs = item.customAttributes.map((a) => ({
+                                            key: a.key,
+                                            value: a.key === attr.key ? newVal : a.value,
+                                          }));
+                                          handleUpdateAttributes(order.id, idx, newAttrs);
+                                        }}
+                                        disabled={!!saving}
+                                      />
+                                    ) : (
+                                      <s-text-field
+                                        value={attr.value}
+                                        onBlur={(e) => {
+                                          const newVal = e.currentTarget.value;
+                                          const newAttrs = item.customAttributes.map((a) => ({
+                                            key: a.key,
+                                            value: a.key === attr.key ? newVal : a.value,
+                                          }));
+                                          handleUpdateAttributes(order.id, idx, newAttrs);
+                                        }}
+                                        disabled={!!saving}
+                                      />
+                                    )}
+                                  </s-stack>
+                                </s-box>
+                              ))}
+                          </s-stack>
+                          {(item.customAttributes || [])
+                            .filter(
+                              (a) =>
+                                !["Brand", "Type", "Style #", "Size", "Color", "Date Ordered", "Order Confirmation Number"].includes(a.key)
+                            )
+                            .map((attr) => (
+                              <s-stack key={attr.key} gap="small-300">
+                                <s-text type="bodySmall">{attr.key}</s-text>
+                                <s-text-field
+                                  value={attr.value}
+                                  onBlur={(e) => {
+                                    const newVal = e.currentTarget.value;
+                                    const newAttrs = item.customAttributes.map((a) => ({
+                                      key: a.key,
+                                      value: a.key === attr.key ? newVal : a.value,
+                                    }));
+                                    handleUpdateAttributes(order.id, idx, newAttrs);
+                                  }}
+                                  disabled={!!saving}
+                                />
+                              </s-stack>
+                            ))}
+                        </>
+                      ) : (
+                        item.customAttributes.map((attr) => (
+                          <s-stack key={attr.key} gap="small-300">
+                            <s-text type="bodySmall">{attr.key}</s-text>
+                            {attr.key === "Date Ordered" ? (
+                              <s-date-field
+                                value={attr.value || ""}
+                                onBlur={(e) => {
+                                  const newVal = e.currentTarget?.value ?? "";
+                                  const newAttrs = item.customAttributes.map((a) => ({
+                                    key: a.key,
+                                    value: a.key === attr.key ? newVal : a.value,
+                                  }));
+                                  handleUpdateAttributes(order.id, idx, newAttrs);
+                                }}
+                                disabled={!!saving}
+                              />
+                            ) : (
+                              <s-text-field
+                                value={attr.value}
+                                onBlur={(e) => {
+                                  const newVal = e.currentTarget.value;
+                                  const newAttrs = item.customAttributes.map((a) => ({
+                                    key: a.key,
+                                    value: a.key === attr.key ? newVal : a.value,
+                                  }));
+                                  handleUpdateAttributes(order.id, idx, newAttrs);
+                                }}
+                                disabled={!!saving}
+                              />
+                            )}
+                          </s-stack>
+                        ))
+                      )}
                     </s-stack>
                   </s-box>
                   <s-divider />
