@@ -1291,13 +1291,24 @@ function Extension() {
                   placeholder={i18n.translate("search_placeholder")}
                 />
                 <s-text type="strong">{i18n.translate("filter")}</s-text>
-                <s-button
-                  variant="secondary"
-                  commandFor="filter-modal"
-                  command="--show"
-                >
-                  {isTablet ? `↕️ ${getFilterLabel(statusFilter, i18n)} ↕️` : getFilterLabel(statusFilter, i18n)}
-                </s-button>
+                <s-box inlineSize="100%">
+                  <s-button
+                    variant="secondary"
+                    commandFor="filter-modal"
+                    command="--show"
+                    inlineSize="fill"
+                  >
+                    {isTablet ? (
+                      <s-stack direction="inline" inlineSize="100%" gap="none" justifyContent="space-between" alignItems="center">
+                        <s-text>↕️</s-text>
+                        <s-text>{getFilterLabel(statusFilter, i18n)}</s-text>
+                        <s-text>↕️</s-text>
+                      </s-stack>
+                    ) : (
+                      getFilterLabel(statusFilter, i18n)
+                    )}
+                  </s-button>
+                </s-box>
                 <s-modal id="filter-modal" heading={i18n.translate("filter")}>
                   <s-stack gap="base">
                     {FILTER_OPTIONS.map((opt) => (
