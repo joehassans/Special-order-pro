@@ -950,29 +950,27 @@ export default function OrderDetails() {
             borderRadius="base"
             borderWidth="base"
             background="subdued"
-            flex="1"
+            flex="2"
           >
             <s-stack gap="small">
               <s-heading size="large" style={{ fontSize: "1.6rem" }}>
                 👤 CUSTOMER INFORMATION
               </s-heading>
               {order.customer ? (
-                <s-stack direction="inline" gap="large" alignItems="start">
-                  <s-stack gap="small">
-                    <s-heading>{order.customer.displayName}</s-heading>
-                    {order.customer.email && (
-                      <s-text color="subdued">
-                        Email: {order.customer.email}
-                      </s-text>
-                    )}
-                    {order.customer.phone && (
-                      <s-text type="strong">
-                        Phone: {formatUsPhone(order.customer.phone)}
-                      </s-text>
-                    )}
-                  </s-stack>
+                <s-stack gap="small" alignItems="start">
+                  <s-heading>{order.customer.displayName}</s-heading>
+                  {order.customer.email && (
+                    <s-text color="subdued">
+                      {order.customer.email}
+                    </s-text>
+                  )}
+                  {order.customer.phone && (
+                    <s-text type="strong">
+                      {formatUsPhone(order.customer.phone)}
+                    </s-text>
+                  )}
                   {order.customer.defaultAddress && (
-                    <s-stack gap="small">
+                    <s-stack gap="small-300" alignItems="start">
                       {order.customer.defaultAddress.company && (
                         <s-text color="subdued">
                           {order.customer.defaultAddress.company}
