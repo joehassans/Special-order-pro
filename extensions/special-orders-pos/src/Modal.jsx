@@ -1134,7 +1134,7 @@ function Extension() {
                               command="--show"
                               disabled={!!saving}
                             >
-                              {ORDER_STATUS_OPTIONS.includes(item.orderStatus) ? item.orderStatus : "Not Ordered"}
+                              {ORDER_STATUS_OPTIONS.includes(item.orderStatus) ? (isTablet ? `${item.orderStatus}${" ".repeat(30)}↕️` : item.orderStatus) : "Not Ordered"}
                             </s-button>
                             <s-modal id={`order-status-modal-${item.id}`}>
                               <s-stack gap="base">
