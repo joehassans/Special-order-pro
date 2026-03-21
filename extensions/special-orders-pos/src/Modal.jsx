@@ -811,7 +811,7 @@ function Extension() {
       <s-page heading={order.name} inlineSize={isTablet ? "large" : "base"}>
         <s-scroll-box>
           <s-box padding="base">
-            <s-stack gap="base">
+            <s-stack gap="small">
               <s-button
                 variant="secondary"
                 onClick={() => {
