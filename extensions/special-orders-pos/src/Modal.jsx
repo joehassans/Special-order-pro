@@ -1310,8 +1310,11 @@ function Extension() {
                       variant="secondary"
                       commandFor="filter-modal"
                       command="--show"
+                      inlineSize="fill"
                     >
-                      <s-heading>{`${getFilterLabel(statusFilter, i18n)}${" ".repeat(20)}↕️`}</s-heading>
+                      <s-box padding="large">
+                        <s-heading>{`${getFilterLabel(statusFilter, i18n)}${" ".repeat(20)}↕️`}</s-heading>
+                      </s-box>
                     </s-button>
                   </>
                 ) : (
