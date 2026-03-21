@@ -7,7 +7,7 @@ export default async () => {
 };
 
 const SPECIAL_ORDER_TAG = "special-order";
-const OPEN_STATUSES = ["Not Ordered", "Ordered", "Back Ordered", "Received"];
+const OPEN_STATUSES = ["Not Ordered", "Ordered", "Back Ordered", "Drop Ship - Ordered", "Drop Ship - Delivered", "Received"];
 const ALWAYS_PRESENT_ATTRIBUTES = ["Brand", "Type", "Style #", "Size", "Color"];
 const HIDDEN_ATTRIBUTES = new Set([
   "_shopify_item_type",
@@ -20,6 +20,8 @@ const ORDER_STATUS_OPTIONS = [
   "Not Ordered",
   "Ordered",
   "Back Ordered",
+  "Drop Ship - Ordered",
+  "Drop Ship - Delivered",
   "Received",
   "Canceled",
 ];
@@ -63,6 +65,8 @@ const FILTER_OPTIONS = [
   { value: "Not Ordered", label: "Not Ordered" },
   { value: "Ordered", label: "Ordered" },
   { value: "Back Ordered", label: "Back Ordered" },
+  { value: "Drop Ship - Ordered", label: "Drop Ship - Ordered" },
+  { value: "Drop Ship - Delivered", label: "Drop Ship - Delivered" },
   { value: "Received", label: "Received" },
   { value: "Picked Up - Sale Complete", label: "Picked Up - Sale Complete" },
   { value: "Order Canceled", label: "Order Canceled" },
@@ -274,7 +278,7 @@ function getTone(status, type) {
   if (type === "order") {
     if (s.includes("not ordered") || s.includes("canceled")) return "critical";
     if (s.includes("back ordered")) return "info";
-    if (s.includes("ordered") || s.includes("received") || s.includes("picked up"))
+    if (s.includes("ordered") || s.includes("received") || s.includes("delivered") || s.includes("picked up"))
       return "success";
     return "subdued";
   }

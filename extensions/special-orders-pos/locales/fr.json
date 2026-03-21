@@ -21,7 +21,7 @@
   "search_placeholder": "Client, n° commande ou produit...",
   "filter": "Filtrer par statut",
   "all_statuses": "Tous les statuts",
-  "filter_open": "Non commandé, Commandé, En rupture & Reçu",
+  "filter_open": "Non commandé, Commandé, En rupture, Drop Ship & Reçu",
   "saving": "Enregistrement...",
   "filters_heading": "Filtres",
   "clear_filters": "Effacer les filtres",

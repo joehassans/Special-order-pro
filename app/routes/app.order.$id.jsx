@@ -68,7 +68,7 @@ function getOrderStatusTone(status) {
   if (!s || s === "not set") return "subdued";
   if (s.includes("not ordered") || s.includes("canceled")) return "critical";
   if (s.includes("back ordered")) return "info";
-  if (s.includes("ordered") || s.includes("received")) return "success";
+  if (s.includes("ordered") || s.includes("received") || s.includes("delivered")) return "success";
   if (s.includes("picked up")) return "success";
   return "subdued";
 }
@@ -84,8 +84,8 @@ function getOrderStatusWrapperColors(status) {
   if (s.includes("back ordered")) {
     return { background: "#e3f2fd", border: "#1976d2" };
   }
-  // Success: Ordered, Received
-  if (s.includes("ordered") || s.includes("received") || s.includes("picked up")) {
+  // Success: Ordered, Received, Drop Ship - Ordered, Drop Ship - Delivered
+  if (s.includes("ordered") || s.includes("received") || s.includes("delivered") || s.includes("picked up")) {
     return { background: "#e8f5e9", border: "#2e7d32" };
   }
   return { background: "#f4f6f8", border: "#5c6ac4" };
@@ -1303,6 +1303,12 @@ export default function OrderDetails() {
                               <s-option value="Ordered">Ordered</s-option>
                               <s-option value="Back Ordered">
                                 Back Ordered
+                              </s-option>
+                              <s-option value="Drop Ship - Ordered">
+                                Drop Ship - Ordered
+                              </s-option>
+                              <s-option value="Drop Ship - Delivered">
+                                Drop Ship - Delivered
                               </s-option>
                               <s-option value="Received">Received</s-option>
                               <s-option value="Canceled">Canceled</s-option>

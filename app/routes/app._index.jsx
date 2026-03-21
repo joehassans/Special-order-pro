@@ -56,7 +56,7 @@ function getOrderStatusTone(status) {
   if (!s || s === "not set") return "subdued";
   if (s.includes("not ordered") || s.includes("canceled")) return "critical";
   if (s.includes("back ordered")) return "info";
-  if (s.includes("ordered") || s.includes("received")) return "success";
+  if (s.includes("ordered") || s.includes("received") || s.includes("delivered")) return "success";
   if (s.includes("picked up")) return "success";
   return "subdued";
 }
@@ -489,7 +489,7 @@ export default function Index() {
     }
 
     // Status filter: overall order status (Picked Up, Order Canceled) or line item order status
-    const OPEN_STATUSES = ["Not Ordered", "Ordered", "Back Ordered", "Received"];
+    const OPEN_STATUSES = ["Not Ordered", "Ordered", "Back Ordered", "Drop Ship - Ordered", "Drop Ship - Delivered", "Received"];
     if (statusFilter) {
       if (statusFilter === "Picked Up - Sale Complete") {
         result = result.filter(
@@ -569,6 +569,8 @@ export default function Index() {
             <s-option value="Not Ordered">Not Ordered</s-option>
             <s-option value="Ordered">Ordered</s-option>
             <s-option value="Back Ordered">Back Ordered</s-option>
+            <s-option value="Drop Ship - Ordered">Drop Ship - Ordered</s-option>
+            <s-option value="Drop Ship - Delivered">Drop Ship - Delivered</s-option>
             <s-option value="Received">Received</s-option>
             <s-option value="Picked Up - Sale Complete">
               Picked Up - Sale Complete
