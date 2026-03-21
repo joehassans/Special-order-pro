@@ -1122,7 +1122,6 @@ function Extension() {
                         )}
                       </s-stack>
                       <s-stack gap="small">
-                        <s-text type="bodySmall">{i18n.translate("item_order_status")}</s-text>
                         <s-box inlineSize="100%">
                           <s-stack gap="small">
                             <s-button
@@ -1134,7 +1133,7 @@ function Extension() {
                             >
                               {ORDER_STATUS_OPTIONS.includes(item.orderStatus) ? item.orderStatus : "Not Ordered"}
                             </s-button>
-                            <s-modal id={`order-status-modal-${item.id}`} heading={i18n.translate("item_order_status")}>
+                            <s-modal id={`order-status-modal-${item.id}`}>
                               <s-stack gap="base">
                                 {ORDER_STATUS_OPTIONS.map((opt) => (
                                   <s-button
@@ -1164,9 +1163,9 @@ function Extension() {
                                 ["Brand", "Type", "Style #", "Size", "Color", "Date Ordered", "Order Confirmation Number"].includes(a.key)
                               )
                               .map((attr) => (
-                                <s-box key={attr.key} minInlineSize="235px" inlineSize="auto">
-                                  <s-stack gap="small-300">
-                                    <s-text type="strong">{attr.key}</s-text>
+                                <s-box key={attr.key} inlineSize="240px">
+                                  <s-stack gap="small-300" alignItems="center">
+                                    <s-heading>{attr.key === "Date Ordered" ? "Item Order Date" : attr.key}</s-heading>
                                     {attr.key === "Date Ordered" ? (
                                       <s-date-field
                                         value={attr.value || ""}
