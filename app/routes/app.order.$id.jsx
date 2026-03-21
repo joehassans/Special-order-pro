@@ -1128,7 +1128,7 @@ export default function OrderDetails() {
             borderRadius="base"
             borderWidth="base"
             background="subdued"
-            flex="1"
+            flex="2"
           >
             <s-stack gap="small">
               <s-heading size="large" style={{ fontSize: "1.6rem" }}>
