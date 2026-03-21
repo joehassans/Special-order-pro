@@ -1293,7 +1293,7 @@ function Extension() {
                 {isTablet ? (
                   <>
                     <s-stack direction="inline" gap="small" inlineSize="100%" justifyContent="space-between" alignItems="center">
-                      <s-text type="strong">{i18n.translate("filter")}</s-text>
+                      <s-heading>{i18n.translate("filter")}</s-heading>
                       <s-button
                         variant="secondary"
                         onClick={() => {
