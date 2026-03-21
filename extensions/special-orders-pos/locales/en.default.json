@@ -35,7 +35,7 @@
   "column_customer": "Customer",
   "column_order_status": "Item Order Status",
   "column_payment": "Payment",
-  "column_contact": "Contact",
+  "column_contact": "Contact Status",
   "column_actions": "Actions",
   "column_created": "Created",
   "date_created": "Date Created",

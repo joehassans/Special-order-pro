@@ -29,7 +29,7 @@
   "column_customer": "Client",
   "column_order_status": "Statut de commande de l'article",
   "column_payment": "Paiement",
-  "column_contact": "Contact",
+  "column_contact": "Statut de contact",
   "column_actions": "Actions",
   "column_created": "Créé",
   "date_created": "Date de création",
