@@ -791,7 +791,9 @@ function Extension() {
       );
       const priceSet = li.originalUnitPriceSet?.shopMoney;
       const priceLabel = priceSet
-        ? `${priceSet.currencyCode} ${parseFloat(priceSet.amount).toFixed(2)}`
+        ? priceSet.currencyCode === "USD"
+          ? `$${parseFloat(priceSet.amount).toFixed(2)}`
+          : `${priceSet.currencyCode} ${parseFloat(priceSet.amount).toFixed(2)}`
         : null;
       return {
         id: li.id,
@@ -1113,7 +1115,7 @@ function Extension() {
                       {item.variantTitle && (
                         <s-text color="subdued">{item.variantTitle}</s-text>
                       )}
-                      <s-stack direction="inline" gap="small">
+                      <s-stack direction="inline" gap="small" inlineSize="100%" justifyContent="end">
                         <s-text type="strong">{i18n.translate("quantity")}: {item.quantity}</s-text>
                         {item.priceLabel && (
                           <s-text type="strong">{item.priceLabel}</s-text>
