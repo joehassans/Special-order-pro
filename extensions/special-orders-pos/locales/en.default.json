@@ -37,7 +37,7 @@
   "column_payment": "Payment",
   "column_contact": "Contact Status",
   "column_actions": "Actions",
-  "column_created": "Created",
+  "column_created": "Date Created",
   "date_created": "Date Created",
   "view_details": "View Details",
   "refresh": "Refresh"
