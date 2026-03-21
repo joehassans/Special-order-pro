@@ -133,7 +133,7 @@ function isCompletedContactStatus(status) {
   return normalized.includes("pickedupsalecomplete");
 }
 
-const ALWAYS_PRESENT_ATTRIBUTES = ["Brand", "Type", "Style #", "Size", "Color", "Date Ordered"];
+const ALWAYS_PRESENT_ATTRIBUTES = ["Brand", "Type", "Style #", "Size", "Color", "Date Ordered", "Order Confirmation Number"];
 const HIDDEN_ATTRIBUTES = new Set([
   "_shopify_item_type",
   "Order Status",
@@ -1327,7 +1327,7 @@ export default function OrderDetails() {
                           >
                             {(item.customAttributes || [])
                               .filter((a) =>
-                                ["Brand", "Type", "Style #", "Size", "Color", "Date Ordered"].includes(a.key)
+                                ["Brand", "Type", "Style #", "Size", "Color", "Date Ordered", "Order Confirmation Number"].includes(a.key)
                               )
                               .map((attr) => (
                                 <div key={attr.key} className="item-detail-field">
@@ -1356,7 +1356,7 @@ export default function OrderDetails() {
                           {(item.customAttributes || [])
                             .filter(
                               (a) =>
-                                !["Brand", "Type", "Style #", "Size", "Color", "Date Ordered"].includes(a.key)
+                                !["Brand", "Type", "Style #", "Size", "Color", "Date Ordered", "Order Confirmation Number"].includes(a.key)
                             )
                             .map((attr) => (
                               <div key={attr.key} className="item-detail-field">
