@@ -1164,7 +1164,7 @@ function Extension() {
                                 ["Brand", "Type", "Style #", "Size", "Color", "Date Ordered", "Order Confirmation Number"].includes(a.key)
                               )
                               .map((attr) => (
-                                <s-box key={attr.key} minInlineSize="100px">
+                                <s-box key={attr.key} minInlineSize="250px">
                                   <s-stack gap="small-300">
                                     <s-text type="strong">{attr.key}</s-text>
                                     {attr.key === "Date Ordered" ? (
