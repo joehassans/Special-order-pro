@@ -1435,7 +1435,7 @@ function Extension() {
               /* iPad: table layout */
               <s-box minInlineSize={minTableWidth}>
                 <s-stack gap="small-100">
-                  <s-box padding="base" background="subdued" borderWidth="base" minInlineSize={minTableWidth}>
+                  <s-box padding="base" background="subdued" border="base" borderRadius="base" minInlineSize={minTableWidth}>
                     <s-stack direction="inline" gap="small">
                     <s-box inlineSize={col.order} minInlineSize={col.order}>
                       <s-text type="strong">{i18n.translate("column_order")}</s-text>
