@@ -923,6 +923,16 @@ export default function OrderDetails() {
           gap: 12px;
           border: 2px solid;
         }
+        .item-detail-field {
+          min-width: 280px;
+          width: 280px;
+          flex: 0 0 280px;
+        }
+        .item-detail-field s-text-field {
+          display: block;
+          width: 100%;
+          min-width: 100%;
+        }
       `}</style>
       {/* Top bar: back link + order meta */}
       <s-section>
@@ -1304,49 +1314,49 @@ export default function OrderDetails() {
 
                         {/* Editable attributes (metafield-backed); Brand, Type, Style #, Size, Color on one row */}
                         <s-stack gap="small-300">
-                          <s-stack
-                            direction="inline"
-                            gap="small"
-                            alignItems="stretch"
-                            style={{ flexWrap: "wrap" }}
+                          <div
+                            style={{
+                              display: "flex",
+                              flexWrap: "wrap",
+                              gap: "12px",
+                              alignItems: "flex-start",
+                            }}
                           >
                             {(item.customAttributes || [])
                               .filter((a) =>
                                 ["Brand", "Type", "Style #", "Size", "Color"].includes(a.key)
                               )
                               .map((attr) => (
-                                <s-stack
-                                  key={attr.key}
-                                  gap="small-300"
-                                  style={{ flex: "1 1 720px", minWidth: "560px" }}
-                                >
-                                  <s-text type="strong">{attr.key}</s-text>
-                                  <s-text-field
-                                    data-attr-key={attr.key}
-                                    label=""
-                                    labelAccessibilityVisibility="hidden"
-                                    value={attr.value || ""}
-                                    style={{ minWidth: "480px", width: "100%" }}
-                                  />
-                                </s-stack>
+                                <div key={attr.key} className="item-detail-field">
+                                  <s-stack gap="small-300">
+                                    <s-text type="strong">{attr.key}</s-text>
+                                    <s-text-field
+                                      data-attr-key={attr.key}
+                                      label=""
+                                      labelAccessibilityVisibility="hidden"
+                                      value={attr.value || ""}
+                                    />
+                                  </s-stack>
+                                </div>
                               ))}
-                          </s-stack>
+                          </div>
                           {(item.customAttributes || [])
                             .filter(
                               (a) =>
                                 !["Brand", "Type", "Style #", "Size", "Color"].includes(a.key)
                             )
                             .map((attr) => (
-                              <s-stack key={attr.key} gap="small-300" style={{ minWidth: "800px" }}>
-                                <s-text type="strong">{attr.key}</s-text>
-                                <s-text-field
-                                  data-attr-key={attr.key}
-                                  label=""
-                                  labelAccessibilityVisibility="hidden"
-                                  value={attr.value || ""}
-                                  style={{ minWidth: "720px", width: "100%" }}
-                                />
-                              </s-stack>
+                              <div key={attr.key} className="item-detail-field">
+                                <s-stack gap="small-300">
+                                  <s-text type="strong">{attr.key}</s-text>
+                                  <s-text-field
+                                    data-attr-key={attr.key}
+                                    label=""
+                                    labelAccessibilityVisibility="hidden"
+                                    value={attr.value || ""}
+                                  />
+                                </s-stack>
+                              </div>
                             ))}
                               <s-stack direction="inline" justifyContent="end">
                                 <s-button
