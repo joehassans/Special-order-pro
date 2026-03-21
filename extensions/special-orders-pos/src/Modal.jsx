@@ -1290,14 +1290,53 @@ function Extension() {
                   onInput={(e) => setSearchTerm(e.currentTarget.value)}
                   placeholder={i18n.translate("search_placeholder")}
                 />
-                <s-text type="strong">{i18n.translate("filter")}</s-text>
-                <s-button
-                  variant="secondary"
-                  commandFor="filter-modal"
-                  command="--show"
-                >
-                  {isTablet ? `${getFilterLabel(statusFilter, i18n)}${" ".repeat(20)}↕️` : getFilterLabel(statusFilter, i18n)}
-                </s-button>
+                {isTablet ? (
+                  <>
+                    <s-stack direction="inline" gap="small" inlineSize="100%" justifyContent="space-between" alignItems="center">
+                      <s-text type="strong">{i18n.translate("filter")}</s-text>
+                      <s-button
+                        variant="secondary"
+                        onClick={() => {
+                          setSearchTerm("");
+                          setStatusFilter("");
+                          fetchOrders();
+                        }}
+                        disabled={loading}
+                      >
+                        {i18n.translate("refresh")}
+                      </s-button>
+                    </s-stack>
+                    <s-button
+                      variant="secondary"
+                      commandFor="filter-modal"
+                      command="--show"
+                    >
+                      {`${getFilterLabel(statusFilter, i18n)}${" ".repeat(20)}↕️`}
+                    </s-button>
+                  </>
+                ) : (
+                  <>
+                    <s-text type="strong">{i18n.translate("filter")}</s-text>
+                    <s-button
+                      variant="secondary"
+                      commandFor="filter-modal"
+                      command="--show"
+                    >
+                      {getFilterLabel(statusFilter, i18n)}
+                    </s-button>
+                    <s-button
+                      variant="secondary"
+                      onClick={() => {
+                        setSearchTerm("");
+                        setStatusFilter("");
+                        fetchOrders();
+                      }}
+                      disabled={loading}
+                    >
+                      {i18n.translate("refresh")}
+                    </s-button>
+                  </>
+                )}
                 <s-modal id="filter-modal" heading={i18n.translate("filter")}>
                   <s-stack gap="base">
                     {FILTER_OPTIONS.map((opt) => (
@@ -1313,19 +1352,6 @@ function Extension() {
                     ))}
                   </s-stack>
                 </s-modal>
-                {statusFilter && (
-                  <s-button
-                    variant="secondary"
-                    onClick={() => setStatusFilter("")}
-                  >
-                    {i18n.translate("clear_filters")}
-                  </s-button>
-                )}
-                {!isTablet && (
-                  <s-button variant="secondary" onClick={fetchOrders} disabled={loading}>
-                    {i18n.translate("refresh")}
-                  </s-button>
-                )}
               </s-stack>
             </s-box>
 
