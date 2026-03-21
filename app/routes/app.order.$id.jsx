@@ -1122,41 +1122,43 @@ export default function OrderDetails() {
             </s-stack>
           </s-box>
 
-          {/* Notes */}
-          <s-box
-            padding="base"
-            borderRadius="base"
-            borderWidth="base"
-            background="subdued"
-            flex="2"
-          >
-            <s-stack gap="small">
-              <s-heading size="large" style={{ fontSize: "1.6rem" }}>
-                NOTES
-              </s-heading>
-              <s-text-area
-                label="Notes"
-                labelAccessibilityVisibility="exclusive"
-                value={note}
-                onInput={(event) => setNote(event.currentTarget.value)}
-                placeholder="Add notes about this order..."
-              />
-              <s-stack direction="inline" justifyContent="end" gap="small">
-                <s-button
-                  variant="primary"
-                  onClick={() => {
-                    submit(
-                      { intent: "updateNote", orderId: order.id, note },
-                      { method: "post" }
-                    );
-                  }}
-                >
-                  Save note
-                </s-button>
-              </s-stack>
-            </s-stack>
-          </s-box>
         </s-stack>
+      </s-section>
+
+      {/* Notes */}
+      <s-section>
+        <s-box
+          padding="small-500"
+          borderRadius="base"
+          borderWidth="base"
+          background="subdued"
+        >
+          <s-stack gap="small-500">
+            <s-heading size="large" style={{ fontSize: "1.6rem" }}>
+              NOTES
+            </s-heading>
+            <s-text-area
+              label="Notes"
+              labelAccessibilityVisibility="exclusive"
+              value={note}
+              onInput={(event) => setNote(event.currentTarget.value)}
+              placeholder="Add notes about this order..."
+            />
+            <s-stack direction="inline" justifyContent="end" gap="small-500">
+              <s-button
+                variant="primary"
+                onClick={() => {
+                  submit(
+                    { intent: "updateNote", orderId: order.id, note },
+                    { method: "post" }
+                  );
+                }}
+              >
+                Save note
+              </s-button>
+            </s-stack>
+          </s-stack>
+        </s-box>
       </s-section>
 
       {/* Line items */}
