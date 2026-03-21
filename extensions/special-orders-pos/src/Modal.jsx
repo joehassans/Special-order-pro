@@ -1470,7 +1470,7 @@ function Extension() {
                     </s-box>
                     <s-box inlineSize={col.created} minInlineSize={col.created}>
                       <s-stack gap="none">
-                        <s-text type="strong">{i18n.translate("column_created").toUpperCase()}</s-text>
+                        <s-text type="strong">CREATED</s-text>
                         <s-box blockSize="1px" inlineSize="100%" background="base" />
                       </s-stack>
                     </s-box>
