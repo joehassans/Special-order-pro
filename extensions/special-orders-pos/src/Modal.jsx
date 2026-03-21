@@ -1436,28 +1436,27 @@ function Extension() {
               <s-box minInlineSize={minTableWidth}>
                 <s-stack gap="small-100">
                   <s-box padding="base" background="subdued" borderWidth="base" minInlineSize={minTableWidth}>
-                    <s-stack direction="inline" gap="none">
-                      <s-stack direction="inline" gap="small-100">
-                        <s-box inlineSize={col.order} minInlineSize={col.order}>
-                          <s-text type="strong">{i18n.translate("column_order")}</s-text>
-                        </s-box>
-                        <s-box inlineSize={col.customer} minInlineSize={col.customer}>
-                          <s-text type="strong">{i18n.translate("column_customer")}</s-text>
-                        </s-box>
-                        <s-box inlineSize={col.status} minInlineSize={col.status}>
-                          <s-text type="strong">{i18n.translate("column_order_status")}</s-text>
-                        </s-box>
-                        <s-box inlineSize={col.payment} minInlineSize={col.payment}>
-                          <s-text type="strong">{i18n.translate("column_payment")}</s-text>
-                        </s-box>
-                        <s-box inlineSize={col.contact} minInlineSize={col.contact}>
-                          <s-text type="strong">{i18n.translate("column_contact")}</s-text>
-                        </s-box>
-                      </s-stack>
-                      <s-box inlineSize={col.created} minInlineSize={col.created}>
-                        <s-text type="small">{i18n.translate("column_created")}</s-text>
-                      </s-box>
-                    </s-stack>
+                    <s-stack direction="inline" gap="small">
+                    <s-box inlineSize={col.order} minInlineSize={col.order}>
+                      <s-text type="strong">{i18n.translate("column_order")}</s-text>
+                    </s-box>
+                    <s-box inlineSize={col.customer} minInlineSize={col.customer}>
+                      <s-text type="strong">{i18n.translate("column_customer")}</s-text>
+                    </s-box>
+                    <s-box inlineSize={col.status} minInlineSize={col.status}>
+                      <s-text type="strong">{i18n.translate("column_order_status")}</s-text>
+                    </s-box>
+                    <s-box inlineSize={col.payment} minInlineSize={col.payment}>
+                      <s-text type="strong">{i18n.translate("column_payment")}</s-text>
+                    </s-box>
+                    <s-box inlineSize={col.contact} minInlineSize={col.contact}>
+                      <s-text type="strong">{i18n.translate("column_contact")}</s-text>
+                    </s-box>
+                    <s-box inlineSize="auto" minInlineSize="0" />
+                    <s-box inlineSize={col.created} minInlineSize={col.created}>
+                      <s-text type="small">{i18n.translate("column_created")}</s-text>
+                    </s-box>
+                  </s-stack>
                 </s-box>
                 {filteredOrders.map((order, index) => {
                   const completed = order.overallOrderStatus === "Picked Up - Sale Complete";
@@ -1479,41 +1478,40 @@ function Extension() {
                         }}
                       >
                         <s-box padding="base" background="subdued" minInlineSize={minTableWidth}>
-                        <s-stack direction="inline" gap="none">
-                          <s-stack direction="inline" gap="small-100">
-                            <s-box inlineSize={col.order} minInlineSize={col.order}>
-                              <s-badge tone={orderBadgeTone}>
-                                {order.name}
-                              </s-badge>
-                            </s-box>
-                            <s-box inlineSize={col.customer} minInlineSize={col.customer}>
-                              <s-text>{order.customerName}</s-text>
-                            </s-box>
-                            <s-box inlineSize={col.status} minInlineSize={col.status}>
-                              <s-stack direction="inline" gap="small-300">
-                                {statusItems.map((item, i) => {
-                                  const title = typeof item === "object" && item != null ? item.title : "Item";
-                                  const status = typeof item === "object" && item != null ? item.status : item;
-                                  const label = `${title} - ${String(status ?? "Not set").trim() || "Not set"}`;
-                                  return (
-                                    <s-badge key={i} tone={getTone(status, "order")}>
-                                      {label}
-                                    </s-badge>
-                                  );
-                                })}
-                              </s-stack>
-                            </s-box>
-                            <s-box inlineSize={col.payment} minInlineSize={col.payment}>
-                              <s-badge tone={getTone(order.paymentStatus, "payment")}>
-                                {order.paymentStatus}
-                              </s-badge>
-                            </s-box>
-                            <s-box inlineSize={col.contact} minInlineSize={col.contact}>
-                              <s-badge tone={getTone(order.contactStatus, "contact")}>
-                                {order.contactStatus || "Not Contacted"}
-                              </s-badge>
-                            </s-box>
-                          </s-stack>
+                        <s-stack direction="inline" gap="small">
+                          <s-box inlineSize={col.order} minInlineSize={col.order}>
+                            <s-badge tone={orderBadgeTone}>
+                              {order.name}
+                            </s-badge>
+                          </s-box>
+                          <s-box inlineSize={col.customer} minInlineSize={col.customer}>
+                            <s-text>{order.customerName}</s-text>
+                          </s-box>
+                          <s-box inlineSize={col.status} minInlineSize={col.status}>
+                            <s-stack direction="inline" gap="small-300">
+                              {statusItems.map((item, i) => {
+                                const title = typeof item === "object" && item != null ? item.title : "Item";
+                                const status = typeof item === "object" && item != null ? item.status : item;
+                                const label = `${title} - ${String(status ?? "Not set").trim() || "Not set"}`;
+                                return (
+                                  <s-badge key={i} tone={getTone(status, "order")}>
+                                    {label}
+                                  </s-badge>
+                                );
+                              })}
+                            </s-stack>
+                          </s-box>
+                          <s-box inlineSize={col.payment} minInlineSize={col.payment}>
+                            <s-badge tone={getTone(order.paymentStatus, "payment")}>
+                              {order.paymentStatus}
+                            </s-badge>
+                          </s-box>
+                          <s-box inlineSize={col.contact} minInlineSize={col.contact}>
+                            <s-badge tone={getTone(order.contactStatus, "contact")}>
+                              {order.contactStatus || "Not Contacted"}
+                            </s-badge>
+                          </s-box>
+                          <s-box inlineSize="auto" minInlineSize="0" />
                           <s-box inlineSize={col.created} minInlineSize={col.created}>
                             <s-text color="subdued">{`${order.createdDateLabel || ""}${" ".repeat(2)}↕️`}</s-text>
                           </s-box>
