@@ -1318,7 +1318,7 @@ export default function OrderDetails() {
                                 <s-stack
                                   key={attr.key}
                                   gap="small-300"
-                                  style={{ flex: "1 1 180px", minWidth: "140px" }}
+                                  style={{ flex: "1 1 720px", minWidth: "560px" }}
                                 >
                                   <s-text type="strong">{attr.key}</s-text>
                                   <s-text-field
@@ -1326,7 +1326,7 @@ export default function OrderDetails() {
                                     label=""
                                     labelAccessibilityVisibility="hidden"
                                     value={attr.value || ""}
-                                    style={{ minWidth: "120px" }}
+                                    style={{ minWidth: "480px", width: "100%" }}
                                   />
                                 </s-stack>
                               ))}
@@ -1337,14 +1337,14 @@ export default function OrderDetails() {
                                 !["Brand", "Type", "Style #", "Size", "Color"].includes(a.key)
                             )
                             .map((attr) => (
-                              <s-stack key={attr.key} gap="small-300" style={{ minWidth: "200px" }}>
+                              <s-stack key={attr.key} gap="small-300" style={{ minWidth: "800px" }}>
                                 <s-text type="strong">{attr.key}</s-text>
                                 <s-text-field
                                   data-attr-key={attr.key}
                                   label=""
                                   labelAccessibilityVisibility="hidden"
                                   value={attr.value || ""}
-                                  style={{ minWidth: "180px" }}
+                                  style={{ minWidth: "720px", width: "100%" }}
                                 />
                               </s-stack>
                             ))}
