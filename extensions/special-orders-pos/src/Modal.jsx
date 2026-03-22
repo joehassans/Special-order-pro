@@ -833,17 +833,18 @@ function Extension() {
                 >
                   ← {i18n.translate("back")}
                 </s-button>
-                {order.id?.includes("DraftOrder") && (
-                  <s-button
-                    variant="primary"
-                    onClick={() => {
-                      const path = `/print/draft-order?id=${encodeURIComponent(order.id)}`;
-                      shopify.print.print(path);
-                    }}
-                  >
-                    {i18n.translate("print_order_summary")}
-                  </s-button>
-                )}
+                <s-button
+                  variant="primary"
+                  onClick={() => {
+                    const isDraft = order.id?.includes("DraftOrder");
+                    const path = isDraft
+                      ? `/print/draft-order?id=${encodeURIComponent(order.id)}`
+                      : `/print/order?id=${encodeURIComponent(order.id)}`;
+                    shopify.print.print(path);
+                  }}
+                >
+                  {i18n.translate("print_order_summary")}
+                </s-button>
               </s-stack>
 
               {/* Customer, Contact Status, Overall Order Status, Payment Status */}

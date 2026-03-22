@@ -8,18 +8,26 @@ import {
   buildOrderSummaryHtml,
 } from "../lib/print-order-summary.server";
 
+function getPaymentStatusFromOrder(order) {
+  const status = order.displayFinancialStatus;
+  if (status === "PAID") return "Paid in Full";
+  if (status === "PARTIALLY_PAID") return "Partially Paid";
+  return "Not Paid";
+}
+
 /**
- * Serves printable draft order summary HTML for POS Print API.
- * GET /print/draft-order?id=gid://shopify/DraftOrder/123
+ * Serves printable order summary HTML for POS Print API.
+ * GET /print/order?id=gid://shopify/Order/123
+ * Same format as draft orders - statuses, details, totals from the actual order.
  */
 export async function loader({ request }) {
   const { admin, cors } = await authenticate.admin(request);
 
   const url = new URL(request.url);
   const id = url.searchParams.get("id");
-  if (!id || !id.includes("DraftOrder")) {
+  if (!id || !id.includes("Order") || id.includes("DraftOrder")) {
     return cors(
-      new Response("Missing or invalid draft order id", { status: 400 })
+      new Response("Missing or invalid order id", { status: 400 })
     );
   }
 
@@ -28,15 +36,16 @@ export async function loader({ request }) {
 
   const response = await admin.graphql(
     `#graphql
-    query GetDraftOrderForPrint($id: ID!) {
-      draftOrder(id: $id) {
+    query GetOrderForPrint($id: ID!) {
+      order(id: $id) {
         id
         name
         createdAt
-        note2
+        displayFinancialStatus
         subtotalPriceSet { shopMoney { amount currencyCode } }
         totalTaxSet { shopMoney { amount currencyCode } }
         totalPriceSet { shopMoney { amount currencyCode } }
+        totalOutstandingSet { shopMoney { amount currencyCode } }
         metafields(first: 250, namespace: "custom") {
           edges { node { key value } }
         }
@@ -57,7 +66,7 @@ export async function loader({ request }) {
             node {
               title
               quantity
-              variant { title }
+              variantTitle
               originalUnitPriceSet { shopMoney { amount currencyCode } }
               customAttributes { key value }
             }
@@ -69,9 +78,9 @@ export async function loader({ request }) {
   );
 
   const json = await response.json();
-  const draft = json.data?.draftOrder;
-  if (!draft) {
-    return cors(new Response("Draft order not found", { status: 404 }));
+  const order = json.data?.order;
+  if (!order) {
+    return cors(new Response("Order not found", { status: 404 }));
   }
 
   const formatMoney = (money) => {
@@ -80,11 +89,23 @@ export async function loader({ request }) {
     return money.currencyCode === "USD" ? `$${amt}` : `${money.currencyCode} ${amt}`;
   };
 
-  const subtotal = draft.subtotalPriceSet?.shopMoney;
-  const tax = draft.totalTaxSet?.shopMoney;
-  const total = draft.totalPriceSet?.shopMoney;
-  const customer = draft.customer;
-  const metafields = draft.metafields || { edges: [] };
+  const subtotal = order.subtotalPriceSet?.shopMoney;
+  const tax = order.totalTaxSet?.shopMoney;
+  const total = order.totalPriceSet?.shopMoney;
+  const outstanding = order.totalOutstandingSet?.shopMoney;
+  const customer = order.customer;
+  const metafields = order.metafields || { edges: [] };
+
+  let amountPaid = null;
+  let balanceDue = outstanding;
+  if (total && outstanding) {
+    const totalAmt = parseFloat(total.amount);
+    const outstandingAmt = parseFloat(outstanding.amount);
+    amountPaid = {
+      amount: (totalAmt - outstandingAmt).toFixed(2),
+      currencyCode: total.currencyCode,
+    };
+  }
 
   const attrsByIndex = {};
   metafields.edges.forEach((e) => {
@@ -104,44 +125,10 @@ export async function loader({ request }) {
   const overallStatus =
     metafields.edges.find((e) => e?.node?.key === "overall_order_status")
       ?.node?.value || "Order Pending";
-  const paymentStatus = "Not Paid";
+  const paymentStatus = getPaymentStatusFromOrder(order);
 
-  const rawLineItems = draft.lineItems?.edges?.map((e) => e.node) ?? [];
-  const lineItems = buildLineItems(
-    rawLineItems,
-    metafields,
-    attrsByIndex,
-    (li) => li.variant?.title,
-    formatMoney
-  );
-
-  const data = buildPrintData(draft, customer, lineItems, {
-    overallStatus,
-    paymentStatus,
-    subtotal,
-    tax,
-    total,
-    amountPaid: null,
-    balanceDue: total,
-  });
-  data.logoUrl = logoUrl;
-  data.shopAddressStr = STORE_CONFIG.address;
-  data.metaContact = [STORE_CONFIG.phone, STORE_CONFIG.website, `Instagram: ${STORE_CONFIG.instagram}`]
-    .filter(Boolean)
-    .join(" | ");
-
-  const html = buildOrderSummaryHtml(data);
-
-  return cors(
-    new Response(html, {
-      status: 200,
-      headers: { "Content-Type": "text/html; charset=utf-8" },
-    })
-  );
-}
-
-function buildLineItems(rawItems, metafields, attrsByIndex, getVariantTitle, formatMoney) {
-  return rawItems.map((li, idx) => {
+  const rawLineItems = order.lineItems?.edges?.map((e) => e.node) ?? [];
+  const lineItems = rawLineItems.map((li, idx) => {
     const overrides = attrsByIndex[idx];
     const attrs = getAttributesForDisplay(overrides || li.customAttributes || []);
     const itemStatus = extractItemStatus(
@@ -151,7 +138,7 @@ function buildLineItems(rawItems, metafields, attrsByIndex, getVariantTitle, for
     );
     const priceSet = li.originalUnitPriceSet?.shopMoney;
     const price = priceSet ? formatMoney(priceSet) : "—";
-    const variantTitle = getVariantTitle(li);
+    const variantTitle = li.variantTitle;
     const variant = variantTitle ? ` (${variantTitle})` : "";
 
     const brand = attrs.find((a) => a.key === "Brand")?.value || "";
@@ -184,14 +171,6 @@ function buildLineItems(rawItems, metafields, attrsByIndex, getVariantTitle, for
       detailsHtml,
     };
   });
-}
-
-function buildPrintData(order, customer, lineItems, totals) {
-  const formatMoney = (money) => {
-    if (!money) return "—";
-    const amt = parseFloat(money.amount).toFixed(2);
-    return money.currencyCode === "USD" ? `$${amt}` : `${money.currencyCode} ${amt}`;
-  };
 
   const dateStr = order.createdAt
     ? new Date(order.createdAt).toLocaleDateString(undefined, {
@@ -201,7 +180,7 @@ function buildPrintData(order, customer, lineItems, totals) {
       })
     : "—";
 
-  return {
+  const data = {
     orderName: order.name?.replace(/^#/, "") || "—",
     dateCreated: dateStr,
     summaryDate: dateStr,
@@ -214,14 +193,28 @@ function buildPrintData(order, customer, lineItems, totals) {
           defaultAddress: customer.defaultAddress,
         }
       : null,
-    overallStatus: totals.overallStatus,
-    paymentStatus: totals.paymentStatus,
+    overallStatus,
+    paymentStatus,
     lineItems,
     totalItemQty: lineItems.reduce((sum, li) => sum + li.qty, 0),
-    subtotalFormatted: totals.subtotal ? formatMoney(totals.subtotal) : "—",
-    taxFormatted: totals.tax ? formatMoney(totals.tax) : "—",
-    totalFormatted: totals.total ? formatMoney(totals.total) : "—",
-    amountPaidFormatted: totals.amountPaid ? formatMoney(totals.amountPaid) : "—",
-    balanceDueFormatted: totals.balanceDue ? formatMoney(totals.balanceDue) : "—",
+    subtotalFormatted: subtotal ? formatMoney(subtotal) : "—",
+    taxFormatted: tax ? formatMoney(tax) : "—",
+    totalFormatted: total ? formatMoney(total) : "—",
+    amountPaidFormatted: amountPaid ? formatMoney(amountPaid) : "—",
+    balanceDueFormatted: balanceDue ? formatMoney(balanceDue) : "—",
+    logoUrl,
+    shopAddressStr: STORE_CONFIG.address,
+    metaContact: [STORE_CONFIG.phone, STORE_CONFIG.website, `Instagram: ${STORE_CONFIG.instagram}`]
+      .filter(Boolean)
+      .join(" | "),
   };
+
+  const html = buildOrderSummaryHtml(data);
+
+  return cors(
+    new Response(html, {
+      status: 200,
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    })
+  );
 }
