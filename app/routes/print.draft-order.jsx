@@ -1,7 +1,7 @@
 import { authenticate } from "../shopify.server";
 
 /**
- * Serves printable draft order receipt HTML for POS Print API.
+ * Serves printable draft order summary HTML for POS Print API.
  * GET /print/draft-order?id=gid://shopify/DraftOrder/123
  */
 export async function loader({ request }) {
@@ -74,12 +74,14 @@ export async function loader({ request }) {
             currencyCode: priceSet.currencyCode,
           })
         : "";
-      const variant = li.variant?.title ? ` - ${li.variant.title}` : "";
+      const variant = li.variant?.title ? ` (${li.variant.title})` : "";
       return `
-        <div class="line-item">
-          <p><strong>${escapeHtml(li.title)}${escapeHtml(variant)}</strong></p>
-          <p class="line-meta">Qty: ${li.quantity || 1} @ ${price} = ${lineTotal}</p>
-        </div>`;
+        <tr>
+          <td>${escapeHtml(li.title)}${escapeHtml(variant)}</td>
+          <td class="num">${li.quantity || 1}</td>
+          <td class="num">${price}</td>
+          <td class="num">${lineTotal}</td>
+        </tr>`;
     })
     .join("");
 
@@ -88,75 +90,67 @@ export async function loader({ request }) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="user-scalable=no">
+  <title>Order Summary - ${escapeHtml(draft.name)}</title>
   <style>
-    :root {
-      --font-smallest: 0.6875rem;
-      --font-small: 0.875rem;
-      --font-medium: 1rem;
-      --font-large: 1.5rem;
-      --font-largest: 3rem;
-      --font-family: system-ui;
-    }
     * { box-sizing: border-box; }
     body {
-      margin: 2rem 1rem 2.5rem 1rem;
-      font-family: var(--font-family);
-      font-weight: 400;
-      font-size: var(--font-large);
+      margin: 1.5rem;
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 14px;
+      line-height: 1.4;
+      color: #333;
       background: white;
     }
-    p { margin: 0 0 0.5rem 0; }
-    .price-box {
-      border-radius: 0.7rem;
-      border: 0.3rem solid black;
-      margin: 2.5rem 0.3125rem;
-      padding: 1.75rem 1.25rem;
-      text-align: center;
-      font-weight: bold;
-      font-size: var(--font-large);
-    }
-    .price-box .total { font-size: var(--font-largest); }
-    .line-item { margin: 1rem 0; padding-bottom: 0.5rem; border-bottom: 1px solid #eee; }
-    .line-meta { font-size: var(--font-small); color: #666; }
-    .header { text-align: center; margin-bottom: 1.5rem; }
-    .footer { margin-top: 2rem; font-size: var(--font-small); color: #666; text-align: center; }
-    .draft-badge { background: #ff9800; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: var(--font-small); }
-    @media print {
-      body { margin: 0.5rem; }
-      .page-break { page-break-after: always; }
-    }
+    h1 { font-size: 1.5rem; margin: 0 0 0.5rem 0; border-bottom: 2px solid #333; padding-bottom: 0.5rem; }
+    h2 { font-size: 1rem; margin: 1.25rem 0 0.5rem 0; color: #555; }
+    p { margin: 0 0 0.35rem 0; }
+    table { width: 100%; border-collapse: collapse; margin: 0.5rem 0; }
+    th, td { padding: 0.4rem 0.5rem; text-align: left; border-bottom: 1px solid #ddd; }
+    th { font-weight: 600; background: #f5f5f5; }
+    td.num { text-align: right; }
+    .summary-row { display: flex; justify-content: space-between; padding: 0.3rem 0; }
+    .summary-row.total { font-weight: bold; font-size: 1.1rem; margin-top: 0.5rem; padding-top: 0.5rem; border-top: 2px solid #333; }
+    .meta { font-size: 0.85rem; color: #666; margin-top: 1.5rem; }
+    @media print { body { margin: 0.75rem; } }
   </style>
 </head>
 <body>
-  <div class="header">
-    <p><span class="draft-badge">DRAFT ORDER</span></p>
-    <p><strong>${escapeHtml(draft.name)}</strong></p>
-    <p style="font-size: var(--font-small);">${escapeHtml(new Date(draft.createdAt).toLocaleDateString())}</p>
-  </div>
-  <div class="price-box">
-    <p>Total</p>
-    <p class="total">${total ? escapeHtml(formatMoney(total)) : "—"}</p>
-  </div>
+  <h1>Order Summary</h1>
+  <p><strong>${escapeHtml(draft.name)}</strong></p>
+  <p class="meta">${escapeHtml(new Date(draft.createdAt).toLocaleDateString(undefined, { weekday: "short", year: "numeric", month: "short", day: "numeric" }))}</p>
+
   ${customer ? `
-  <div style="margin: 1rem 0;">
-    <p><strong>Customer:</strong> ${escapeHtml(customer.displayName || "—")}</p>
-    ${customer.email ? `<p><strong>Email:</strong> ${escapeHtml(customer.email)}</p>` : ""}
-    ${customer.phone ? `<p><strong>Phone:</strong> ${escapeHtml(customer.phone)}</p>` : ""}
-  </div>
+  <h2>Customer</h2>
+  <p>${escapeHtml(customer.displayName || "—")}</p>
+  ${customer.email ? `<p class="meta">${escapeHtml(customer.email)}</p>` : ""}
+  ${customer.phone ? `<p class="meta">${escapeHtml(customer.phone)}</p>` : ""}
   ` : ""}
-  <div style="margin: 1rem 0;">
-    <p><strong>Subtotal:</strong> ${subtotal ? escapeHtml(formatMoney(subtotal)) : "—"}</p>
-    <p><strong>Tax:</strong> ${tax ? escapeHtml(formatMoney(tax)) : "—"}</p>
-  </div>
-  <div style="margin-top: 1.5rem;">
-    <p><strong>Line Items</strong></p>
-    ${lineItemsHtml}
-  </div>
-  ${draft.note2 ? `<div style="margin-top: 1.5rem;"><p><strong>Note:</strong></p><p>${escapeHtml(draft.note2)}</p></div>` : ""}
-  <div class="footer">
-    <p>Printed from Special Orders Pro</p>
-    <p>${escapeHtml(new Date().toLocaleString())}</p>
-  </div>
+
+  <h2>Items</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>Item</th>
+        <th class="num">Qty</th>
+        <th class="num">Unit</th>
+        <th class="num">Total</th>
+      </tr>
+    </thead>
+    <tbody>${lineItemsHtml}
+    </tbody>
+  </table>
+
+  <h2>Totals</h2>
+  <div class="summary-row"><span>Subtotal</span><span>${subtotal ? escapeHtml(formatMoney(subtotal)) : "—"}</span></div>
+  <div class="summary-row"><span>Tax</span><span>${tax ? escapeHtml(formatMoney(tax)) : "—"}</span></div>
+  <div class="summary-row total"><span>Total</span><span>${total ? escapeHtml(formatMoney(total)) : "—"}</span></div>
+
+  ${draft.note2 ? `
+  <h2>Note</h2>
+  <p>${escapeHtml(draft.note2)}</p>
+  ` : ""}
+
+  <p class="meta" style="margin-top: 2rem;">Special Orders Pro · ${escapeHtml(new Date().toLocaleString())}</p>
 </body>
 </html>`;
 

@@ -841,7 +841,7 @@ function Extension() {
                       shopify.print.print(path);
                     }}
                   >
-                    {i18n.translate("print_receipt")}
+                    {i18n.translate("print_order_summary")}
                   </s-button>
                 )}
               </s-stack>
