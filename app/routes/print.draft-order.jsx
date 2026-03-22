@@ -360,9 +360,10 @@ export async function loader({ request }) {
         <div class="customer-row">
           <div class="customer-info">
             <div class="customer-name">${escapeHtml(customerName)}</div>
-            ${customerPhone ? `<div>${escapeHtml(customerPhone)}</div>` : ""}
+            ${customerPhone ? `<div class="customer-phone">${escapeHtml(customerPhone)}</div>` : ""}
             ${customerEmail ? `<div>${escapeHtml(customerEmail)}</div>` : ""}
             ${customerAddr ? `<div>${escapeHtml(customerAddr)}</div>` : ""}
+            <div class="customer-spacer"></div>
           </div>
           <div class="status-badges">
             <span class="badge ${getOverallBadgeClass(overallStatus)}">${escapeHtml(overallStatus)}</span>
@@ -404,9 +405,9 @@ export async function loader({ request }) {
       margin: 0;
       padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
-      font-size: 11px;
-      line-height: 1.35;
-      color: #333;
+      font-size: 13px;
+      line-height: 1.4;
+      color: #222;
       background: white;
     }
     .page {
@@ -419,41 +420,50 @@ export async function loader({ request }) {
     }
     .page:last-child { page-break-after: auto; }
 
-    .page-header { margin-bottom: 0.15in; }
+    .page-header { margin-bottom: 0.2in; }
     .header-top {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 4px;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
     }
-    .order-num { font-weight: bold; }
-    .title { font-size: 16px; font-weight: bold; letter-spacing: 0.02em; }
-    .page-num { }
+    .order-num { font-weight: bold; font-size: 15px; }
+    .title { font-size: 22px; font-weight: bold; letter-spacing: 0.03em; }
+    .page-num { font-size: 15px; }
     .header-divider {
       border-bottom: 1px solid #ddd;
-      margin: 6px 0;
+      margin: 10px 0;
     }
-    .header-divider.thick { border-bottom: 2px solid #444; }
+    .header-divider.thick { border-bottom: 2px solid #333; margin: 14px 0; }
 
     .business-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 4px;
+      margin-bottom: 12px;
+      padding: 8px 0;
     }
     .store-logo {
-      max-height: 52px;
+      max-height: 95px;
       width: auto;
       display: block;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
-    .business-right { text-align: right; font-weight: 500; }
+    .business-right {
+      text-align: right;
+      font-weight: bold;
+      font-size: 15px;
+      line-height: 1.4;
+    }
 
     .meta-row {
       display: flex;
       justify-content: space-between;
-      font-size: 10px;
-      color: #555;
-      padding: 4px 0;
+      font-size: 12px;
+      color: #444;
+      padding: 10px 0;
       border-top: 1px solid #e0e0e0;
     }
 
@@ -461,99 +471,112 @@ export async function loader({ request }) {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      margin-top: 10px;
-      gap: 16px;
+      margin-top: 16px;
+      margin-bottom: 20px;
+      gap: 24px;
     }
-    .customer-info { flex: 1; }
-    .customer-name { font-weight: bold; margin-bottom: 2px; }
+    .customer-info { flex: 1; font-size: 14px; }
+    .customer-name { font-weight: bold; font-size: 17px; margin-bottom: 6px; }
+    .customer-phone { font-weight: bold; font-size: 15px; margin-bottom: 4px; }
+    .customer-info > div { margin-bottom: 4px; }
+    .customer-spacer { height: 12px; margin-top: 8px; border-bottom: 1px solid #e8e8e8; }
     .status-badges {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 10px;
     }
     .badge {
       display: inline-block;
-      padding: 6px 12px;
-      border-radius: 6px;
+      padding: 10px 18px;
+      border-radius: 8px;
       font-weight: bold;
-      font-size: 11px;
-      color: white;
+      font-size: 13px;
+      color: white !important;
       text-align: center;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
     }
-    .badge-green { background: #2e7d32; }
-    .badge-orange { background: #f0ad4e; }
-    .badge-red { background: #c62828; }
-    .badge-blue { background: #1976d2; }
-    .badge-subdued { background: #757575; }
+    .badge-green { background: #2e7d32 !important; }
+    .badge-orange { background: #f0ad4e !important; }
+    .badge-red { background: #c62828 !important; }
+    .badge-blue { background: #1976d2 !important; }
+    .badge-subdued { background: #757575 !important; }
 
     .items-table {
       width: 100%;
       border-collapse: collapse;
-      margin-top: 10px;
+      margin-top: 16px;
     }
     .items-table th {
       background: #e8e8e8;
       font-weight: bold;
-      padding: 8px 6px;
+      padding: 12px 10px;
       text-align: left;
       border-bottom: 1px solid #ccc;
-      font-size: 10px;
+      font-size: 13px;
     }
-    .items-table .col-qty, .items-table .col-price { text-align: center; width: 50px; }
-    .items-table .col-status { width: 110px; }
-    .items-table .col-details { width: 22%; }
-    .item-row { height: 52px; }
+    .items-table .col-qty, .items-table .col-price { text-align: center; width: 60px; }
+    .items-table .col-status { width: 140px; }
+    .items-table .col-details { width: 24%; }
+    .item-row { height: 76px; }
     .item-row td {
-      padding: 6px;
+      padding: 12px 10px;
       border-bottom: 1px solid #e0e0e0;
       vertical-align: top;
+      font-size: 13px;
     }
+    .item-row .col-item { font-size: 14px; font-weight: 600; }
     .item-row.empty-row td { border-bottom: 1px solid #e8e8e8; }
-    .col-item { font-weight: 500; }
+    .col-item { font-weight: 600; }
 
     .bottom-row {
-      height: 32px;
+      height: 44px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       border-top: 1px solid #e0e0e0;
       margin-top: -1px;
     }
-    .bottom-row .total-qty { font-weight: bold; }
+    .bottom-row .total-qty { font-weight: bold; font-size: 15px; }
     .bottom-row .arrow {
-      color: #888;
-      font-size: 18px;
+      color: #666;
+      font-size: 24px;
       font-weight: bold;
     }
 
     .footer-wrap {
       margin-top: auto;
-      padding-top: 12px;
+      padding-top: 20px;
       display: flex;
-      gap: 16px;
+      gap: 20px;
       flex-shrink: 0;
     }
     .footer-box {
       flex: 1;
       border: 1px solid #ddd;
-      border-radius: 6px 6px 0 0;
+      border-radius: 8px 8px 0 0;
       overflow: hidden;
     }
     .footer-header {
       background: #e8e8e8;
       font-weight: bold;
-      padding: 8px 10px;
-      font-size: 11px;
+      padding: 12px 14px;
+      font-size: 14px;
     }
     .footer-row {
       display: flex;
       justify-content: space-between;
-      padding: 4px 10px;
+      padding: 8px 14px;
+      font-size: 14px;
     }
     .footer-row.total-row { font-weight: bold; }
     @media print {
       .page { page-break-after: always; }
       .page:last-child { page-break-after: auto; }
+      .badge, .badge-green, .badge-orange, .badge-red, .badge-blue, .badge-subdued {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
     }
   </style>
 </head>
