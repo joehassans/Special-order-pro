@@ -823,15 +823,28 @@ function Extension() {
         <s-scroll-box>
           <s-box padding="base">
             <s-stack gap="small">
-              <s-button
-                variant="secondary"
-                onClick={() => {
-                  setSelectedOrder(null);
-                  setLocalNote("");
-                }}
-              >
-                ← {i18n.translate("back")}
-              </s-button>
+              <s-stack direction="inline" gap="small">
+                <s-button
+                  variant="secondary"
+                  onClick={() => {
+                    setSelectedOrder(null);
+                    setLocalNote("");
+                  }}
+                >
+                  ← {i18n.translate("back")}
+                </s-button>
+                {order.id?.includes("DraftOrder") && (
+                  <s-button
+                    variant="primary"
+                    onClick={() => {
+                      const path = `/print/draft-order?id=${encodeURIComponent(order.id)}`;
+                      shopify.print.print(path);
+                    }}
+                  >
+                    {i18n.translate("print_receipt")}
+                  </s-button>
+                )}
+              </s-stack>
 
               {/* Customer, Contact Status, Overall Order Status, Payment Status */}
               <s-stack gap="10px" blockSize="auto">

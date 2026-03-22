@@ -33,6 +33,7 @@
   "column_actions": "Actions",
   "column_created": "Date de création",
   "date_created": "Date de création",
-  "view_details": "Voir"
+  "view_details": "Voir",
+  "print_receipt": "Imprimer le reçu"
 }
 
