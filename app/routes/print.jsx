@@ -31,9 +31,9 @@ function buildPaymentDetailsRows(transactions, formatMoney) {
 
     if (tx.manualPaymentGateway || /cash|manual/i.test(tx.formattedGateway || tx.gateway || "")) {
       label = "Cash";
-    } else if (tx.paymentDetails?.company || tx.paymentDetails?.paymentMethodName || tx.accountNumber) {
-      const company = tx.paymentDetails?.company || tx.paymentDetails?.paymentMethodName || "Card";
-      const last4 = tx.accountNumber || tx.paymentDetails?.number?.replace(/\D/g, "").slice(-4);
+    } else if (tx.accountNumber || (tx.formattedGateway && !/gift|voucher/i.test(tx.formattedGateway))) {
+      const company = tx.formattedGateway || tx.gateway || "Card";
+      const last4 = tx.accountNumber?.replace(/\D/g, "").slice(-4) || "";
       const suffix = last4 ? ` .... ${last4}` : "";
       label = `Card (${company}${suffix})`;
     } else if (/gift|voucher|store.?credit/i.test(tx.formattedGateway || tx.gateway || "")) {
@@ -99,9 +99,14 @@ export async function loader({ request }) {
   const { admin, cors } = await authenticate.admin(request);
 
   const url = new URL(request.url);
-  const id = url.searchParams.get("id");
+  let id = url.searchParams.get("id");
   if (!id) {
     return cors(new Response("Missing id parameter", { status: 400 }));
+  }
+
+  // Normalize ID: ensure we have a proper GID for the order query
+  if (!id.startsWith("gid://") && /^\d+$/.test(id)) {
+    id = `gid://shopify/Order/${id}`;
   }
 
   const origin = new URL(request.url).origin;
@@ -209,7 +214,6 @@ export async function loader({ request }) {
               kind status
               amountSet { shopMoney { amount currencyCode } }
               formattedGateway gateway accountNumber manualPaymentGateway
-              paymentDetails { ... on CardPaymentDetails { company number paymentMethodName } }
             }
           }
         }
@@ -227,8 +231,25 @@ export async function loader({ request }) {
     { variables: { id } }
   );
 
-  const order = (await response.json()).data?.order;
-  if (!order) return cors(new Response("Order not found", { status: 404 }));
+  const json = await response.json();
+
+  if (json.errors?.length) {
+    return cors(
+      new Response(
+        `Order fetch failed: ${json.errors.map((e) => e.message).join("; ")}`,
+        { status: 500 }
+      )
+    );
+  }
+
+  const order = json.data?.order;
+  if (!order) {
+    return cors(
+      new Response("Order not found. The order may be older than 60 days or the ID may be invalid.", {
+        status: 404,
+      })
+    );
+  }
 
   const subtotal = order.subtotalPriceSet?.shopMoney;
   const tax = order.totalTaxSet?.shopMoney;
