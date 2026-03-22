@@ -1,6 +1,8 @@
 /**
  * Shared Order Summary print layout. Used by both draft-order and order print routes.
- * Layout: Letter 8.5" x 11", 7 items per page, identical formatting for both types.
+ * Layout: Letter 8.5" x 11", max 9 items per page.
+ * Rules: 1-7 items = items + bottom on one page. 8-9 items = items on page 1, bottom on page 2.
+ * 10+ items = 9 per page, last page has remaining items + bottom below.
  */
 
 export const STORE_CONFIG = {
@@ -11,7 +13,7 @@ export const STORE_CONFIG = {
   instagram: "@joehassans",
 };
 
-export const ITEMS_PER_PAGE = 7;
+export const MAX_ITEMS_PER_PAGE = 9;
 
 const ALWAYS_PRESENT_ATTRIBUTES = [
   "Brand",
@@ -159,7 +161,20 @@ export function buildOrderSummaryHtml(data) {
     ? formatAddress(customer.defaultAddress)
     : "";
 
-  const numPages = Math.max(1, Math.ceil(lineItems.length / ITEMS_PER_PAGE));
+  const totalItems = lineItems.length;
+  const pageConfigs = [];
+  if (totalItems <= 7) {
+    pageConfigs.push({ items: lineItems, showBottom: true });
+  } else if (totalItems <= 9) {
+    pageConfigs.push({ items: lineItems, showBottom: false });
+    pageConfigs.push({ items: [], showBottom: true });
+  } else {
+    for (let start = 0; start < totalItems; start += MAX_ITEMS_PER_PAGE) {
+      const pageItems = lineItems.slice(start, start + MAX_ITEMS_PER_PAGE);
+      const isLastBatch = start + MAX_ITEMS_PER_PAGE >= totalItems;
+      pageConfigs.push({ items: pageItems, showBottom: isLastBatch });
+    }
+  }
 
   function getOverallBadgeClass(s) {
     const t = String(s || "").toLowerCase();
@@ -200,11 +215,10 @@ export function buildOrderSummaryHtml(data) {
     </div>`;
 
   const pages = [];
-  for (let p = 0; p < numPages; p++) {
+  for (let p = 0; p < pageConfigs.length; p++) {
     const pageNum = p + 1;
-    const start = p * ITEMS_PER_PAGE;
-    const pageItems = lineItems.slice(start, start + ITEMS_PER_PAGE);
-    const isLastPage = p === numPages - 1;
+    const { items: pageItems, showBottom } = pageConfigs[p];
+    const isLastPage = p === pageConfigs.length - 1;
 
     const itemRowsHtml = pageItems
       .map(
@@ -219,24 +233,27 @@ export function buildOrderSummaryHtml(data) {
       )
       .join("");
 
-    const emptyRows = ITEMS_PER_PAGE - pageItems.length;
-    const emptyRowsHtml = Array(emptyRows)
-      .fill(null)
-      .map(
-        () => `
-        <tr class="item-row empty-row">
-          <td class="col-item">&nbsp;</td>
-          <td class="col-qty">&nbsp;</td>
-          <td class="col-price">&nbsp;</td>
-          <td class="col-status">&nbsp;</td>
-          <td class="col-details">&nbsp;</td>
-        </tr>`
-      )
-      .join("");
-
-    const bottomRowHtml = isLastPage
+    const bottomRowHtml = showBottom
       ? `<div class="bottom-row"><span class="total-qty">Total Item Qty: ${totalItemQty}</span><span></span></div>`
       : '<div class="bottom-row"><span></span><span class="arrow">→</span></div>';
+
+    const tableHtml =
+      pageItems.length > 0
+        ? `
+        <table class="items-table">
+          <thead>
+            <tr>
+              <th class="col-item">Item</th>
+              <th class="col-qty">Qty</th>
+              <th class="col-price">Price</th>
+              <th class="col-status">Item Status</th>
+              <th class="col-details">Details</th>
+            </tr>
+          </thead>
+          <tbody>${itemRowsHtml}</tbody>
+        </table>
+        ${bottomRowHtml}`
+        : bottomRowHtml;
 
     const headerHtml = `
       <div class="page-header">
@@ -270,24 +287,12 @@ export function buildOrderSummaryHtml(data) {
             <span class="badge ${getPaymentBadgeClass(paymentStatus)}">${escapeHtml(paymentStatus)}</span>
           </div>
         </div>
-        <table class="items-table">
-          <thead>
-            <tr>
-              <th class="col-item">Item</th>
-              <th class="col-qty">Qty</th>
-              <th class="col-price">Price</th>
-              <th class="col-status">Item Status</th>
-              <th class="col-details">Details</th>
-            </tr>
-          </thead>
-          <tbody>${itemRowsHtml}${emptyRowsHtml}</tbody>
-        </table>
-        ${bottomRowHtml}`;
+        ${tableHtml}`;
 
     pages.push(
-      `<div class="page">
+      `<div class="page ${showBottom ? "page-last" : ""}">
         ${headerHtml}
-        <div class="footer-wrap">${footerHtml}</div>
+        ${showBottom ? `<div class="footer-wrap footer-flow">${footerHtml}</div>` : ""}
       </div>`
     );
   }
@@ -319,6 +324,10 @@ export function buildOrderSummaryHtml(data) {
       flex-direction: column;
     }
     .page:last-child { page-break-after: auto; }
+    .page.page-last {
+      min-height: 0;
+      height: auto;
+    }
 
     .page-header { margin-bottom: 0.12in; }
     .header-top {
@@ -433,7 +442,6 @@ export function buildOrderSummaryHtml(data) {
     .item-row .col-status .badge { font-size: 11px; padding: 6px 10px; white-space: nowrap; }
     .item-row .col-item { font-size: 14px; font-weight: 600; }
     .item-row .col-details { padding-right: 24px; }
-    .item-row.empty-row td { border-bottom: 1px solid #e8e8e8; }
     .col-item { font-weight: 600; }
 
     .bottom-row {
@@ -457,6 +465,10 @@ export function buildOrderSummaryHtml(data) {
       display: flex;
       gap: 16px;
       flex-shrink: 0;
+    }
+    .footer-wrap.footer-flow {
+      margin-top: 0;
+      padding-top: 12px;
     }
     .footer-box {
       flex: 1;
