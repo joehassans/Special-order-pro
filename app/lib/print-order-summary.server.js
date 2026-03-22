@@ -125,6 +125,7 @@ export function escapeHtml(str) {
  * @param {string} data.totalFormatted
  * @param {string} data.amountPaidFormatted
  * @param {string} data.balanceDueFormatted
+ * @param {Array} [data.paymentDetailsRows] - [{ label, amountFormatted }] for Card, Cash, Voucher breakdown
  * @param {string} data.logoUrl
  * @param {string} data.shopAddressStr
  * @param {string} data.metaContact
@@ -145,6 +146,7 @@ export function buildOrderSummaryHtml(data) {
     totalFormatted,
     amountPaidFormatted,
     balanceDueFormatted,
+    paymentDetailsRows = [],
     logoUrl,
     shopAddressStr,
     metaContact,
@@ -173,10 +175,20 @@ export function buildOrderSummaryHtml(data) {
     return "badge-red";
   }
 
+  const paymentRowsHtml =
+    paymentDetailsRows.length > 0
+      ? paymentDetailsRows
+          .map(
+            (r) =>
+              `<div class="footer-row"><span>${escapeHtml(r.label)}:</span><span>${escapeHtml(r.amountFormatted)}</span></div>`
+          )
+          .join("") + `<div class="footer-row total-row"><span>Total Paid:</span><span>${escapeHtml(amountPaidFormatted)}</span></div>`
+      : `<div class="footer-row"><span>Total Paid:</span><span>${escapeHtml(amountPaidFormatted)}</span></div>`;
+
   const footerHtml = `
     <div class="footer-box">
       <div class="footer-header">Payment Details</div>
-      <div class="footer-row"><span>Total Paid:</span><span>${escapeHtml(amountPaidFormatted)}</span></div>
+      ${paymentRowsHtml}
     </div>
     <div class="footer-box">
       <div class="footer-header">Order Totals</div>

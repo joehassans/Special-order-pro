@@ -16,6 +16,49 @@ function getPaymentStatusFromOrder(order) {
 }
 
 /**
+ * Build payment breakdown rows from order transactions.
+ * Returns [{ label, amountFormatted }] for Card, Cash, Voucher, etc.
+ */
+function buildPaymentDetailsRows(transactions, formatMoney) {
+  const rows = [];
+  const edges = transactions?.edges ?? [];
+  const paymentKinds = new Set(["SALE", "CAPTURE"]);
+
+  for (const { node: tx } of edges) {
+    if (tx.status !== "SUCCESS") continue;
+    if (!paymentKinds.has(tx.kind)) continue;
+
+    const money = tx.amountSet?.shopMoney;
+    if (!money || parseFloat(money.amount) <= 0) continue;
+
+    let label = "Other";
+
+    // Cash: manual entry (POS) or gateway name contains cash/manual
+    if (tx.manualPaymentGateway || /cash|manual/i.test(tx.formattedGateway || tx.gateway || "")) {
+      label = "Cash";
+    }
+    // Card: has card payment details or looks like card gateway
+    else if (tx.paymentDetails?.company || tx.paymentDetails?.paymentMethodName || tx.accountNumber) {
+      const company = tx.paymentDetails?.company || tx.paymentDetails?.paymentMethodName || "Card";
+      const last4 = tx.accountNumber || tx.paymentDetails?.number?.replace(/\D/g, "").slice(-4);
+      const suffix = last4 ? ` .... ${last4}` : "";
+      label = `Card (${company}${suffix})`;
+    }
+    // Voucher: gift card, store credit, etc.
+    else if (/gift|voucher|store.?credit/i.test(tx.formattedGateway || tx.gateway || "")) {
+      label = "Voucher";
+    }
+    else if (tx.formattedGateway || tx.gateway) {
+      label = tx.formattedGateway || tx.gateway;
+    }
+
+    rows.push({ label, amountFormatted: formatMoney(money) });
+  }
+
+  return rows;
+}
+
+/**
  * Serves printable order summary HTML for POS Print API.
  * GET /print/order?id=gid://shopify/Order/123
  * Same format as draft orders - statuses, details, totals from the actual order.
@@ -59,6 +102,26 @@ export async function loader({ request }) {
             province
             zip
             country
+          }
+        }
+        transactions(first: 25) {
+          edges {
+            node {
+              kind
+              status
+              amountSet { shopMoney { amount currencyCode } }
+              formattedGateway
+              gateway
+              accountNumber
+              manualPaymentGateway
+              paymentDetails {
+                ... on CardPaymentDetails {
+                  company
+                  number
+                  paymentMethodName
+                }
+              }
+            }
           }
         }
         lineItems(first: 100) {
@@ -180,6 +243,11 @@ export async function loader({ request }) {
       })
     : "—";
 
+  const paymentDetailsRows = buildPaymentDetailsRows(
+    order.transactions,
+    formatMoney
+  );
+
   const data = {
     orderName: order.name?.replace(/^#/, "") || "—",
     dateCreated: dateStr,
@@ -202,6 +270,7 @@ export async function loader({ request }) {
     totalFormatted: total ? formatMoney(total) : "—",
     amountPaidFormatted: amountPaid ? formatMoney(amountPaid) : "—",
     balanceDueFormatted: balanceDue ? formatMoney(balanceDue) : "—",
+    paymentDetailsRows,
     logoUrl,
     shopAddressStr: STORE_CONFIG.address,
     metaContact: [STORE_CONFIG.phone, STORE_CONFIG.website, `Instagram: ${STORE_CONFIG.instagram}`]
