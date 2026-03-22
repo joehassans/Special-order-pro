@@ -99,14 +99,21 @@ export async function loader({ request }) {
   const { admin, cors } = await authenticate.admin(request);
 
   const url = new URL(request.url);
-  let id = url.searchParams.get("id");
+  let id = url.searchParams.get("id")?.trim();
   if (!id) {
     return cors(new Response("Missing id parameter", { status: 400 }));
   }
 
   // Normalize ID: ensure we have a proper GID for the order query
-  if (!id.startsWith("gid://") && /^\d+$/.test(id)) {
-    id = `gid://shopify/Order/${id}`;
+  if (!id.startsWith("gid://")) {
+    const legacyMatch = id.match(/^(order|draftorder)\/(\d+)$/i);
+    const numMatch = id.match(/^(\d+)$/);
+    if (legacyMatch) {
+      const type = legacyMatch[1].toLowerCase() === "draftorder" ? "DraftOrder" : "Order";
+      id = `gid://shopify/${type}/${legacyMatch[2]}`;
+    } else if (numMatch) {
+      id = `gid://shopify/Order/${numMatch[1]}`;
+    }
   }
 
   const origin = new URL(request.url).origin;
@@ -196,7 +203,7 @@ export async function loader({ request }) {
     return cors(new Response(html, { status: 200, headers: { "Content-Type": "text/html; charset=utf-8" } }));
   }
 
-  // Order (not draft)
+  // Order (not draft) - transactions omitted to avoid gateway-specific errors; payment from totals
   const response = await admin.graphql(
     `#graphql
     query GetOrderForPrint($id: ID!) {
@@ -208,15 +215,6 @@ export async function loader({ request }) {
         totalOutstandingSet { shopMoney { amount currencyCode } }
         metafields(first: 250, namespace: "custom") { edges { node { key value } } }
         customer { displayName email phone defaultAddress { address1 city province zip country } }
-        transactions(first: 25) {
-          edges {
-            node {
-              kind status
-              amountSet { shopMoney { amount currencyCode } }
-              formattedGateway gateway accountNumber manualPaymentGateway
-            }
-          }
-        }
         lineItems(first: 100) {
           edges {
             node {
