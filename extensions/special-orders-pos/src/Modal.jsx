@@ -836,10 +836,7 @@ function Extension() {
                 <s-button
                   variant="primary"
                   onClick={() => {
-                    const isDraft = order.id?.includes("DraftOrder");
-                    const path = isDraft
-                      ? `/print/draft-order?id=${encodeURIComponent(order.id)}`
-                      : `/print/order?id=${encodeURIComponent(order.id)}`;
+                    const path = `/print?id=${encodeURIComponent(order.id)}`;
                     shopify.print.print(path);
                   }}
                 >
