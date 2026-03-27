@@ -431,7 +431,7 @@ export function buildOrderSummaryHtml(data) {
       print-color-adjust: exact;
     }
     .badge-green { background: #2e7d32 !important; }
-    .badge-print-neutral { background: #424242 !important; }
+    .badge-print-neutral { background: #9e9e9e !important; }
     .badge-orange { background: #f0ad4e !important; }
     .badge-red { background: #c62828 !important; }
     .badge-blue { background: #1976d2 !important; }
