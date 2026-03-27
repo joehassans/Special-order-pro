@@ -8,6 +8,7 @@
 export const STORE_CONFIG = {
   logoUrl: "/store-logo.png",
   address: "343 Lincoln Center, Stockton, CA 95207",
+  hours: "Monday - Saturday: 10am-7pm | Sunday: 10am-5pm",
   phone: "(209) 323-4588",
   website: "joehassans.com",
   instagram: "@joehassans",
@@ -267,7 +268,10 @@ export function buildOrderSummaryHtml(data) {
           <div class="business-left">
             <img src="${escapeHtml(logoUrl)}" alt="Store logo" class="store-logo" />
           </div>
-          <div class="business-right">${escapeHtml(shopAddressStr)}</div>
+          <div class="business-right">
+            <div class="business-address">${escapeHtml(shopAddressStr)}</div>
+            <div class="business-hours">${escapeHtml(STORE_CONFIG.hours)}</div>
+          </div>
         </div>
         <div class="meta-row">
           <span>Date Created: ${escapeHtml(dateCreated)} | Summary Date: ${escapeHtml(summaryDate)}</span>
@@ -349,7 +353,7 @@ export function buildOrderSummaryHtml(data) {
     .business-row {
       display: flex;
       justify-content: space-between;
-      align-items: center;
+      align-items: flex-start;
       margin-bottom: 6px;
       padding: 4px 0;
     }
@@ -362,9 +366,21 @@ export function buildOrderSummaryHtml(data) {
     }
     .business-right {
       text-align: right;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+    .business-address {
       font-weight: bold;
       font-size: 15px;
       line-height: 1.4;
+    }
+    .business-hours {
+      font-weight: normal;
+      font-size: 12px;
+      line-height: 1.35;
+      color: #333;
     }
 
     .meta-row {

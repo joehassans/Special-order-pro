@@ -63,18 +63,10 @@ function buildLineItems(rawItems, metafields, attrsByIndex, getVariantTitle, for
     const styleNum = attrs.find((a) => a.key === "Style #")?.value || "";
     const size = attrs.find((a) => a.key === "Size")?.value || "";
     const color = attrs.find((a) => a.key === "Color")?.value || "";
-    const dateOrdered = attrs.find((a) => a.key === "Date Ordered")?.value || "";
-    const confNum = attrs.find((a) => a.key === "Order Confirmation Number")?.value || "";
 
     const detailsLines = [];
     if (brand || type) detailsLines.push([brand, type].filter(Boolean).join(" | "));
     if (styleNum || size || color) detailsLines.push([styleNum, size, color].filter(Boolean).join(" | "));
-    if (dateOrdered || confNum)
-      detailsLines.push(
-        [dateOrdered ? `Ordered: ${dateOrdered}` : "", confNum ? `Conf. #: ${confNum}` : ""]
-          .filter(Boolean)
-          .join(" | ")
-      );
     const detailsHtml = detailsLines.length
       ? detailsLines.map((l) => escapeHtml(l)).join("<br>")
       : "—";
