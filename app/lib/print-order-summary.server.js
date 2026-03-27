@@ -129,7 +129,7 @@ export function escapeHtml(str) {
  * @param {Object} data.customer - { displayName, phone, email, defaultAddress }
  * @param {string} data.overallStatus
  * @param {string} data.paymentStatus
- * @param {Array} data.lineItems - [{ title, qty, price, itemStatus, badgeClass, detailsHtml }]
+ * @param {Array} data.lineItems - [{ title, qty, price, detailsHtml }]
  * @param {number} data.totalItemQty
  * @param {string} data.subtotalFormatted
  * @param {string} data.taxFormatted
@@ -236,7 +236,6 @@ export function buildOrderSummaryHtml(data) {
           <td class="col-item">${escapeHtml(li.title)}</td>
           <td class="col-qty">${li.qty}</td>
           <td class="col-price">${li.price}</td>
-          <td class="col-status"><span class="badge ${li.badgeClass}">${escapeHtml(li.itemStatus)}</span></td>
           <td class="col-details">${li.detailsHtml}</td>
         </tr>`
       )
@@ -255,7 +254,6 @@ export function buildOrderSummaryHtml(data) {
               <th class="col-item">Item</th>
               <th class="col-qty">Qty</th>
               <th class="col-price">Price</th>
-              <th class="col-status">Item Status</th>
               <th class="col-details">Details</th>
             </tr>
           </thead>
@@ -454,7 +452,6 @@ export function buildOrderSummaryHtml(data) {
     }
     .items-table .col-qty { text-align: center; width: 50px; padding-left: 12px; padding-right: 12px; }
     .items-table .col-price { text-align: center; width: 55px; padding-left: 12px; padding-right: 12px; }
-    .items-table .col-status { width: 175px; white-space: nowrap; padding-left: 12px; padding-right: 12px; }
     .items-table .col-details { width: auto; padding-right: 24px; }
     .item-row { height: 68px; }
     .item-row td {
@@ -463,7 +460,6 @@ export function buildOrderSummaryHtml(data) {
       vertical-align: top;
       font-size: 13px;
     }
-    .item-row .col-status .badge { font-size: 11px; padding: 6px 10px; white-space: nowrap; }
     .item-row .col-item { font-size: 14px; font-weight: 600; }
     .item-row .col-details { padding-right: 24px; }
     .col-item { font-weight: 600; }

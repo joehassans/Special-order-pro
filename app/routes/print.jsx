@@ -2,8 +2,6 @@ import { authenticate } from "../shopify.server";
 import {
   STORE_CONFIG,
   getAttributesForDisplay,
-  extractItemStatus,
-  getItemStatusBadgeClass,
   escapeHtml,
   buildOrderSummaryHtml,
 } from "../lib/print-order-summary.server";
@@ -48,11 +46,10 @@ function buildPaymentDetailsRows(transactions, formatMoney) {
   return rows;
 }
 
-function buildLineItems(rawItems, metafields, attrsByIndex, getVariantTitle, formatMoney) {
+function buildLineItems(rawItems, attrsByIndex, getVariantTitle, formatMoney) {
   return rawItems.map((li, idx) => {
     const overrides = attrsByIndex[idx];
     const attrs = getAttributesForDisplay(overrides || li.customAttributes || []);
-    const itemStatus = extractItemStatus(metafields, idx, overrides || li.customAttributes);
     const priceSet = li.originalUnitPriceSet?.shopMoney;
     const price = priceSet ? formatMoney(priceSet) : "—";
     const variantTitle = getVariantTitle(li);
@@ -75,8 +72,6 @@ function buildLineItems(rawItems, metafields, attrsByIndex, getVariantTitle, for
       title: li.title + variant,
       qty: li.quantity || 1,
       price,
-      itemStatus,
-      badgeClass: getItemStatusBadgeClass(itemStatus),
       detailsHtml,
     };
   });
@@ -169,7 +164,7 @@ export async function loader({ request }) {
 
     const overallStatus = metafields.edges.find((e) => e?.node?.key === "overall_order_status")?.node?.value || "Order Pending";
     const rawLineItems = draft.lineItems?.edges?.map((e) => e.node) ?? [];
-    const lineItems = buildLineItems(rawLineItems, metafields, attrsByIndex, (li) => li.variant?.title, formatMoney);
+    const lineItems = buildLineItems(rawLineItems, attrsByIndex, (li) => li.variant?.title, formatMoney);
 
     const dateStr = draft.createdAt ? new Date(draft.createdAt).toLocaleDateString(undefined, { month: "2-digit", day: "2-digit", year: "numeric" }) : "—";
     const subtotal = draft.subtotalPriceSet?.shopMoney;
@@ -284,7 +279,7 @@ export async function loader({ request }) {
   const paymentStatus = getPaymentStatusFromOrder(order);
 
   const rawLineItems = order.lineItems?.edges?.map((e) => e.node) ?? [];
-  const lineItems = buildLineItems(rawLineItems, metafields, attrsByIndex, (li) => li.variantTitle, formatMoney);
+  const lineItems = buildLineItems(rawLineItems, attrsByIndex, (li) => li.variantTitle, formatMoney);
 
   const dateStr = order.createdAt ? new Date(order.createdAt).toLocaleDateString(undefined, { month: "2-digit", day: "2-digit", year: "numeric" }) : "—";
 
