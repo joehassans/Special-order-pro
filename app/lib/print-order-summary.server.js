@@ -266,7 +266,7 @@ export function buildOrderSummaryHtml(data) {
       <div class="page-header">
         <div class="header-top">
           <span class="order-num">Order #${escapeHtml(orderName)}</span>
-          <span class="title">ORDER SUMMARY</span>
+          <span class="title">Special Order Summary</span>
           <span class="page-num">Page ${pageNum}</span>
         </div>
         <div class="header-divider"></div>
@@ -312,7 +312,7 @@ export function buildOrderSummaryHtml(data) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="user-scalable=no">
-  <title>Order Summary - ${escapeHtml(docTitle)}</title>
+  <title>Special Order Summary - ${escapeHtml(docTitle)}</title>
   <style>
     @page { size: letter; margin: 0.5in; }
     * { box-sizing: border-box; }
