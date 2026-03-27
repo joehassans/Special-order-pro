@@ -185,18 +185,17 @@ export function buildOrderSummaryHtml(data) {
     }
   }
 
+  /** Print-only: green only for success statuses; all others dark gray */
   function getOverallBadgeClass(s) {
     const t = String(s || "").toLowerCase();
-    if (t.includes("picked up") || t.includes("sale complete")) return "badge-green";
-    if (t.includes("order canceled")) return "badge-red";
-    return "badge-orange";
+    if (t.includes("picked up") && t.includes("sale complete")) return "badge-green";
+    return "badge-print-neutral";
   }
 
   function getPaymentBadgeClass(s) {
     const t = String(s || "").toLowerCase();
-    if (t.includes("paid in full") || t.includes("paid")) return "badge-green";
-    if (t.includes("partially")) return "badge-orange";
-    return "badge-red";
+    if (t.includes("paid in full")) return "badge-green";
+    return "badge-print-neutral";
   }
 
   const paymentRowsHtml =
@@ -432,6 +431,7 @@ export function buildOrderSummaryHtml(data) {
       print-color-adjust: exact;
     }
     .badge-green { background: #2e7d32 !important; }
+    .badge-print-neutral { background: #424242 !important; }
     .badge-orange { background: #f0ad4e !important; }
     .badge-red { background: #c62828 !important; }
     .badge-blue { background: #1976d2 !important; }
@@ -512,7 +512,7 @@ export function buildOrderSummaryHtml(data) {
     @media print {
       .page { page-break-after: always; }
       .page:last-child { page-break-after: auto; }
-      .badge, .badge-green, .badge-orange, .badge-red, .badge-blue, .badge-subdued {
+      .badge, .badge-green, .badge-print-neutral, .badge-orange, .badge-red, .badge-blue, .badge-subdued {
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
       }
