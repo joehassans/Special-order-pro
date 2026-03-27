@@ -128,7 +128,13 @@ export async function loader({ request }) {
           totalTaxSet { shopMoney { amount currencyCode } }
           totalPriceSet { shopMoney { amount currencyCode } }
           metafields(first: 250, namespace: "custom") { edges { node { key value } } }
-          customer { displayName email phone defaultAddress { address1 city province zip country } }
+          customer {
+            displayName email phone
+            defaultAddress {
+              address1 address2 city province zip country
+              formatted(withName: false, withCompany: false)
+            }
+          }
           lineItems(first: 100) {
             edges {
               node {
@@ -206,7 +212,13 @@ export async function loader({ request }) {
         totalPriceSet { shopMoney { amount currencyCode } }
         totalOutstandingSet { shopMoney { amount currencyCode } }
         metafields(first: 250, namespace: "custom") { edges { node { key value } } }
-        customer { displayName email phone defaultAddress { address1 city province zip country } }
+        customer {
+          displayName email phone
+          defaultAddress {
+            address1 address2 city province zip country
+            formatted(withName: false, withCompany: false)
+          }
+        }
         lineItems(first: 100) {
           edges {
             node {

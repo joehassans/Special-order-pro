@@ -91,6 +91,14 @@ export function formatUsPhone(phone) {
 
 export function formatAddress(addr) {
   if (!addr) return "";
+  const formattedLines = addr.formatted;
+  if (Array.isArray(formattedLines) && formattedLines.length > 0) {
+    const joined = formattedLines
+      .map((s) => String(s ?? "").trim())
+      .filter(Boolean)
+      .join(", ");
+    if (joined) return joined;
+  }
   const parts = [
     addr.address1,
     addr.address2,
