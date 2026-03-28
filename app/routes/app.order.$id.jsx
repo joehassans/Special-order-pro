@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   redirect,
   useLoaderData,
@@ -1189,7 +1189,57 @@ export default function OrderDetails() {
     (tag) => String(tag || "").toLowerCase().trim() !== "special-order"
   );
 
-  const printOrderSummaryPath = `/print?id=${encodeURIComponent(order.id)}`;
+  const [printModalOpen, setPrintModalOpen] = useState(false);
+  const [printHtml, setPrintHtml] = useState(null);
+  const [printLoading, setPrintLoading] = useState(false);
+  const [printError, setPrintError] = useState(null);
+  const printIframeRef = useRef(null);
+
+  const closePrintModal = useCallback(() => {
+    setPrintModalOpen(false);
+    setPrintHtml(null);
+    setPrintError(null);
+    setPrintLoading(false);
+  }, []);
+
+  const openPrintModal = useCallback(async () => {
+    setPrintModalOpen(true);
+    setPrintHtml(null);
+    setPrintError(null);
+    setPrintLoading(true);
+    try {
+      const res = await fetch(
+        `/app/print-order-summary?id=${encodeURIComponent(order.id)}`,
+        { credentials: "same-origin" }
+      );
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Could not load print preview");
+      }
+      setPrintHtml(data.html);
+    } catch (e) {
+      setPrintError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPrintLoading(false);
+    }
+  }, [order.id]);
+
+  const handlePrintFromModal = useCallback(() => {
+    const win = printIframeRef.current?.contentWindow;
+    if (win) {
+      win.focus();
+      win.print();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!printModalOpen) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") closePrintModal();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [printModalOpen, closePrintModal]);
 
   return (
     <s-page
@@ -1223,6 +1273,51 @@ export default function OrderDetails() {
         .item-detail-field .field-label {
           font-weight: 700 !important;
         }
+        .print-modal-overlay {
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.45);
+          z-index: 10000;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 24px;
+          box-sizing: border-box;
+        }
+        .print-modal-panel {
+          background: #fff;
+          border-radius: 12px;
+          max-width: 920px;
+          width: 100%;
+          max-height: 90vh;
+          display: flex;
+          flex-direction: column;
+          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+          overflow: hidden;
+        }
+        .print-modal-toolbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 16px;
+          padding: 16px 20px;
+          border-bottom: 1px solid #e3e3e3;
+          flex-shrink: 0;
+        }
+        .print-modal-body {
+          padding: 12px 16px 20px;
+          overflow: auto;
+          flex: 1;
+          min-height: 0;
+        }
+        .print-modal-iframe {
+          width: 100%;
+          min-height: 480px;
+          height: min(70vh, 720px);
+          border: 1px solid #e3e3e3;
+          border-radius: 8px;
+          background: #fff;
+        }
       `}</style>
       {/* Top bar: back link + order meta */}
       <s-section>
@@ -1240,9 +1335,7 @@ export default function OrderDetails() {
               variant="primary"
               size="large"
               style={{ fontWeight: 600 }}
-              onClick={() => {
-                window.open(printOrderSummaryPath, "_blank", "noopener,noreferrer");
-              }}
+              onClick={openPrintModal}
             >
               Print Order Summary
             </s-button>
@@ -1787,6 +1880,61 @@ export default function OrderDetails() {
           </s-stack>
         </s-box>
       </s-section>
+
+      {printModalOpen && (
+        <div
+          className="print-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="print-modal-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closePrintModal();
+          }}
+        >
+          <div
+            className="print-modal-panel"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="print-modal-toolbar">
+              <s-heading id="print-modal-title" size="large">
+                Order summary
+              </s-heading>
+              <s-stack direction="inline" gap="small">
+                <s-button
+                  variant="secondary"
+                  onClick={closePrintModal}
+                  disabled={printLoading}
+                >
+                  Close
+                </s-button>
+                <s-button
+                  variant="primary"
+                  onClick={handlePrintFromModal}
+                  disabled={printLoading || !printHtml}
+                >
+                  Print
+                </s-button>
+              </s-stack>
+            </div>
+            <div className="print-modal-body">
+              {printLoading && (
+                <s-text color="subdued">Loading preview…</s-text>
+              )}
+              {printError && (
+                <s-banner tone="critical" heading={printError} />
+              )}
+              {!printLoading && !printError && printHtml && (
+                <iframe
+                  ref={printIframeRef}
+                  className="print-modal-iframe"
+                  title="Order summary print preview"
+                  srcDoc={printHtml}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </s-page>
   );
 }

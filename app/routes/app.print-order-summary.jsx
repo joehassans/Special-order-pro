@@ -2,13 +2,11 @@ import { authenticate } from "../shopify.server";
 import { buildOrderSummaryPrintHtml } from "../lib/order-summary-print-html.server";
 
 /**
- * Unified print route for both draft orders and orders.
- * GET /print?id=gid://shopify/DraftOrder/123
- * GET /print?id=gid://shopify/Order/123
+ * JSON API for embedded admin: same HTML as /print, for in-app preview modal.
+ * GET /app/print-order-summary?id=...
  */
 export async function loader({ request }) {
-  const { admin, cors } = await authenticate.admin(request);
-
+  const { admin } = await authenticate.admin(request);
   const url = new URL(request.url);
   const id = url.searchParams.get("id")?.trim();
 
@@ -18,14 +16,9 @@ export async function loader({ request }) {
       requestUrl: request.url,
       id,
     });
-    return cors(
-      new Response(html, {
-        status: 200,
-        headers: { "Content-Type": "text/html; charset=utf-8" },
-      })
-    );
+    return Response.json({ html });
   } catch (e) {
     const status = e.status ?? 500;
-    return cors(new Response(e.message || "Error", { status }));
+    return Response.json({ error: e.message || "Error" }, { status });
   }
 }
