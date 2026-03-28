@@ -2,6 +2,11 @@ import { useEffect, useState } from "react";
 import { redirect, useLoaderData, useSubmit } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
+import {
+  deriveOrderAdjustments,
+  formatAdjustmentMoney,
+  readLineItemAdjustmentFields,
+} from "../lib/order-adjustments";
 
 function formatMoneySet(moneySet) {
   if (!moneySet || !moneySet.shopMoney) return null;
@@ -139,7 +144,29 @@ const HIDDEN_ATTRIBUTES = new Set([
   "Order Status",
   "Initial Status",
   "Special Order",
+  "itemAdjustmentType",
+  "Item Adjustment Type",
+  "item_adjustment_type",
+  "adjustmentRefundAmount",
+  "Adjustment Refund Amount",
+  "adjustment_refund_amount",
+  "additionalPaymentAmount",
+  "Additional Payment Amount",
+  "additional_payment_amount",
 ]);
+
+function getOrderMetafieldNumber(metafields, key) {
+  const edge = metafields?.edges?.find((e) => e?.node?.key === key);
+  if (!edge?.node?.value) return 0;
+  const n = parseFloat(String(edge.node.value).replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(n) ? n : 0;
+}
+
+function getProductAdjustmentTypeMetafield(metafields, position) {
+  const key = `product_${position}_adjustment_type`;
+  const edge = metafields?.edges?.find((e) => e?.node?.key === key);
+  return edge?.node?.value?.trim() || "";
+}
 
 function getAttributesForDisplay(attrs) {
   const map = new Map();
@@ -316,6 +343,32 @@ export const loader = async ({ request, params }) => {
     const contactStatus = extractContactStatusFromMetafields(metafields);
     const overallOrderStatus = extractOverallOrderStatusFromMetafields(metafields);
 
+    const draftLineItems =
+      draftOrder.lineItems?.edges?.map((edge, index) => {
+        const li = edge.node;
+        const rawAttrs = attributesOverridesByIndex[index] || li.customAttributes || [];
+        const mfAdj = getProductAdjustmentTypeMetafield(metafields, index + 1);
+        const adj = readLineItemAdjustmentFields(rawAttrs, mfAdj);
+        const itemStatus = extractItemStatusFromMetafields(
+          metafields,
+          index,
+          li.customAttributes
+        );
+        return {
+          id: li.id,
+          title: li.title,
+          quantity: li.quantity,
+          variantTitle: li.variant?.title || null,
+          pricePerItem: formatMoneySet(li.originalUnitPriceSet),
+          customAttributes: getAttributesForDisplay(rawAttrs),
+          orderStatus: itemStatus,
+          itemAdjustmentType: adj.itemAdjustmentType,
+          adjustmentRefundAmount: adj.adjustmentRefundAmount,
+          additionalPaymentAmount: adj.additionalPaymentAmount,
+          currencyCode: li.originalUnitPriceSet?.shopMoney?.currencyCode || null,
+        };
+      }) ?? [];
+
     const normalized = {
       type: "draft",
       id: draftOrder.id,
@@ -332,27 +385,20 @@ export const loader = async ({ request, params }) => {
       outstanding: null, // Draft orders don't have outstanding set in same way
       invoiceUrl: draftOrder.invoiceUrl || null,
       customer: draftOrder.customer || null,
-      lineItems:
-        draftOrder.lineItems?.edges?.map((edge, index) => {
-          const li = edge.node;
-          const itemStatus = extractItemStatusFromMetafields(
-            metafields,
-            index,
-            li.customAttributes
-          );
-          return {
-            id: li.id,
-            title: li.title,
-            quantity: li.quantity,
-            variantTitle: li.variant?.title || null,
-            pricePerItem: formatMoneySet(li.originalUnitPriceSet),
-            customAttributes: getAttributesForDisplay(
-              attributesOverridesByIndex[index] || li.customAttributes || []
-            ),
-            orderStatus: itemStatus,
-          };
-        }) ?? [],
+      totalRefundedAmount: 0,
+      totalRefundedCurrency: draftLineItems[0]?.currencyCode || "USD",
+      orderAdjustmentsAdditionalPaymentMetafield: getOrderMetafieldNumber(
+        metafields,
+        "order_adjustments_additional_payment"
+      ),
+      orderAdjustmentsRefundTotalMetafield: getOrderMetafieldNumber(
+        metafields,
+        "order_adjustments_refund_total"
+      ),
+      lineItems: draftLineItems,
     };
+
+    normalized.orderAdjustments = deriveOrderAdjustments(normalized);
 
     return { order: normalized };
   } else {
@@ -386,6 +432,12 @@ export const loader = async ({ request, params }) => {
             }
           }
           totalOutstandingSet {
+            shopMoney {
+              amount
+              currencyCode
+            }
+          }
+          totalRefundedSet {
             shopMoney {
               amount
               currencyCode
@@ -485,6 +537,40 @@ export const loader = async ({ request, params }) => {
       paid = formatMoney(paidAmount.toFixed(2), order.totalPriceSet.shopMoney.currencyCode);
     }
 
+    const totalRefundedAmount = parseFloat(
+      order.totalRefundedSet?.shopMoney?.amount ?? ""
+    );
+    const totalRefundedCurrency =
+      order.totalRefundedSet?.shopMoney?.currencyCode ||
+      order.lineItems?.edges?.[0]?.node?.originalUnitPriceSet?.shopMoney?.currencyCode ||
+      "USD";
+
+    const placedLineItems =
+      order.lineItems?.edges?.map((edge, index) => {
+        const li = edge.node;
+        const rawAttrs = attributesOverridesByIndex[index] || li.customAttributes || [];
+        const mfAdj = getProductAdjustmentTypeMetafield(metafields, index + 1);
+        const adj = readLineItemAdjustmentFields(rawAttrs, mfAdj);
+        const itemStatus = extractItemStatusFromMetafields(
+          metafields,
+          index,
+          attributesOverridesByIndex[index] || li.customAttributes
+        );
+        return {
+          id: li.id,
+          title: li.title,
+          quantity: li.quantity,
+          variantTitle: li.variantTitle || null,
+          pricePerItem: formatMoneySet(li.originalUnitPriceSet),
+          customAttributes: getAttributesForDisplay(rawAttrs),
+          orderStatus: itemStatus,
+          itemAdjustmentType: adj.itemAdjustmentType,
+          adjustmentRefundAmount: adj.adjustmentRefundAmount,
+          additionalPaymentAmount: adj.additionalPaymentAmount,
+          currencyCode: li.originalUnitPriceSet?.shopMoney?.currencyCode || null,
+        };
+      }) ?? [];
+
     const normalized = {
       type: "order",
       id: order.id,
@@ -501,27 +587,20 @@ export const loader = async ({ request, params }) => {
       outstanding: formatMoneySet(order.totalOutstandingSet),
       paid,
       customer: order.customer || null,
-      lineItems:
-        order.lineItems?.edges?.map((edge, index) => {
-          const li = edge.node;
-          const itemStatus = extractItemStatusFromMetafields(
-            metafields,
-            index,
-            attributesOverridesByIndex[index] || li.customAttributes
-          );
-          return {
-            id: li.id,
-            title: li.title,
-            quantity: li.quantity,
-            variantTitle: li.variantTitle || null,
-            pricePerItem: formatMoneySet(li.originalUnitPriceSet),
-            customAttributes: getAttributesForDisplay(
-              attributesOverridesByIndex[index] || li.customAttributes || []
-            ),
-            orderStatus: itemStatus,
-          };
-        }) ?? [],
+      totalRefundedAmount: Number.isFinite(totalRefundedAmount) ? totalRefundedAmount : 0,
+      totalRefundedCurrency,
+      orderAdjustmentsAdditionalPaymentMetafield: getOrderMetafieldNumber(
+        metafields,
+        "order_adjustments_additional_payment"
+      ),
+      orderAdjustmentsRefundTotalMetafield: getOrderMetafieldNumber(
+        metafields,
+        "order_adjustments_refund_total"
+      ),
+      lineItems: placedLineItems,
     };
+
+    normalized.orderAdjustments = deriveOrderAdjustments(normalized);
 
     return { order: normalized };
   }
@@ -871,6 +950,66 @@ export const action = async ({ request }) => {
   return redirect(request.url);
 };
 
+function OrderAdjustmentsCard({ orderAdjustments }) {
+  if (!orderAdjustments) {
+    return null;
+  }
+  const {
+    exchangeCount,
+    returnCount,
+    refundTotal,
+    additionalPaymentTotal,
+    currencyCode,
+  } = orderAdjustments;
+  const hasEvents = exchangeCount > 0 || returnCount > 0;
+  const hasFinancial = refundTotal > 0 || additionalPaymentTotal > 0;
+  const hasAny = hasEvents || hasFinancial;
+
+  return (
+    <s-box
+      padding="base"
+      borderRadius="base"
+      borderWidth="base"
+      background="subdued"
+      flex="1"
+    >
+      <s-stack gap="small">
+        <s-heading size="large" style={{ fontSize: "1.6rem" }}>
+          Order Adjustments
+        </s-heading>
+        {!hasAny ? (
+          <s-text color="subdued">No adjustments</s-text>
+        ) : (
+          <>
+            {exchangeCount > 0 && <s-text>Exchanges: {exchangeCount}</s-text>}
+            {returnCount > 0 && <s-text>Returns: {returnCount}</s-text>}
+            {hasEvents && hasFinancial && (
+              <div
+                style={{
+                  borderTop: "1px solid #e1e3e5",
+                  margin: "4px 0",
+                }}
+              />
+            )}
+            {refundTotal > 0 && (
+              <s-text>
+                Refund Issued:{" "}
+                {formatAdjustmentMoney(refundTotal, currencyCode)}
+              </s-text>
+            )}
+            {additionalPaymentTotal > 0 && (
+              <s-text>
+                Additional Payment:{" "}
+                {formatAdjustmentMoney(additionalPaymentTotal, currencyCode)}
+              </s-text>
+            )}
+          </>
+        )}
+      </s-stack>
+    </s-box>
+  );
+}
+
 export default function OrderDetails() {
   const { order } = useLoaderData();
   const submit = useSubmit();
@@ -1147,6 +1286,7 @@ export default function OrderDetails() {
             </s-stack>
           </s-box>
 
+          <OrderAdjustmentsCard orderAdjustments={order.orderAdjustments} />
         </s-stack>
       </s-section>
 
