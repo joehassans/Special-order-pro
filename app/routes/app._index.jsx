@@ -551,9 +551,6 @@ export default function Index() {
         s-table-cell.order-cell-canceled {
           background-color: #e53935 !important;
         }
-        s-table-cell.order-cell-pending {
-          background-color: #ff9800 !important;
-        }
       `}</style>
       {/* Filters section */}
       <s-section id="filters-section">
@@ -650,27 +647,20 @@ export default function Index() {
                 );
                 const orderCanceled =
                   order.overallOrderStatus === "Order Canceled";
-                const orderPending =
-                  order.overallOrderStatus === "Order Pending" ||
-                  !order.overallOrderStatus;
 
                 const orderCellClass =
                   completed
                     ? "order-cell-completed"
                     : orderCanceled
                       ? "order-cell-canceled"
-                      : orderPending
-                        ? "order-cell-pending"
-                        : "";
+                      : "";
 
                 const orderSpanBg =
                   completed
                     ? "#66bb6a"
                     : orderCanceled
                       ? "#e53935"
-                      : orderPending
-                        ? "#ff9800"
-                        : undefined;
+                      : undefined;
 
                 return (
                   <s-table-row
