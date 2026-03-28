@@ -209,63 +209,6 @@ function resolveOrderReceipts(directMetafieldValue, metafields) {
   return parseOrderReceiptsFromMetafields(metafields);
 }
 
-/** Best-effort receipt numbers from POS / gateway `receiptJson` on successful charges. */
-function extractOneReceiptFromReceiptJson(receiptJson) {
-  if (receiptJson == null) return null;
-  let obj = receiptJson;
-  if (typeof obj === "string") {
-    try {
-      obj = JSON.parse(obj);
-    } catch {
-      return null;
-    }
-  }
-  if (typeof obj !== "object" || obj === null) return null;
-  const tryKeys = (o) => {
-    const keys = [
-      "receipt_number",
-      "receiptNumber",
-      "receipt_id",
-      "receiptId",
-      "transaction_receipt",
-      "number",
-    ];
-    for (const k of keys) {
-      const v = o[k];
-      if (v != null && String(v).trim()) return String(v).trim();
-    }
-    return null;
-  };
-  const direct = tryKeys(obj);
-  if (direct) return direct;
-  if (obj.receipt && typeof obj.receipt === "object") {
-    const nested = tryKeys(obj.receipt);
-    if (nested) return nested;
-  }
-  if (obj.payment_details && typeof obj.payment_details === "object") {
-    const nested = tryKeys(obj.payment_details);
-    if (nested) return nested;
-  }
-  return null;
-}
-
-function extractReceiptCodesFromTransactions(transactions) {
-  const out = [];
-  const seen = new Set();
-  const edges = transactions?.edges ?? [];
-  const paymentKinds = new Set(["SALE", "CAPTURE"]);
-  for (const { node: tx } of edges) {
-    if (tx?.status !== "SUCCESS") continue;
-    if (!paymentKinds.has(tx?.kind)) continue;
-    const code = extractOneReceiptFromReceiptJson(tx?.receiptJson);
-    if (code && !seen.has(code)) {
-      seen.add(code);
-      out.push(code);
-    }
-  }
-  return out;
-}
-
 function getAttributesForDisplay(attrs) {
   const map = new Map();
   for (const a of attrs || []) {
@@ -570,15 +513,6 @@ export const loader = async ({ request, params }) => {
           orderReceiptsMetafield: metafield(namespace: "custom", key: "order_receipts") {
             value
           }
-          transactions(first: 25) {
-            edges {
-              node {
-                kind
-                status
-                receiptJson
-              }
-            }
-          }
           lineItems(first: 50) {
             edges {
               node {
@@ -607,6 +541,12 @@ export const loader = async ({ request, params }) => {
     );
 
     const json = await response.json();
+    if (json.errors?.length) {
+      console.error(
+        "GetOrderDetails GraphQL errors:",
+        json.errors.map((e) => e.message).join("; ")
+      );
+    }
     const order = json.data?.order;
 
     if (!order) {
@@ -636,13 +576,10 @@ export const loader = async ({ request, params }) => {
 
     const contactStatus = extractContactStatusFromMetafields(metafields);
     const overallOrderStatus = extractOverallOrderStatusFromMetafields(metafields);
-    let receipts = resolveOrderReceipts(
+    const receipts = resolveOrderReceipts(
       order.orderReceiptsMetafield?.value,
       metafields
     );
-    if (receipts.length === 0) {
-      receipts = extractReceiptCodesFromTransactions(order.transactions);
-    }
 
     let paid = null;
     if (
