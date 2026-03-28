@@ -168,6 +168,32 @@ function getProductAdjustmentTypeMetafield(metafields, position) {
   return edge?.node?.value?.trim() || "";
 }
 
+/** Receipt codes from metafield `custom.order_receipts` (JSON array of strings, or comma-separated fallback). */
+function parseOrderReceiptsFromMetafields(metafields) {
+  const edge = metafields?.edges?.find((e) => e?.node?.key === "order_receipts");
+  if (!edge?.node?.value) return [];
+  const raw = String(edge.node.value).trim();
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+      return parsed.map((x) => String(x ?? "").trim()).filter(Boolean);
+    }
+    if (parsed && typeof parsed === "object" && Array.isArray(parsed.receipts)) {
+      return parsed.receipts.map((x) => String(x ?? "").trim()).filter(Boolean);
+    }
+  } catch {
+    if (raw.includes(",")) {
+      return raw
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean);
+    }
+    return [raw];
+  }
+  return [];
+}
+
 function getAttributesForDisplay(attrs) {
   const map = new Map();
   for (const a of attrs || []) {
@@ -342,6 +368,7 @@ export const loader = async ({ request, params }) => {
 
     const contactStatus = extractContactStatusFromMetafields(metafields);
     const overallOrderStatus = extractOverallOrderStatusFromMetafields(metafields);
+    const receipts = parseOrderReceiptsFromMetafields(metafields);
 
     const draftLineItems =
       draftOrder.lineItems?.edges?.map((edge, index) => {
@@ -396,6 +423,7 @@ export const loader = async ({ request, params }) => {
         "order_adjustments_refund_total"
       ),
       lineItems: draftLineItems,
+      receipts,
     };
 
     normalized.orderAdjustments = deriveOrderAdjustments(normalized);
@@ -523,6 +551,7 @@ export const loader = async ({ request, params }) => {
 
     const contactStatus = extractContactStatusFromMetafields(metafields);
     const overallOrderStatus = extractOverallOrderStatusFromMetafields(metafields);
+    const receipts = parseOrderReceiptsFromMetafields(metafields);
 
     let paid = null;
     if (
@@ -598,6 +627,7 @@ export const loader = async ({ request, params }) => {
         "order_adjustments_refund_total"
       ),
       lineItems: placedLineItems,
+      receipts,
     };
 
     normalized.orderAdjustments = deriveOrderAdjustments(normalized);
@@ -1048,6 +1078,11 @@ export default function OrderDetails() {
       ? `shopify://admin/draft_orders/${adminId}`
       : `shopify://admin/orders/${adminId}`;
 
+  const tagsWithoutSpecialOrder = (order.tags || []).filter(
+    (tag) => String(tag || "").toLowerCase().trim() !== "special-order"
+  );
+  const receiptList = order.receipts || [];
+
   return (
     <s-page
       heading={order.name}
@@ -1093,16 +1128,24 @@ export default function OrderDetails() {
             <s-badge tone={order.type === "draft" ? "warning" : "success"}>
               {order.type === "draft" ? "Draft order" : "Order"}
             </s-badge>
-            {order.tags &&
-              order.tags.length > 0 && (
-                <s-stack direction="inline" gap="small">
-                  {order.tags.map((tag) => (
-                    <s-badge key={tag} tone="subdued">
-                      {tag}
-                    </s-badge>
-                  ))}
-                </s-stack>
-              )}
+            {receiptList.length > 0 && (
+              <s-stack direction="inline" gap="small">
+                {receiptList.map((code, index) => (
+                  <s-badge key={`receipt-${index}-${code}`} tone="info">
+                    Receipt {index + 1}: {code}
+                  </s-badge>
+                ))}
+              </s-stack>
+            )}
+            {tagsWithoutSpecialOrder.length > 0 && (
+              <s-stack direction="inline" gap="small">
+                {tagsWithoutSpecialOrder.map((tag) => (
+                  <s-badge key={tag} tone="subdued">
+                    {tag}
+                  </s-badge>
+                ))}
+              </s-stack>
+            )}
           </s-stack>
         </s-stack>
       </s-section>
