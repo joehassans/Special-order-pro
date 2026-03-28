@@ -7,6 +7,10 @@ import {
   formatAdjustmentMoney,
   readLineItemAdjustmentFields,
 } from "../lib/order-adjustments";
+import {
+  calculatePaymentStatus,
+  normalizeOverallOrderStatus,
+} from "../lib/order-status-helpers";
 
 function formatMoneySet(moneySet) {
   if (!moneySet || !moneySet.shopMoney) return null;
@@ -61,7 +65,7 @@ function extractOverallOrderStatusFromMetafields(metafields) {
   const entry = metafields.edges.find(
     (edge) => edge.node.key === "overall_order_status"
   );
-  return entry?.node?.value || "Order Pending";
+  return normalizeOverallOrderStatus(entry?.node?.value || "Order Pending");
 }
 
 function normalizeText(text) {
@@ -379,6 +383,7 @@ export const loader = async ({ request, params }) => {
       note: draftOrder.note2 || "",
       contactStatus,
       overallOrderStatus,
+      paymentStatus: calculatePaymentStatus(draftOrder),
       subtotal: formatMoneySet(draftOrder.subtotalPriceSet),
       tax: formatMoneySet(draftOrder.totalTaxSet),
       total: formatMoneySet(draftOrder.totalPriceSet),
@@ -587,6 +592,7 @@ export const loader = async ({ request, params }) => {
       note: order.note || "",
       contactStatus,
       overallOrderStatus,
+      paymentStatus: calculatePaymentStatus(order),
       subtotal: formatMoneySet(order.subtotalPriceSet),
       tax: formatMoneySet(order.totalTaxSet),
       total: formatMoneySet(order.totalPriceSet),
@@ -1027,12 +1033,7 @@ export default function OrderDetails() {
 
   const createdLabel = new Date(order.createdAt).toLocaleString();
   const updatedLabel = new Date(order.updatedAt).toLocaleString();
-  const paymentStatusLabel =
-    order.type === "draft"
-      ? "Not Paid"
-      : order.outstanding
-        ? "Partially Paid"
-        : "Paid in Full";
+  const paymentStatusLabel = order.paymentStatus || "Not Paid";
   const adminId = String(order.id).split("/").pop();
   const adminHref =
     order.type === "draft"

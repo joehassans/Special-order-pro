@@ -2,43 +2,12 @@ import { useState, useMemo } from "react";
 import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
+import {
+  calculatePaymentStatus,
+  normalizeOverallOrderStatus,
+} from "../lib/order-status-helpers";
 
 const SPECIAL_ORDER_TAG = "special-order";
-
-function calculatePaymentStatus(order) {
-  // Draft orders are always "Not Paid" in your original logic
-  const isDraftOrder = order.id.includes("DraftOrder");
-
-  if (isDraftOrder) {
-    return "Not Paid";
-  }
-
-  if (order.displayFinancialStatus) {
-    const status = order.displayFinancialStatus;
-    if (status === "PAID") {
-      return "Paid in Full";
-    } else if (status === "PARTIALLY_PAID") {
-      return "Partially Paid";
-    } else if (
-      status === "PENDING" ||
-      status === "AUTHORIZED" ||
-      status === "VOIDED"
-    ) {
-      return "Not Paid";
-    }
-  }
-
-  if (order.totalOutstandingSet && order.totalOutstandingSet.shopMoney) {
-    const outstanding = parseFloat(order.totalOutstandingSet.shopMoney.amount);
-    if (outstanding === 0) {
-      return "Paid in Full";
-    } else if (outstanding > 0) {
-      return "Partially Paid";
-    }
-  }
-
-  return "Not Paid";
-}
 
 function getPaymentStatusTone(status) {
   if (!status) return "subdued";
@@ -97,12 +66,7 @@ function extractOrderStatuses(order) {
       .sort((a, b) => a.n - b.n)
       .map((x) => ({ title: "Item", status: x.value }));
     if (productStatusMfs.length > 0) return productStatusMfs;
-    const anyStatus = edges.find(
-      (e) => e?.node?.key?.includes?.("order_status") && e?.node?.value
-    );
-    return [
-      { title: "Item", status: anyStatus?.node?.value || "Not set" },
-    ];
+    return [{ title: "Item", status: "Not set" }];
   }
 
   const items = lineItems.map((edge, index) => {
@@ -156,7 +120,7 @@ function extractOverallOrderStatusFromMetafields(metafields) {
     (edge) => edge.node.key === "overall_order_status"
   );
   if (mf && mf.node.value) {
-    return mf.node.value;
+    return normalizeOverallOrderStatus(mf.node.value);
   }
 
   return "Order Pending";
