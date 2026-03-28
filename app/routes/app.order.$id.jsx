@@ -103,14 +103,12 @@ function getOrderStatusWrapperColors(status) {
 function getPaymentStatusTone(status) {
   const s = normalizeText(status);
   if (!s) return "subdued";
-  // Not Paid -> red
   if (s === "not paid" || s.includes("not paid")) return "critical";
-  // Partially Paid -> orange
-  if (s === "partially paid" || s.includes("partially paid"))
-    return "warning";
-  // Paid in Full -> green
-  if (s === "paid in full" || s === "paid" || s.includes("paid in full"))
-    return "success";
+  if (s.includes("partially refunded")) return "warning";
+  if (s.includes("refunded")) return "info";
+  if (s === "partially paid" || s.includes("partially paid")) return "warning";
+  if (s === "paid in full" || s.includes("paid in full")) return "success";
+  if (s === "paid" && !s.includes("not")) return "success";
   return "subdued";
 }
 

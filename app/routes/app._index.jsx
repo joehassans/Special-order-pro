@@ -12,11 +12,12 @@ const SPECIAL_ORDER_TAG = "special-order";
 function getPaymentStatusTone(status) {
   if (!status) return "subdued";
   const s = status.toLowerCase().trim();
-  if (s === "not paid" || s.includes("not paid")) return "critical"; // red
-  if (s === "partially paid" || s.includes("partially paid"))
-    return "warning"; // orange
-  if (s === "paid in full" || s === "paid" || s.includes("paid in full"))
-    return "success"; // green
+  if (s === "not paid" || s.includes("not paid")) return "critical";
+  if (s.includes("partially refunded")) return "warning";
+  if (s.includes("refunded")) return "info";
+  if (s === "partially paid" || s.includes("partially paid")) return "warning";
+  if (s === "paid in full" || s.includes("paid in full")) return "success";
+  if (s === "paid" && !s.includes("not")) return "success";
   return "subdued";
 }
 function getOrderStatusTone(status) {
@@ -159,6 +160,18 @@ export const loader = async ({ request }) => {
             createdAt
             note
             displayFinancialStatus
+            totalPriceSet {
+              shopMoney {
+                amount
+                currencyCode
+              }
+            }
+            totalRefundedSet {
+              shopMoney {
+                amount
+                currencyCode
+              }
+            }
             totalOutstandingSet {
               shopMoney {
                 amount

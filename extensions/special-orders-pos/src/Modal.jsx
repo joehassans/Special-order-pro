@@ -202,20 +202,37 @@ function getPaymentDetails(order) {
   return { subtotal, tax, total, outstanding, paid };
 }
 
+// Keep in sync with `app/lib/order-status-helpers.js` → calculatePaymentStatus
 function calculatePaymentStatus(order) {
-  if (order.id?.includes("DraftOrder")) return "Not Paid";
-  if (order.displayFinancialStatus === "PAID") return "Paid in Full";
-  if (order.displayFinancialStatus === "PARTIALLY_PAID") return "Partially Paid";
-  if (
-    ["PENDING", "AUTHORIZED", "VOIDED"].includes(order.displayFinancialStatus)
-  )
+  if (!order || String(order.id || "").includes("DraftOrder")) return "Not Paid";
+
+  const dfs = order.displayFinancialStatus
+    ? String(order.displayFinancialStatus).toUpperCase().trim()
+    : "";
+
+  if (dfs === "REFUNDED") return "Refunded";
+  if (dfs === "PARTIALLY_REFUNDED") return "Partially Refunded";
+
+  if (dfs === "PAID") return "Paid in Full";
+  if (dfs === "PARTIALLY_PAID") return "Partially Paid";
+  if (["PENDING", "AUTHORIZED", "VOIDED", "EXPIRED"].includes(dfs))
     return "Not Paid";
+
   const out = order.totalOutstandingSet?.shopMoney?.amount;
   if (out != null) {
     const n = parseFloat(out);
     if (n === 0) return "Paid in Full";
     if (n > 0) return "Partially Paid";
   }
+
+  const refunded = parseFloat(order.totalRefundedSet?.shopMoney?.amount ?? "");
+  if (Number.isFinite(refunded) && refunded > 0) {
+    const total = parseFloat(order.totalPriceSet?.shopMoney?.amount ?? "");
+    if (!Number.isFinite(total) || total <= 0) return "Partially Refunded";
+    if (refunded >= total - 0.005) return "Refunded";
+    return "Partially Refunded";
+  }
+
   return "Not Paid";
 }
 
@@ -271,8 +288,11 @@ function getTone(status, type) {
   }
   if (type === "payment") {
     if (s.includes("not paid")) return "critical";
-    if (s.includes("partially")) return "warning";
-    if (s.includes("paid")) return "success";
+    if (s.includes("partially refunded")) return "warning";
+    if (s.includes("refunded")) return "info";
+    if (s.includes("partially paid")) return "warning";
+    if (s.includes("paid in full") || (s.includes("paid") && !s.includes("not")))
+      return "success";
     return "subdued";
   }
   if (type === "order") {
@@ -302,6 +322,7 @@ const LIST_QUERY = `
           subtotalPriceSet { shopMoney { amount currencyCode } }
           totalTaxSet { shopMoney { amount currencyCode } }
           totalPriceSet { shopMoney { amount currencyCode } }
+          totalRefundedSet { shopMoney { amount currencyCode } }
           totalOutstandingSet { shopMoney { amount currencyCode } }
           customer { id displayName email phone }
           metafields(first: 250, namespace: "custom") {
