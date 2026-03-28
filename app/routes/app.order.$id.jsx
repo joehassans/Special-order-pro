@@ -168,177 +168,6 @@ function getProductAdjustmentTypeMetafield(metafields, position) {
   return edge?.node?.value?.trim() || "";
 }
 
-/** Metafield keys we treat as receipt number(s), highest priority first. */
-const RECEIPT_METAFIELD_KEYS = [
-  "order_receipts",
-  "order_receipt",
-  "receipt_number",
-  "receipt_numbers",
-  "pos_receipt",
-  "receipt",
-];
-
-/**
- * Parse stored metafield value: JSON array, single JSON string/number, `{ receipts: [...] }`,
- * `{ receipt: "..." }`, list type, or plain / comma-separated text.
- */
-function parseReceiptsValue(raw) {
-  if (raw == null) return [];
-  const rawStr = String(raw).trim();
-  if (!rawStr) return [];
-  try {
-    const parsed = JSON.parse(rawStr);
-    if (Array.isArray(parsed)) {
-      return parsed.map((x) => String(x ?? "").trim()).filter(Boolean);
-    }
-    if (typeof parsed === "string" && parsed.trim()) {
-      return [parsed.trim()];
-    }
-    if (typeof parsed === "number" && Number.isFinite(parsed)) {
-      return [String(parsed)];
-    }
-    if (parsed && typeof parsed === "object") {
-      if (Array.isArray(parsed.receipts)) {
-        return parsed.receipts.map((x) => String(x ?? "").trim()).filter(Boolean);
-      }
-      if (parsed.receipt != null && String(parsed.receipt).trim()) {
-        return [String(parsed.receipt).trim()];
-      }
-      if (parsed.code != null && String(parsed.code).trim()) {
-        return [String(parsed.code).trim()];
-      }
-    }
-  } catch {
-    if (rawStr.includes(",")) {
-      return rawStr
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean);
-    }
-    return [rawStr];
-  }
-  return [];
-}
-
-/** Receipt codes from `metafields` connection (known keys + case-insensitive fallback). */
-function parseOrderReceiptsFromMetafields(metafields) {
-  const edges = metafields?.edges ?? [];
-  for (const want of RECEIPT_METAFIELD_KEYS) {
-    const edge = edges.find(
-      (e) => String(e?.node?.key || "").toLowerCase() === want
-    );
-    if (edge?.node?.value) {
-      const list = parseReceiptsValue(edge.node.value);
-      if (list.length > 0) return list;
-    }
-  }
-  for (const e of edges) {
-    const k = String(e?.node?.key || "").toLowerCase();
-    if (!k.includes("receipt")) continue;
-    if (k.includes("order_status") || k.includes("adjustment")) continue;
-    const list = parseReceiptsValue(e?.node?.value);
-    if (list.length > 0) return list;
-  }
-  return [];
-}
-
-/** Try direct `metafield(namespace,key)` hits first, then the connection. */
-function resolveOrderReceipts(directMetafieldValues, metafields) {
-  const candidates = Array.isArray(directMetafieldValues)
-    ? directMetafieldValues
-    : [directMetafieldValues];
-  for (const raw of candidates) {
-    const fromDirect = parseReceiptsValue(raw);
-    if (fromDirect.length > 0) return fromDirect;
-  }
-  return parseOrderReceiptsFromMetafields(metafields);
-}
-
-/** Tags like `receipt:12345` or `Receipt #ABC` as a last resort. */
-function extractReceiptsFromOrderTags(tags) {
-  if (!Array.isArray(tags)) return [];
-  const out = [];
-  const seen = new Set();
-  for (const tag of tags) {
-    const t = String(tag || "").trim();
-    if (!t) continue;
-    const m =
-      /^receipt\s*[#:]?\s*(.+)$/i.exec(t) ||
-      /^pos-?receipt\s*[#:]?\s*(.+)$/i.exec(t);
-    if (m) {
-      const code = m[1].trim();
-      if (code && !seen.has(code.toLowerCase())) {
-        seen.add(code.toLowerCase());
-        out.push(code);
-      }
-    }
-  }
-  return out;
-}
-
-/** Line item custom attributes whose key contains "receipt" (e.g. POS-persisted receipt #). */
-function extractReceiptsFromLineItemsGraphQL(lineEdges, attributesOverridesByIndex) {
-  const out = [];
-  const seen = new Set();
-  const edges = lineEdges ?? [];
-  edges.forEach((edge, index) => {
-    const li = edge?.node;
-    if (!li) return;
-    const raw = attributesOverridesByIndex?.[index] || li.customAttributes || [];
-    for (const a of raw) {
-      const k = String(a?.key || "").toLowerCase().trim();
-      if (!k.includes("receipt")) continue;
-      if (k.includes("order_status") || k.includes("adjustment")) continue;
-      const v = String(a?.value || "").trim();
-      if (v && !seen.has(v.toLowerCase())) {
-        seen.add(v.toLowerCase());
-        out.push(v);
-      }
-    }
-  });
-  return out;
-}
-
-function orderHasSpecialOrderTag(tags) {
-  return (tags || []).some((t) => {
-    const x = String(t || "").toLowerCase().trim();
-    return x === "special-order" || x === "special order";
-  });
-}
-
-function isOrderConfirmationAttrKey(attrKey) {
-  const k = String(attrKey || "").toLowerCase().trim();
-  return (
-    k === "order confirmation number" ||
-    k === "order confirmation #" ||
-    k === "confirmation number"
-  );
-}
-
-/** Line item Order Confirmation Number(s) — same field already used on special orders when no receipt metafield is set. */
-function extractOrderConfirmationNumbersFromLineItems(
-  lineEdges,
-  attributesOverridesByIndex
-) {
-  const out = [];
-  const seen = new Set();
-  const edges = lineEdges ?? [];
-  edges.forEach((edge, index) => {
-    const li = edge?.node;
-    if (!li) return;
-    const raw = attributesOverridesByIndex?.[index] || li.customAttributes || [];
-    for (const a of raw) {
-      if (!isOrderConfirmationAttrKey(a?.key)) continue;
-      const v = String(a?.value || "").trim();
-      if (v && !seen.has(v.toLowerCase())) {
-        seen.add(v.toLowerCase());
-        out.push(v);
-      }
-    }
-  });
-  return out;
-}
-
 function getAttributesForDisplay(attrs) {
   const map = new Map();
   for (const a of attrs || []) {
@@ -513,8 +342,6 @@ export const loader = async ({ request, params }) => {
 
     const contactStatus = extractContactStatusFromMetafields(metafields);
     const overallOrderStatus = extractOverallOrderStatusFromMetafields(metafields);
-    // Receipts (POS / metafield) apply only after an order is placed, not on draft orders.
-    const receipts = [];
 
     const draftLineItems =
       draftOrder.lineItems?.edges?.map((edge, index) => {
@@ -569,7 +396,6 @@ export const loader = async ({ request, params }) => {
         "order_adjustments_refund_total"
       ),
       lineItems: draftLineItems,
-      receipts,
     };
 
     normalized.orderAdjustments = deriveOrderAdjustments(normalized);
@@ -640,12 +466,6 @@ export const loader = async ({ request, params }) => {
               }
             }
           }
-          orderReceiptsMetafield: metafield(namespace: "custom", key: "order_receipts") {
-            value
-          }
-          receiptSingleMetafield: metafield(namespace: "custom", key: "receipt") {
-            value
-          }
           lineItems(first: 50) {
             edges {
               node {
@@ -709,26 +529,6 @@ export const loader = async ({ request, params }) => {
 
     const contactStatus = extractContactStatusFromMetafields(metafields);
     const overallOrderStatus = extractOverallOrderStatusFromMetafields(metafields);
-    const receiptsFromMetafields = resolveOrderReceipts(
-      [order.orderReceiptsMetafield?.value, order.receiptSingleMetafield?.value],
-      metafields
-    );
-    let receipts =
-      receiptsFromMetafields.length > 0
-        ? receiptsFromMetafields
-        : extractReceiptsFromOrderTags(order.tags);
-    if (receipts.length === 0) {
-      receipts = extractReceiptsFromLineItemsGraphQL(
-        order.lineItems?.edges,
-        attributesOverridesByIndex
-      );
-    }
-    if (receipts.length === 0 && orderHasSpecialOrderTag(order.tags)) {
-      receipts = extractOrderConfirmationNumbersFromLineItems(
-        order.lineItems?.edges,
-        attributesOverridesByIndex
-      );
-    }
 
     let paid = null;
     if (
@@ -804,7 +604,6 @@ export const loader = async ({ request, params }) => {
         "order_adjustments_refund_total"
       ),
       lineItems: placedLineItems,
-      receipts,
     };
 
     normalized.orderAdjustments = deriveOrderAdjustments(normalized);
@@ -1243,8 +1042,6 @@ export default function OrderDetails() {
   const tagsWithoutSpecialOrder = (order.tags || []).filter(
     (tag) => String(tag || "").toLowerCase().trim() !== "special-order"
   );
-  const receiptList =
-    order.type === "order" ? order.receipts || [] : [];
 
   return (
     <s-page
@@ -1291,13 +1088,6 @@ export default function OrderDetails() {
             <s-badge tone={order.type === "draft" ? "warning" : "success"}>
               {order.type === "draft" ? "Draft order" : "Order"}
             </s-badge>
-            {receiptList.length > 0 && (
-              <s-badge key="order-receipts" tone="subdued">
-                {receiptList.length === 1
-                  ? `Receipt: ${receiptList[0]}`
-                  : `Receipts: ${receiptList.join(", ")}`}
-              </s-badge>
-            )}
             {tagsWithoutSpecialOrder.length > 0 && (
               <s-stack direction="inline" gap="small">
                 {tagsWithoutSpecialOrder.map((tag) => (
