@@ -11,6 +11,11 @@ import {
   calculatePaymentStatus,
   normalizeOverallOrderStatus,
 } from "../lib/order-status-helpers";
+import {
+  computeLineItemFulfillmentUi,
+  fulfillOrderLineItem,
+  unfulfillOrderLineItem,
+} from "../lib/line-item-fulfillment.server";
 
 function formatMoneySet(moneySet) {
   if (!moneySet || !moneySet.shopMoney) return null;
@@ -389,6 +394,9 @@ export const loader = async ({ request, params }) => {
           lineItemRefunded: false,
           lineItemExchanged: adj.itemAdjustmentType === "exchanged",
           exchangedForProductTitle: adj.exchangedForProductTitle || null,
+          fulfillmentCanFulfill: false,
+          fulfillmentCanUnfulfill: false,
+          fulfillmentUnfulfillBlocked: false,
         };
       }) ?? [];
 
@@ -490,6 +498,42 @@ export const loader = async ({ request, params }) => {
               }
             }
           }
+          fulfillmentOrders(first: 50) {
+            edges {
+              node {
+                id
+                assignedLocation {
+                  id
+                }
+                lineItems(first: 50) {
+                  edges {
+                    node {
+                      id
+                      remainingQuantity
+                      totalQuantity
+                      lineItem {
+                        id
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          fulfillments(first: 50) {
+            id
+            status
+            fulfillmentLineItems(first: 50) {
+              edges {
+                node {
+                  quantity
+                  lineItem {
+                    id
+                  }
+                }
+              }
+            }
+          }
           lineItems(first: 50) {
             edges {
               node {
@@ -576,6 +620,11 @@ export const loader = async ({ request, params }) => {
       order.lineItems?.edges?.[0]?.node?.originalUnitPriceSet?.shopMoney?.currencyCode ||
       "USD";
 
+    const fulfillmentOrderEdges = order.fulfillmentOrders?.edges || [];
+    const fulfillmentEdges = (order.fulfillments || []).map((node) => ({
+      node,
+    }));
+
     const placedLineItems =
       order.lineItems?.edges?.map((edge, index) => {
         const li = edge.node;
@@ -597,6 +646,12 @@ export const loader = async ({ request, params }) => {
         );
         const qty = Number(li.quantity ?? 0);
         const currentQty = Number(li.currentQuantity ?? li.quantity ?? 0);
+        const fulfillmentUi = computeLineItemFulfillmentUi(
+          li.id,
+          fulfillmentOrderEdges,
+          Array.isArray(fulfillmentEdges) ? fulfillmentEdges : []
+        );
+        const canShowFulfillment = currentQty > 0;
         return {
           id: li.id,
           title: li.title,
@@ -613,6 +668,12 @@ export const loader = async ({ request, params }) => {
             qty > currentQty,
           lineItemExchanged: adj.itemAdjustmentType === "exchanged",
           exchangedForProductTitle: adj.exchangedForProductTitle || null,
+          fulfillmentCanFulfill:
+            canShowFulfillment && fulfillmentUi.canFulfill,
+          fulfillmentCanUnfulfill:
+            canShowFulfillment && fulfillmentUi.canUnfulfill,
+          fulfillmentUnfulfillBlocked:
+            canShowFulfillment && fulfillmentUi.unfulfillBlockedMixed,
         };
       }) ?? [];
 
@@ -816,6 +877,24 @@ export const action = async ({ request }) => {
       );
     }
 
+    return redirect(request.url);
+  }
+
+  if (intent === "fulfillLineItem") {
+    const lineItemId = formData.get("lineItemId");
+    if (!lineItemId || String(orderId).includes("DraftOrder")) {
+      return redirect(request.url);
+    }
+    await fulfillOrderLineItem(admin.graphql, orderId, String(lineItemId));
+    return redirect(request.url);
+  }
+
+  if (intent === "unfulfillLineItem") {
+    const lineItemId = formData.get("lineItemId");
+    if (!lineItemId || String(orderId).includes("DraftOrder")) {
+      return redirect(request.url);
+    }
+    await unfulfillOrderLineItem(admin.graphql, orderId, String(lineItemId));
     return redirect(request.url);
   }
 
@@ -1416,6 +1495,51 @@ export default function OrderDetails() {
                         <s-text>{item.pricePerItem}</s-text>
                       )}
                     </s-stack>
+                    {order.type === "order" && (
+                      <s-stack direction="inline" gap="small" alignItems="center">
+                        {item.fulfillmentCanFulfill && (
+                          <s-button
+                            variant="secondary"
+                            onClick={() =>
+                              submit(
+                                {
+                                  intent: "fulfillLineItem",
+                                  orderId: order.id,
+                                  lineItemId: item.id,
+                                },
+                                { method: "post" }
+                              )
+                            }
+                          >
+                            Fulfill Item
+                          </s-button>
+                        )}
+                        {item.fulfillmentCanUnfulfill && (
+                          <s-button
+                            variant="secondary"
+                            tone="critical"
+                            onClick={() =>
+                              submit(
+                                {
+                                  intent: "unfulfillLineItem",
+                                  orderId: order.id,
+                                  lineItemId: item.id,
+                                },
+                                { method: "post" }
+                              )
+                            }
+                          >
+                            Unfulfill Item
+                          </s-button>
+                        )}
+                        {item.fulfillmentUnfulfillBlocked && (
+                          <s-text color="subdued" type="small">
+                            Unfulfill in Shopify admin — this item was fulfilled
+                            with other products in the same shipment.
+                          </s-text>
+                        )}
+                      </s-stack>
+                    )}
                     <s-stack gap="small-300">
                         {item.variantTitle && (
                           <s-text color="subdued">
