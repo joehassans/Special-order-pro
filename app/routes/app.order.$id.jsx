@@ -299,6 +299,46 @@ function extractReceiptsFromLineItemsGraphQL(lineEdges, attributesOverridesByInd
   return out;
 }
 
+function orderHasSpecialOrderTag(tags) {
+  return (tags || []).some((t) => {
+    const x = String(t || "").toLowerCase().trim();
+    return x === "special-order" || x === "special order";
+  });
+}
+
+function isOrderConfirmationAttrKey(attrKey) {
+  const k = String(attrKey || "").toLowerCase().trim();
+  return (
+    k === "order confirmation number" ||
+    k === "order confirmation #" ||
+    k === "confirmation number"
+  );
+}
+
+/** Line item Order Confirmation Number(s) — same field already used on special orders when no receipt metafield is set. */
+function extractOrderConfirmationNumbersFromLineItems(
+  lineEdges,
+  attributesOverridesByIndex
+) {
+  const out = [];
+  const seen = new Set();
+  const edges = lineEdges ?? [];
+  edges.forEach((edge, index) => {
+    const li = edge?.node;
+    if (!li) return;
+    const raw = attributesOverridesByIndex?.[index] || li.customAttributes || [];
+    for (const a of raw) {
+      if (!isOrderConfirmationAttrKey(a?.key)) continue;
+      const v = String(a?.value || "").trim();
+      if (v && !seen.has(v.toLowerCase())) {
+        seen.add(v.toLowerCase());
+        out.push(v);
+      }
+    }
+  });
+  return out;
+}
+
 function getAttributesForDisplay(attrs) {
   const map = new Map();
   for (const a of attrs || []) {
@@ -679,6 +719,12 @@ export const loader = async ({ request, params }) => {
         : extractReceiptsFromOrderTags(order.tags);
     if (receipts.length === 0) {
       receipts = extractReceiptsFromLineItemsGraphQL(
+        order.lineItems?.edges,
+        attributesOverridesByIndex
+      );
+    }
+    if (receipts.length === 0 && orderHasSpecialOrderTag(order.tags)) {
+      receipts = extractOrderConfirmationNumbersFromLineItems(
         order.lineItems?.edges,
         attributesOverridesByIndex
       );
