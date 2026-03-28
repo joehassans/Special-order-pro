@@ -1,6 +1,12 @@
 import "@shopify/ui-extensions/preact";
 import { render, Fragment } from "preact";
 import { useState, useEffect, useMemo, useCallback } from "preact/hooks";
+import {
+  computeLineItemFulfillmentUi,
+  fulfillOrderLineItem,
+  unfulfillOrderLineItem,
+  ORDER_REFRESH_QUERY,
+} from "./fulfillment.js";
 
 export default async () => {
   render(<Extension />, document.body);
@@ -374,6 +380,40 @@ const LIST_QUERY = `
           metafields(first: 250, namespace: "custom") {
             edges { node { key value } }
           }
+          fulfillmentOrders(first: 50) {
+            edges {
+              node {
+                id
+                status
+                lineItems(first: 50) {
+                  edges {
+                    node {
+                      id
+                      remainingQuantity
+                      totalQuantity
+                      lineItem {
+                        id
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+          fulfillments(first: 50) {
+            id
+            status
+            fulfillmentLineItems(first: 50) {
+              edges {
+                node {
+                  quantity
+                  lineItem {
+                    id
+                  }
+                }
+              }
+            }
+          }
           lineItems(first: 50) {
             edges {
               node {
@@ -425,11 +465,16 @@ function Extension() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [saving, setSaving] = useState(null);
+  const [fulfillmentError, setFulfillmentError] = useState(null);
   const [isTablet, setIsTablet] = useState(null);
 
   useEffect(() => {
     shopify.device?.isTablet?.().then(setIsTablet).catch(() => setIsTablet(false));
   }, []);
+
+  useEffect(() => {
+    setFulfillmentError(null);
+  }, [selectedOrder?.id]);
 
   const col = isTablet ? COL_IPAD : COL_MOBILE;
   const minTableWidth = isTablet ? MIN_TABLE_IPAD : MIN_TABLE_MOBILE;
@@ -821,6 +866,48 @@ function Extension() {
     []
   );
 
+  const handleFulfillLineItem = useCallback(async (orderId, lineItemId) => {
+    setSaving("fulfillment");
+    setFulfillmentError(null);
+    try {
+      await fulfillOrderLineItem(graphql, orderId, lineItemId);
+      const json = await graphql(ORDER_REFRESH_QUERY, {
+        variables: { id: orderId },
+      });
+      const refreshed = json.data?.order;
+      if (refreshed) {
+        setRawOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? { ...o, ...refreshed } : o))
+        );
+      }
+    } catch (e) {
+      setFulfillmentError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(null);
+    }
+  }, []);
+
+  const handleUnfulfillLineItem = useCallback(async (orderId, lineItemId) => {
+    setSaving("fulfillment");
+    setFulfillmentError(null);
+    try {
+      await unfulfillOrderLineItem(graphql, orderId, lineItemId);
+      const json = await graphql(ORDER_REFRESH_QUERY, {
+        variables: { id: orderId },
+      });
+      const refreshed = json.data?.order;
+      if (refreshed) {
+        setRawOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? { ...o, ...refreshed } : o))
+        );
+      }
+    } catch (e) {
+      setFulfillmentError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(null);
+    }
+  }, []);
+
   if (selectedOrder) {
     const order = rawOrders.find((o) => o.id === selectedOrder.id) || selectedOrder;
     const noteValue =
@@ -860,6 +947,11 @@ function Extension() {
     const overallOrderStatus = extractOverallOrderStatus(metafields);
     const paymentStatus = calculatePaymentStatus(order);
     const isDraftOrder = order.id?.includes("DraftOrder");
+    const fulfillmentOrderEdges = order.fulfillmentOrders?.edges || [];
+    const rawFulfillments = order.fulfillments;
+    const fulfillmentEdges = Array.isArray(rawFulfillments)
+      ? rawFulfillments.map((node) => ({ node }))
+      : [];
     const lineItems = (order.lineItems?.edges || []).map((edge, idx) => {
       const li = edge.node;
       const overrides = attrsByIndex[idx];
@@ -889,6 +981,12 @@ function Extension() {
       const currentQty = Number(li.currentQuantity ?? li.quantity ?? 0);
       const lineItemRefunded =
         !isDraftOrder && qty > currentQty;
+      const fulfillmentUi = computeLineItemFulfillmentUi(
+        li.id,
+        fulfillmentOrderEdges,
+        fulfillmentEdges
+      );
+      const canShowFulfillment = currentQty > 0 && !isDraftOrder;
       return {
         id: li.id,
         title: li.title,
@@ -901,6 +999,12 @@ function Extension() {
         lineItemRefunded,
         lineItemExchanged: adj.itemAdjustmentType === "exchanged",
         exchangedForProductTitle: adj.exchangedForProductTitle || null,
+        fulfillmentCanFulfill:
+          canShowFulfillment && fulfillmentUi.canFulfill,
+        fulfillmentCanUnfulfill:
+          canShowFulfillment && fulfillmentUi.canUnfulfill,
+        fulfillmentUnfulfillBlocked:
+          canShowFulfillment && fulfillmentUi.unfulfillBlockedMixed,
       };
     });
 
@@ -915,6 +1019,7 @@ function Extension() {
                   onClick={() => {
                     setSelectedOrder(null);
                     setLocalNote("");
+                    setFulfillmentError(null);
                   }}
                 >
                   ← {i18n.translate("back")}
@@ -929,6 +1034,10 @@ function Extension() {
                   {i18n.translate("print_order_summary")}
                 </s-button>
               </s-stack>
+
+              {fulfillmentError && !order.id?.includes("DraftOrder") && (
+                <s-banner tone="critical" heading={fulfillmentError} />
+              )}
 
               {/* Customer, Contact Status, Overall Order Status, Payment Status */}
               <s-stack gap="10px" blockSize="auto">
@@ -1245,6 +1354,41 @@ function Extension() {
                       {item.variantTitle && (
                         <s-text color="subdued">{item.variantTitle}</s-text>
                       )}
+                      {!isDraftOrder &&
+                        (item.fulfillmentCanFulfill ||
+                          item.fulfillmentCanUnfulfill ||
+                          item.fulfillmentUnfulfillBlocked) && (
+                          <s-stack direction="inline" gap="small" alignItems="center">
+                            {item.fulfillmentCanFulfill && (
+                              <s-button
+                                variant="secondary"
+                                onClick={() =>
+                                  handleFulfillLineItem(order.id, item.id)
+                                }
+                                disabled={!!saving}
+                              >
+                                {i18n.translate("fulfill_item")}
+                              </s-button>
+                            )}
+                            {item.fulfillmentCanUnfulfill && (
+                              <s-button
+                                variant="secondary"
+                                tone="critical"
+                                onClick={() =>
+                                  handleUnfulfillLineItem(order.id, item.id)
+                                }
+                                disabled={!!saving}
+                              >
+                                {i18n.translate("unfulfill_item")}
+                              </s-button>
+                            )}
+                            {item.fulfillmentUnfulfillBlocked && (
+                              <s-text color="subdued" type="small">
+                                {i18n.translate("fulfillment_unfulfill_blocked")}
+                              </s-text>
+                            )}
+                          </s-stack>
+                        )}
                       <s-stack gap="small">
                         <s-box inlineSize="100%">
                           <s-stack gap="small">

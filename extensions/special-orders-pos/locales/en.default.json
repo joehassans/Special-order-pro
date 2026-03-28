@@ -41,6 +41,9 @@
   "date_created": "Date Created",
   "view_details": "View Details",
   "refresh": "Refresh",
-  "print_order_summary": "Print Order Summary"
+  "print_order_summary": "Print Order Summary",
+  "fulfill_item": "Fulfill Item",
+  "unfulfill_item": "Unfulfill Item",
+  "fulfillment_unfulfill_blocked": "Unfulfill in Shopify admin — this item was fulfilled with other products in the same shipment."
 }
 

@@ -34,6 +34,9 @@
   "column_created": "Date de création",
   "date_created": "Date de création",
   "view_details": "Voir",
-  "print_order_summary": "Imprimer le résumé de commande"
+  "print_order_summary": "Imprimer le résumé de commande",
+  "fulfill_item": "Préparer l'article",
+  "unfulfill_item": "Annuler la préparation",
+  "fulfillment_unfulfill_blocked": "Annulez dans l'admin Shopify — cet article a été préparé avec d'autres produits dans le même envoi."
 }
 
