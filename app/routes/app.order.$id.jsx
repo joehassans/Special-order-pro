@@ -155,6 +155,10 @@ const HIDDEN_ATTRIBUTES = new Set([
   "additionalPaymentAmount",
   "Additional Payment Amount",
   "additional_payment_amount",
+  "exchangedForProductTitle",
+  "Exchanged For Product",
+  "Exchanged For Product Title",
+  "exchanged_for_product_title",
 ]);
 
 function getOrderMetafieldNumber(metafields, key) {
@@ -166,6 +170,12 @@ function getOrderMetafieldNumber(metafields, key) {
 
 function getProductAdjustmentTypeMetafield(metafields, position) {
   const key = `product_${position}_adjustment_type`;
+  const edge = metafields?.edges?.find((e) => e?.node?.key === key);
+  return edge?.node?.value?.trim() || "";
+}
+
+function getProductExchangedForTitleMetafield(metafields, position) {
+  const key = `product_${position}_exchanged_for_title`;
   const edge = metafields?.edges?.find((e) => e?.node?.key === key);
   return edge?.node?.value?.trim() || "";
 }
@@ -350,7 +360,15 @@ export const loader = async ({ request, params }) => {
         const li = edge.node;
         const rawAttrs = attributesOverridesByIndex[index] || li.customAttributes || [];
         const mfAdj = getProductAdjustmentTypeMetafield(metafields, index + 1);
-        const adj = readLineItemAdjustmentFields(rawAttrs, mfAdj);
+        const mfExchangedFor = getProductExchangedForTitleMetafield(
+          metafields,
+          index + 1
+        );
+        const adj = readLineItemAdjustmentFields(
+          rawAttrs,
+          mfAdj,
+          mfExchangedFor
+        );
         const itemStatus = extractItemStatusFromMetafields(
           metafields,
           index,
@@ -369,6 +387,8 @@ export const loader = async ({ request, params }) => {
           additionalPaymentAmount: adj.additionalPaymentAmount,
           currencyCode: li.originalUnitPriceSet?.shopMoney?.currencyCode || null,
           lineItemRefunded: false,
+          lineItemExchanged: adj.itemAdjustmentType === "exchanged",
+          exchangedForProductTitle: adj.exchangedForProductTitle || null,
         };
       }) ?? [];
 
@@ -561,7 +581,15 @@ export const loader = async ({ request, params }) => {
         const li = edge.node;
         const rawAttrs = attributesOverridesByIndex[index] || li.customAttributes || [];
         const mfAdj = getProductAdjustmentTypeMetafield(metafields, index + 1);
-        const adj = readLineItemAdjustmentFields(rawAttrs, mfAdj);
+        const mfExchangedFor = getProductExchangedForTitleMetafield(
+          metafields,
+          index + 1
+        );
+        const adj = readLineItemAdjustmentFields(
+          rawAttrs,
+          mfAdj,
+          mfExchangedFor
+        );
         const itemStatus = extractItemStatusFromMetafields(
           metafields,
           index,
@@ -583,6 +611,8 @@ export const loader = async ({ request, params }) => {
           currencyCode: li.originalUnitPriceSet?.shopMoney?.currencyCode || null,
           lineItemRefunded:
             qty > currentQty,
+          lineItemExchanged: adj.itemAdjustmentType === "exchanged",
+          exchangedForProductTitle: adj.exchangedForProductTitle || null,
         };
       }) ?? [];
 
@@ -1364,6 +1394,16 @@ export default function OrderDetails() {
                         </s-heading>
                         {item.lineItemRefunded && (
                           <s-badge tone="critical">Refunded</s-badge>
+                        )}
+                        {item.lineItemExchanged && (
+                          <s-stack direction="inline" gap="small-300" alignItems="center">
+                            <s-badge tone="warning">Exchanged</s-badge>
+                            {item.exchangedForProductTitle ? (
+                              <s-text type="strong">
+                                {item.exchangedForProductTitle}
+                              </s-text>
+                            ) : null}
+                          </s-stack>
                         )}
                       </s-stack>
                       <s-badge tone={getOrderStatusTone(item.orderStatus)}>

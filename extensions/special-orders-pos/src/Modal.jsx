@@ -107,6 +107,52 @@ function graphql(query, variables = {}) {
   }).then((r) => r.json());
 }
 
+function normalizeAdjustmentType(raw) {
+  const s = String(raw || "").toLowerCase().trim();
+  if (!s) return null;
+  if (s === "exchanged" || s === "exchange") return "exchanged";
+  if (s === "returned" || s === "return") return "returned";
+  return null;
+}
+
+function getOrderMetafieldString(metafields, key) {
+  const edge = metafields?.edges?.find((e) => e?.node?.key === key);
+  return edge?.node?.value?.trim() || "";
+}
+
+/** Mirrors app/lib/order-adjustments readLineItemAdjustmentFields for POS UI. */
+function readLineItemAdjustmentFieldsPos(rawAttrs, mfAdjType, mfExchangedFor) {
+  const raw = rawAttrs || [];
+  const find = (keys) => {
+    for (const k of keys) {
+      const f = raw.find((a) => a.key?.toLowerCase() === k.toLowerCase());
+      if (f?.value != null && String(f.value).trim() !== "")
+        return String(f.value).trim();
+    }
+    return "";
+  };
+  const typeFromAttr = find([
+    "itemAdjustmentType",
+    "Item Adjustment Type",
+    "item_adjustment_type",
+  ]);
+  const merged =
+    normalizeAdjustmentType(typeFromAttr) ||
+    normalizeAdjustmentType(mfAdjType || "");
+  const exchangedTitleFromAttr = find([
+    "exchangedForProductTitle",
+    "Exchanged For Product",
+    "Exchanged For Product Title",
+    "exchanged_for_product_title",
+  ]);
+  const exchangedForProductTitle =
+    exchangedTitleFromAttr || String(mfExchangedFor || "").trim();
+  return {
+    itemAdjustmentType: merged,
+    exchangedForProductTitle,
+  };
+}
+
 function extractContactStatus(metafields) {
   if (!metafields?.edges) return "Not Contacted";
   const mf = metafields.edges.find((e) => e?.node?.key === "contact_status");
@@ -818,6 +864,16 @@ function Extension() {
       const li = edge.node;
       const overrides = attrsByIndex[idx];
       const attrs = getAttributesForDisplay(li.customAttributes, overrides);
+      const rawAttrs = overrides || li.customAttributes || [];
+      const mfAdj = getOrderMetafieldString(
+        metafields,
+        `product_${idx + 1}_adjustment_type`
+      );
+      const mfExchangedFor = getOrderMetafieldString(
+        metafields,
+        `product_${idx + 1}_exchanged_for_title`
+      );
+      const adj = readLineItemAdjustmentFieldsPos(rawAttrs, mfAdj, mfExchangedFor);
       const orderStatus = extractItemStatus(
         metafields,
         idx,
@@ -841,8 +897,10 @@ function Extension() {
         priceLabel,
         customAttributes: attrs,
         orderStatus: orderStatus || "Not Ordered",
-        rawAttributes: overrides || li.customAttributes || [],
+        rawAttributes: rawAttrs,
         lineItemRefunded,
+        lineItemExchanged: adj.itemAdjustmentType === "exchanged",
+        exchangedForProductTitle: adj.exchangedForProductTitle || null,
       };
     });
 
@@ -1167,6 +1225,14 @@ function Extension() {
                           <s-heading>{item.title}</s-heading>
                           {item.lineItemRefunded && (
                             <s-badge tone="critical">Refunded</s-badge>
+                          )}
+                          {item.lineItemExchanged && (
+                            <s-stack direction="inline" gap="small-300" alignItems="center">
+                              <s-badge tone="warning">Exchanged</s-badge>
+                              {item.exchangedForProductTitle ? (
+                                <s-text type="strong">{item.exchangedForProductTitle}</s-text>
+                              ) : null}
+                            </s-stack>
                           )}
                         </s-stack>
                         <s-stack direction="inline" gap="small">

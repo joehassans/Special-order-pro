@@ -1,6 +1,7 @@
 /**
  * Derives Order Adjustments card data from a normalized order (loader output).
  * Item adjustment: custom attr itemAdjustmentType / Item Adjustment Type, or metafield product_N_adjustment_type (exchanged | returned).
+ * Exchanged-for product title: exchangedForProductTitle (attrs) or metafield product_N_exchanged_for_title.
  * Money: per-item adjustmentRefundAmount, additionalPaymentAmount; order totalRefundedAmount (Shopify); order metafield order_adjustments_additional_payment.
  */
 
@@ -17,8 +18,13 @@ export function normalizeAdjustmentType(raw) {
 /**
  * @param {Array<{key: string, value: string}>} rawAttrs
  * @param {string} [metafieldAdjustmentType] - from order metafield product_N_adjustment_type
+ * @param {string} [metafieldExchangedForTitle] - from order metafield product_N_exchanged_for_title
  */
-export function readLineItemAdjustmentFields(rawAttrs, metafieldAdjustmentType) {
+export function readLineItemAdjustmentFields(
+  rawAttrs,
+  metafieldAdjustmentType,
+  metafieldExchangedForTitle
+) {
   const raw = rawAttrs || [];
   const find = (keys) => {
     for (const k of keys) {
@@ -37,6 +43,16 @@ export function readLineItemAdjustmentFields(rawAttrs, metafieldAdjustmentType) 
     normalizeAdjustmentType(typeFromAttr) ||
     normalizeAdjustmentType(metafieldAdjustmentType || "");
 
+  const exchangedTitleFromAttr = find([
+    "exchangedForProductTitle",
+    "Exchanged For Product",
+    "Exchanged For Product Title",
+    "exchanged_for_product_title",
+  ]);
+  const exchangedForProductTitle =
+    exchangedTitleFromAttr ||
+    String(metafieldExchangedForTitle || "").trim();
+
   return {
     itemAdjustmentType: merged,
     adjustmentRefundAmount: find([
@@ -49,6 +65,7 @@ export function readLineItemAdjustmentFields(rawAttrs, metafieldAdjustmentType) 
       "Additional Payment Amount",
       "additional_payment_amount",
     ]),
+    exchangedForProductTitle,
   };
 }
 
