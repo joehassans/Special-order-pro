@@ -201,9 +201,7 @@ export function computeLineItemFulfillmentUi(
 }
 
 export async function fulfillOrderLineItem(graphql, orderId, orderLineItemId) {
-  const json = await graphql(ORDER_FOR_FULFILLMENT_QUERY, {
-    variables: { id: orderId },
-  });
+  const json = await graphql(ORDER_FOR_FULFILLMENT_QUERY, { id: orderId });
   const gqlErr = graphqlUserMessage(json);
   if (gqlErr) {
     throw new Error(gqlErr);
@@ -256,11 +254,9 @@ export async function fulfillOrderLineItem(graphql, orderId, orderLineItemId) {
 
   for (const foPayload of payloads) {
     const createJson = await graphql(FULFILLMENT_CREATE, {
-      variables: {
-        fulfillment: {
-          lineItemsByFulfillmentOrder: [foPayload],
-          notifyCustomer: false,
-        },
+      fulfillment: {
+        lineItemsByFulfillmentOrder: [foPayload],
+        notifyCustomer: false,
       },
     });
     const fc = createJson.data?.fulfillmentCreate;
@@ -285,9 +281,7 @@ export async function fulfillOrderLineItem(graphql, orderId, orderLineItemId) {
 }
 
 export async function unfulfillOrderLineItem(graphql, orderId, orderLineItemId) {
-  const json = await graphql(ORDER_FOR_FULFILLMENT_QUERY, {
-    variables: { id: orderId },
-  });
+  const json = await graphql(ORDER_FOR_FULFILLMENT_QUERY, { id: orderId });
   const gqlErr = graphqlUserMessage(json);
   if (gqlErr) {
     throw new Error(gqlErr);
@@ -319,7 +313,7 @@ export async function unfulfillOrderLineItem(graphql, orderId, orderLineItemId) 
   }
 
   for (const fid of ui.cancelFulfillmentIds) {
-    const cancelJson = await graphql(FULFILLMENT_CANCEL, { variables: { id: fid } });
+    const cancelJson = await graphql(FULFILLMENT_CANCEL, { id: fid });
     const userErrors = cancelJson.data?.fulfillmentCancel?.userErrors ?? [];
     if (userErrors.length > 0) {
       throw new Error(

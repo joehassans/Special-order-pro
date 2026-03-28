@@ -380,40 +380,6 @@ const LIST_QUERY = `
           metafields(first: 250, namespace: "custom") {
             edges { node { key value } }
           }
-          fulfillmentOrders(first: 50) {
-            edges {
-              node {
-                id
-                status
-                lineItems(first: 50) {
-                  edges {
-                    node {
-                      id
-                      remainingQuantity
-                      totalQuantity
-                      lineItem {
-                        id
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-          fulfillments(first: 50) {
-            id
-            status
-            fulfillmentLineItems(first: 50) {
-              edges {
-                node {
-                  quantity
-                  lineItem {
-                    id
-                  }
-                }
-              }
-            }
-          }
           lineItems(first: 50) {
             edges {
               node {
@@ -602,6 +568,9 @@ function Extension() {
       const data = await graphql(LIST_QUERY, {
         query: `tag:${SPECIAL_ORDER_TAG}`,
       });
+      if (data?.errors?.length) {
+        console.error("GetSpecialOrders GraphQL errors:", data.errors);
+      }
       const orderNodes = data?.data?.orders?.edges?.map((e) => e.node) ?? [];
       let draftNodes =
         data?.data?.draftOrders?.edges?.map((e) => e.node) ?? [];
@@ -618,6 +587,30 @@ function Extension() {
   useEffect(() => {
     fetchOrders();
   }, [fetchOrders]);
+
+  /** Fulfillment fields are omitted from LIST_QUERY (cost/size on POS); load when opening an order. */
+  useEffect(() => {
+    const id = selectedOrder?.id;
+    if (!id || String(id).includes("DraftOrder")) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const json = await graphql(ORDER_REFRESH_QUERY, { id });
+        if (cancelled) return;
+        const refreshed = json?.data?.order;
+        if (refreshed) {
+          setRawOrders((prev) =>
+            prev.map((o) => (o.id === id ? { ...o, ...refreshed } : o))
+          );
+        }
+      } catch (e) {
+        console.error("Order refresh for detail failed:", e);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedOrder?.id]);
 
   const handleUpdateContactStatus = useCallback(
     async (orderId, value) => {
@@ -871,9 +864,7 @@ function Extension() {
     setFulfillmentError(null);
     try {
       await fulfillOrderLineItem(graphql, orderId, lineItemId);
-      const json = await graphql(ORDER_REFRESH_QUERY, {
-        variables: { id: orderId },
-      });
+      const json = await graphql(ORDER_REFRESH_QUERY, { id: orderId });
       const refreshed = json.data?.order;
       if (refreshed) {
         setRawOrders((prev) =>
@@ -892,9 +883,7 @@ function Extension() {
     setFulfillmentError(null);
     try {
       await unfulfillOrderLineItem(graphql, orderId, lineItemId);
-      const json = await graphql(ORDER_REFRESH_QUERY, {
-        variables: { id: orderId },
-      });
+      const json = await graphql(ORDER_REFRESH_QUERY, { id: orderId });
       const refreshed = json.data?.order;
       if (refreshed) {
         setRawOrders((prev) =>
@@ -1627,8 +1616,8 @@ function Extension() {
               <s-text>{i18n.translate("loading")}</s-text>
             ) : filteredOrders.length === 0 ? (
               <s-text color="subdued">{i18n.translate("empty")}</s-text>
-            ) : !isTablet ? (
-              /* iPhone: stacked card layout */
+            ) : isTablet !== true ? (
+              /* iPhone: stacked card layout (includes isTablet null until device resolves) */
               <s-stack gap="base">
                 {filteredOrders.map((order, index) => {
                   const completed = order.overallOrderStatus === "Picked Up - Sale Complete";
