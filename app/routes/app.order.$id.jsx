@@ -168,14 +168,13 @@ function getProductAdjustmentTypeMetafield(metafields, position) {
   return edge?.node?.value?.trim() || "";
 }
 
-/** Receipt codes from metafield `custom.order_receipts` (JSON array of strings, or comma-separated fallback). */
-function parseOrderReceiptsFromMetafields(metafields) {
-  const edge = metafields?.edges?.find((e) => e?.node?.key === "order_receipts");
-  if (!edge?.node?.value) return [];
-  const raw = String(edge.node.value).trim();
-  if (!raw) return [];
+/** Parse stored metafield value: JSON array, `{ receipts: [...] }`, list type, or comma-separated. */
+function parseReceiptsValue(raw) {
+  if (raw == null) return [];
+  const rawStr = String(raw).trim();
+  if (!rawStr) return [];
   try {
-    const parsed = JSON.parse(raw);
+    const parsed = JSON.parse(rawStr);
     if (Array.isArray(parsed)) {
       return parsed.map((x) => String(x ?? "").trim()).filter(Boolean);
     }
@@ -183,15 +182,88 @@ function parseOrderReceiptsFromMetafields(metafields) {
       return parsed.receipts.map((x) => String(x ?? "").trim()).filter(Boolean);
     }
   } catch {
-    if (raw.includes(",")) {
-      return raw
+    if (rawStr.includes(",")) {
+      return rawStr
         .split(",")
         .map((s) => s.trim())
         .filter(Boolean);
     }
-    return [raw];
+    return [rawStr];
   }
   return [];
+}
+
+/** Receipt codes from `metafields` connection (key match is case-insensitive). */
+function parseOrderReceiptsFromMetafields(metafields) {
+  const edge = metafields?.edges?.find(
+    (e) => String(e?.node?.key || "").toLowerCase() === "order_receipts"
+  );
+  if (!edge?.node?.value) return [];
+  return parseReceiptsValue(edge.node.value);
+}
+
+/** Prefer direct `metafield(namespace,key)` value so we never miss it when many metafields exist. */
+function resolveOrderReceipts(directMetafieldValue, metafields) {
+  const fromDirect = parseReceiptsValue(directMetafieldValue);
+  if (fromDirect.length > 0) return fromDirect;
+  return parseOrderReceiptsFromMetafields(metafields);
+}
+
+/** Best-effort receipt numbers from POS / gateway `receiptJson` on successful charges. */
+function extractOneReceiptFromReceiptJson(receiptJson) {
+  if (receiptJson == null) return null;
+  let obj = receiptJson;
+  if (typeof obj === "string") {
+    try {
+      obj = JSON.parse(obj);
+    } catch {
+      return null;
+    }
+  }
+  if (typeof obj !== "object" || obj === null) return null;
+  const tryKeys = (o) => {
+    const keys = [
+      "receipt_number",
+      "receiptNumber",
+      "receipt_id",
+      "receiptId",
+      "transaction_receipt",
+      "number",
+    ];
+    for (const k of keys) {
+      const v = o[k];
+      if (v != null && String(v).trim()) return String(v).trim();
+    }
+    return null;
+  };
+  const direct = tryKeys(obj);
+  if (direct) return direct;
+  if (obj.receipt && typeof obj.receipt === "object") {
+    const nested = tryKeys(obj.receipt);
+    if (nested) return nested;
+  }
+  if (obj.payment_details && typeof obj.payment_details === "object") {
+    const nested = tryKeys(obj.payment_details);
+    if (nested) return nested;
+  }
+  return null;
+}
+
+function extractReceiptCodesFromTransactions(transactions) {
+  const out = [];
+  const seen = new Set();
+  const edges = transactions?.edges ?? [];
+  const paymentKinds = new Set(["SALE", "CAPTURE"]);
+  for (const { node: tx } of edges) {
+    if (tx?.status !== "SUCCESS") continue;
+    if (!paymentKinds.has(tx?.kind)) continue;
+    const code = extractOneReceiptFromReceiptJson(tx?.receiptJson);
+    if (code && !seen.has(code)) {
+      seen.add(code);
+      out.push(code);
+    }
+  }
+  return out;
 }
 
 function getAttributesForDisplay(attrs) {
@@ -368,7 +440,8 @@ export const loader = async ({ request, params }) => {
 
     const contactStatus = extractContactStatusFromMetafields(metafields);
     const overallOrderStatus = extractOverallOrderStatusFromMetafields(metafields);
-    const receipts = parseOrderReceiptsFromMetafields(metafields);
+    // Receipts (POS / metafield) apply only after an order is placed, not on draft orders.
+    const receipts = [];
 
     const draftLineItems =
       draftOrder.lineItems?.edges?.map((edge, index) => {
@@ -494,6 +567,18 @@ export const loader = async ({ request, params }) => {
               }
             }
           }
+          orderReceiptsMetafield: metafield(namespace: "custom", key: "order_receipts") {
+            value
+          }
+          transactions(first: 25) {
+            edges {
+              node {
+                kind
+                status
+                receiptJson
+              }
+            }
+          }
           lineItems(first: 50) {
             edges {
               node {
@@ -551,7 +636,13 @@ export const loader = async ({ request, params }) => {
 
     const contactStatus = extractContactStatusFromMetafields(metafields);
     const overallOrderStatus = extractOverallOrderStatusFromMetafields(metafields);
-    const receipts = parseOrderReceiptsFromMetafields(metafields);
+    let receipts = resolveOrderReceipts(
+      order.orderReceiptsMetafield?.value,
+      metafields
+    );
+    if (receipts.length === 0) {
+      receipts = extractReceiptCodesFromTransactions(order.transactions);
+    }
 
     let paid = null;
     if (
@@ -1081,7 +1172,8 @@ export default function OrderDetails() {
   const tagsWithoutSpecialOrder = (order.tags || []).filter(
     (tag) => String(tag || "").toLowerCase().trim() !== "special-order"
   );
-  const receiptList = order.receipts || [];
+  const receiptList =
+    order.type === "order" ? order.receipts || [] : [];
 
   return (
     <s-page
@@ -1131,7 +1223,7 @@ export default function OrderDetails() {
             {receiptList.length > 0 && (
               <s-stack direction="inline" gap="small">
                 {receiptList.map((code, index) => (
-                  <s-badge key={`receipt-${index}-${code}`} tone="info">
+                  <s-badge key={`receipt-${index}-${code}`} tone="neutral">
                     Receipt {index + 1}: {code}
                   </s-badge>
                 ))}
