@@ -1221,25 +1221,10 @@ export default function OrderDetails() {
   const { order } = useLoaderData();
   const submit = useSubmit();
   const [note, setNote] = useState(order.note || "");
-  const [openItems, setOpenItems] = useState(() => {
-    const initial = {};
-    (order.lineItems || []).forEach((item) => {
-      initial[item.id] = true;
-    });
-    return initial;
-  });
 
   useEffect(() => {
     setNote(order.note || "");
   }, [order.note]);
-
-  useEffect(() => {
-    const initial = {};
-    (order.lineItems || []).forEach((item) => {
-      initial[item.id] = true;
-    });
-    setOpenItems(initial);
-  }, [order.id]);
 
   const createdLabel = new Date(order.createdAt).toLocaleString();
   const updatedLabel = new Date(order.updatedAt).toLocaleString();
@@ -1565,63 +1550,35 @@ export default function OrderDetails() {
                   data-line-index={idx}
                 >
                   <s-stack gap="small-300">
-                    <s-stack gap="small-300" style={{ cursor: "pointer" }}
-                      onClick={() =>
-                        setOpenItems((prev) => ({
-                          ...prev,
-                          [item.id]: !prev[item.id],
-                        }))
-                      }
-                    >
-                      <s-stack direction="inline" gap="small" alignItems="center" justifyContent="space-between">
-                        <s-stack direction="inline" gap="small" alignItems="center">
-                          <s-text
-                            color="subdued"
-                            style={{
-                              fontSize: "1.25rem",
-                              transition: "transform 0.2s ease",
-                              transform: openItems[item.id]
-                                ? "rotate(180deg)"
-                                : "rotate(0deg)",
-                            }}
-                            aria-hidden
-                          >
-                            ▼
-                          </s-text>
-                          <s-badge
-                            tone="info"
-                            color="strong"
-                            style={{
-                              fontWeight: 700,
-                              fontSize: "1.25rem",
-                              minWidth: "2.2rem",
-                              textAlign: "center",
-                            }}
-                          >
-                            {idx + 1}
-                          </s-badge>
-                          <s-heading size="large" style={{ fontSize: "1.5rem" }}>
-                            {String(item.title || "").toUpperCase()}
-                          </s-heading>
-                        </s-stack>
-                        <s-stack direction="inline" gap="small" alignItems="center">
-                          <s-badge tone={getOrderStatusTone(item.orderStatus)}>
-                            {item.orderStatus || "Not set"}
-                          </s-badge>
-                          <s-text color="subdued">
-                            {openItems[item.id] ? "Hide details" : "Show details"}
-                          </s-text>
-                        </s-stack>
+                    <s-stack direction="inline" gap="small" alignItems="center" justifyContent="space-between">
+                      <s-stack direction="inline" gap="small" alignItems="center">
+                        <s-badge
+                          tone="info"
+                          color="strong"
+                          style={{
+                            fontWeight: 700,
+                            fontSize: "1.25rem",
+                            minWidth: "2.2rem",
+                            textAlign: "center",
+                          }}
+                        >
+                          {idx + 1}
+                        </s-badge>
+                        <s-heading size="large" style={{ fontSize: "1.5rem" }}>
+                          {String(item.title || "").toUpperCase()}
+                        </s-heading>
                       </s-stack>
-                      <s-stack direction="inline" gap="small">
-                        <s-text>Qty: {item.quantity}</s-text>
-                        {item.pricePerItem && (
-                          <s-text>{item.pricePerItem}</s-text>
-                        )}
-                      </s-stack>
+                      <s-badge tone={getOrderStatusTone(item.orderStatus)}>
+                        {item.orderStatus || "Not set"}
+                      </s-badge>
                     </s-stack>
-                    {openItems[item.id] && (
-                      <s-stack gap="small-300">
+                    <s-stack direction="inline" gap="small">
+                      <s-text>Qty: {item.quantity}</s-text>
+                      {item.pricePerItem && (
+                        <s-text>{item.pricePerItem}</s-text>
+                      )}
+                    </s-stack>
+                    <s-stack gap="small-300">
                         {item.variantTitle && (
                           <s-text color="subdued">
                             {item.variantTitle}
@@ -1779,8 +1736,7 @@ export default function OrderDetails() {
                                 </s-button>
                               </s-stack>
                         </s-stack>
-                      </s-stack>
-                    )}
+                    </s-stack>
                   </s-stack>
                 </s-box>
               ))}
