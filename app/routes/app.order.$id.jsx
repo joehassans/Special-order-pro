@@ -507,6 +507,7 @@ export const loader = async ({ request, params }) => {
             edges {
               node {
                 id
+                status
                 lineItems(first: 50) {
                   edges {
                     node {

@@ -12,6 +12,7 @@ const ORDER_FOR_FULFILLMENT_QUERY = `#graphql
         edges {
           node {
             id
+            status
             lineItems(first: 50) {
               edges {
                 node {
@@ -74,6 +75,9 @@ const FULFILLMENT_CANCEL = `#graphql
   }
 `;
 
+/** Fulfillment orders that cannot accept fulfillmentCreate until resolved in admin. */
+const BLOCKED_FO_STATUSES = new Set(["CLOSED", "CANCELLED", "ON_HOLD"]);
+
 /**
  * @param {string} orderLineItemId
  * @param {Array<{ node: Record<string, unknown> }>} fulfillmentOrderEdges
@@ -84,22 +88,29 @@ export function computeLineItemFulfillmentUi(
   fulfillmentOrderEdges,
   fulfillmentEdges
 ) {
-  let totalRemaining = 0;
-  let totalFoQty = 0;
+  let totalRemainingAll = 0;
+  let totalFoQtyAll = 0;
+  let totalRemainingOnOpenFo = 0;
 
   for (const e of fulfillmentOrderEdges || []) {
     const node = e?.node;
     if (!node) continue;
+    const foStatus = String(node.status || "").toUpperCase();
+    const blocked = BLOCKED_FO_STATUSES.has(foStatus);
     for (const li of node.lineItems?.edges || []) {
       const foli = li.node;
       if (foli.lineItem?.id !== orderLineItemId) continue;
-      totalRemaining += Number(foli.remainingQuantity ?? 0);
-      totalFoQty += Number(foli.totalQuantity ?? 0);
+      const rem = Number(foli.remainingQuantity ?? 0);
+      totalRemainingAll += rem;
+      totalFoQtyAll += Number(foli.totalQuantity ?? 0);
+      if (!blocked) {
+        totalRemainingOnOpenFo += rem;
+      }
     }
   }
 
-  const canFulfill = totalFoQty > 0 && totalRemaining > 0;
-  const isFullyFulfilled = totalFoQty > 0 && totalRemaining === 0;
+  const canFulfill = totalFoQtyAll > 0 && totalRemainingOnOpenFo > 0;
+  const isFullyFulfilled = totalFoQtyAll > 0 && totalRemainingAll === 0;
 
   const cancelFulfillmentIds = [];
   for (const e of fulfillmentEdges || []) {
@@ -152,6 +163,10 @@ export async function fulfillOrderLineItem(graphql, orderId, orderLineItemId) {
   const payloads = [];
   for (const e of order.fulfillmentOrders?.edges || []) {
     const fo = e.node;
+    const foStatus = String(fo.status || "").toUpperCase();
+    if (BLOCKED_FO_STATUSES.has(foStatus)) {
+      continue;
+    }
     for (const li of fo.lineItems?.edges || []) {
       const foli = li.node;
       if (foli.lineItem?.id !== orderLineItemId) continue;
@@ -165,6 +180,24 @@ export async function fulfillOrderLineItem(graphql, orderId, orderLineItemId) {
   }
 
   if (payloads.length === 0) {
+    const hadBlockedFo = (order.fulfillmentOrders?.edges || []).some((e) => {
+      const fo = e?.node;
+      if (!fo) return false;
+      const st = String(fo.status || "").toUpperCase();
+      if (!BLOCKED_FO_STATUSES.has(st)) return false;
+      return (fo.lineItems?.edges || []).some((li) => {
+        const foli = li.node;
+        return (
+          foli?.lineItem?.id === orderLineItemId &&
+          Number(foli.remainingQuantity ?? 0) > 0
+        );
+      });
+    });
+    if (hadBlockedFo) {
+      throw new Error(
+        "This line item is on hold or not open for fulfillment. Check the order in Shopify admin (fulfillment order status)."
+      );
+    }
     throw new Error("Nothing to fulfill for this line item.");
   }
 
@@ -178,7 +211,8 @@ export async function fulfillOrderLineItem(graphql, orderId, orderLineItemId) {
       },
     });
     const createJson = await createRes.json();
-    const userErrors = createJson.data?.fulfillmentCreate?.userErrors ?? [];
+    const fc = createJson.data?.fulfillmentCreate;
+    const userErrors = fc?.userErrors ?? [];
     if (userErrors.length > 0) {
       throw new Error(
         userErrors.map((e) => e.message).join(", ") || "Fulfillment failed."
@@ -187,6 +221,11 @@ export async function fulfillOrderLineItem(graphql, orderId, orderLineItemId) {
     const createGqlErr = graphqlUserMessage(createJson);
     if (createGqlErr) {
       throw new Error(createGqlErr);
+    }
+    if (!fc?.fulfillment?.id) {
+      throw new Error(
+        "Shopify did not create a fulfillment. The app may need permission for this fulfillment type: approve updated scopes (including assigned / third-party fulfillment orders), or fulfill from Shopify admin."
+      );
     }
   }
 
