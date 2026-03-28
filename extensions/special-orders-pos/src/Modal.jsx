@@ -333,6 +333,7 @@ const LIST_QUERY = `
               node {
                 id title variantTitle
                 quantity
+                currentQuantity
                 originalUnitPriceSet { shopMoney { amount currencyCode } }
                 customAttributes { key value }
               }
@@ -812,6 +813,7 @@ function Extension() {
     const contactStatus = extractContactStatus(metafields);
     const overallOrderStatus = extractOverallOrderStatus(metafields);
     const paymentStatus = calculatePaymentStatus(order);
+    const isDraftOrder = order.id?.includes("DraftOrder");
     const lineItems = (order.lineItems?.edges || []).map((edge, idx) => {
       const li = edge.node;
       const overrides = attrsByIndex[idx];
@@ -827,6 +829,10 @@ function Extension() {
           ? `$${parseFloat(priceSet.amount).toFixed(2)}`
           : `${priceSet.currencyCode} ${parseFloat(priceSet.amount).toFixed(2)}`
         : null;
+      const qty = Number(li.quantity ?? 0);
+      const currentQty = Number(li.currentQuantity ?? li.quantity ?? 0);
+      const lineItemRefunded =
+        !isDraftOrder && qty > currentQty;
       return {
         id: li.id,
         title: li.title,
@@ -836,6 +842,7 @@ function Extension() {
         customAttributes: attrs,
         orderStatus: orderStatus || "Not Ordered",
         rawAttributes: overrides || li.customAttributes || [],
+        lineItemRefunded,
       };
     });
 
@@ -1156,7 +1163,12 @@ function Extension() {
                   >
                     <s-stack gap="small">
                       <s-stack direction="inline" gap="small" inlineSize="100%" justifyContent="space-between" alignItems="center">
-                        <s-heading>{item.title}</s-heading>
+                        <s-stack direction="inline" gap="small" alignItems="center">
+                          <s-heading>{item.title}</s-heading>
+                          {item.lineItemRefunded && (
+                            <s-badge tone="critical">Refunded</s-badge>
+                          )}
+                        </s-stack>
                         <s-stack direction="inline" gap="small">
                           <s-heading>{i18n.translate("quantity")}: {item.quantity}</s-heading>
                           {item.priceLabel && (
