@@ -168,7 +168,20 @@ function getProductAdjustmentTypeMetafield(metafields, position) {
   return edge?.node?.value?.trim() || "";
 }
 
-/** Parse stored metafield value: JSON array, `{ receipts: [...] }`, list type, or comma-separated. */
+/** Metafield keys we treat as receipt number(s), highest priority first. */
+const RECEIPT_METAFIELD_KEYS = [
+  "order_receipts",
+  "order_receipt",
+  "receipt_number",
+  "receipt_numbers",
+  "pos_receipt",
+  "receipt",
+];
+
+/**
+ * Parse stored metafield value: JSON array, single JSON string/number, `{ receipts: [...] }`,
+ * `{ receipt: "..." }`, list type, or plain / comma-separated text.
+ */
 function parseReceiptsValue(raw) {
   if (raw == null) return [];
   const rawStr = String(raw).trim();
@@ -178,8 +191,22 @@ function parseReceiptsValue(raw) {
     if (Array.isArray(parsed)) {
       return parsed.map((x) => String(x ?? "").trim()).filter(Boolean);
     }
-    if (parsed && typeof parsed === "object" && Array.isArray(parsed.receipts)) {
-      return parsed.receipts.map((x) => String(x ?? "").trim()).filter(Boolean);
+    if (typeof parsed === "string" && parsed.trim()) {
+      return [parsed.trim()];
+    }
+    if (typeof parsed === "number" && Number.isFinite(parsed)) {
+      return [String(parsed)];
+    }
+    if (parsed && typeof parsed === "object") {
+      if (Array.isArray(parsed.receipts)) {
+        return parsed.receipts.map((x) => String(x ?? "").trim()).filter(Boolean);
+      }
+      if (parsed.receipt != null && String(parsed.receipt).trim()) {
+        return [String(parsed.receipt).trim()];
+      }
+      if (parsed.code != null && String(parsed.code).trim()) {
+        return [String(parsed.code).trim()];
+      }
     }
   } catch {
     if (rawStr.includes(",")) {
@@ -193,20 +220,83 @@ function parseReceiptsValue(raw) {
   return [];
 }
 
-/** Receipt codes from `metafields` connection (key match is case-insensitive). */
+/** Receipt codes from `metafields` connection (known keys + case-insensitive fallback). */
 function parseOrderReceiptsFromMetafields(metafields) {
-  const edge = metafields?.edges?.find(
-    (e) => String(e?.node?.key || "").toLowerCase() === "order_receipts"
-  );
-  if (!edge?.node?.value) return [];
-  return parseReceiptsValue(edge.node.value);
+  const edges = metafields?.edges ?? [];
+  for (const want of RECEIPT_METAFIELD_KEYS) {
+    const edge = edges.find(
+      (e) => String(e?.node?.key || "").toLowerCase() === want
+    );
+    if (edge?.node?.value) {
+      const list = parseReceiptsValue(edge.node.value);
+      if (list.length > 0) return list;
+    }
+  }
+  for (const e of edges) {
+    const k = String(e?.node?.key || "").toLowerCase();
+    if (!k.includes("receipt")) continue;
+    if (k.includes("order_status") || k.includes("adjustment")) continue;
+    const list = parseReceiptsValue(e?.node?.value);
+    if (list.length > 0) return list;
+  }
+  return [];
 }
 
-/** Prefer direct `metafield(namespace,key)` value so we never miss it when many metafields exist. */
-function resolveOrderReceipts(directMetafieldValue, metafields) {
-  const fromDirect = parseReceiptsValue(directMetafieldValue);
-  if (fromDirect.length > 0) return fromDirect;
+/** Try direct `metafield(namespace,key)` hits first, then the connection. */
+function resolveOrderReceipts(directMetafieldValues, metafields) {
+  const candidates = Array.isArray(directMetafieldValues)
+    ? directMetafieldValues
+    : [directMetafieldValues];
+  for (const raw of candidates) {
+    const fromDirect = parseReceiptsValue(raw);
+    if (fromDirect.length > 0) return fromDirect;
+  }
   return parseOrderReceiptsFromMetafields(metafields);
+}
+
+/** Tags like `receipt:12345` or `Receipt #ABC` as a last resort. */
+function extractReceiptsFromOrderTags(tags) {
+  if (!Array.isArray(tags)) return [];
+  const out = [];
+  const seen = new Set();
+  for (const tag of tags) {
+    const t = String(tag || "").trim();
+    if (!t) continue;
+    const m =
+      /^receipt\s*[#:]?\s*(.+)$/i.exec(t) ||
+      /^pos-?receipt\s*[#:]?\s*(.+)$/i.exec(t);
+    if (m) {
+      const code = m[1].trim();
+      if (code && !seen.has(code.toLowerCase())) {
+        seen.add(code.toLowerCase());
+        out.push(code);
+      }
+    }
+  }
+  return out;
+}
+
+/** Line item custom attributes whose key contains "receipt" (e.g. POS-persisted receipt #). */
+function extractReceiptsFromLineItemsGraphQL(lineEdges, attributesOverridesByIndex) {
+  const out = [];
+  const seen = new Set();
+  const edges = lineEdges ?? [];
+  edges.forEach((edge, index) => {
+    const li = edge?.node;
+    if (!li) return;
+    const raw = attributesOverridesByIndex?.[index] || li.customAttributes || [];
+    for (const a of raw) {
+      const k = String(a?.key || "").toLowerCase().trim();
+      if (!k.includes("receipt")) continue;
+      if (k.includes("order_status") || k.includes("adjustment")) continue;
+      const v = String(a?.value || "").trim();
+      if (v && !seen.has(v.toLowerCase())) {
+        seen.add(v.toLowerCase());
+        out.push(v);
+      }
+    }
+  });
+  return out;
 }
 
 function getAttributesForDisplay(attrs) {
@@ -513,6 +603,9 @@ export const loader = async ({ request, params }) => {
           orderReceiptsMetafield: metafield(namespace: "custom", key: "order_receipts") {
             value
           }
+          receiptSingleMetafield: metafield(namespace: "custom", key: "receipt") {
+            value
+          }
           lineItems(first: 50) {
             edges {
               node {
@@ -576,10 +669,20 @@ export const loader = async ({ request, params }) => {
 
     const contactStatus = extractContactStatusFromMetafields(metafields);
     const overallOrderStatus = extractOverallOrderStatusFromMetafields(metafields);
-    const receipts = resolveOrderReceipts(
-      order.orderReceiptsMetafield?.value,
+    const receiptsFromMetafields = resolveOrderReceipts(
+      [order.orderReceiptsMetafield?.value, order.receiptSingleMetafield?.value],
       metafields
     );
+    let receipts =
+      receiptsFromMetafields.length > 0
+        ? receiptsFromMetafields
+        : extractReceiptsFromOrderTags(order.tags);
+    if (receipts.length === 0) {
+      receipts = extractReceiptsFromLineItemsGraphQL(
+        order.lineItems?.edges,
+        attributesOverridesByIndex
+      );
+    }
 
     let paid = null;
     if (
@@ -1158,13 +1261,11 @@ export default function OrderDetails() {
               {order.type === "draft" ? "Draft order" : "Order"}
             </s-badge>
             {receiptList.length > 0 && (
-              <s-stack direction="inline" gap="small">
-                {receiptList.map((code, index) => (
-                  <s-badge key={`receipt-${index}-${code}`} tone="neutral">
-                    Receipt {index + 1}: {code}
-                  </s-badge>
-                ))}
-              </s-stack>
+              <s-badge key="order-receipts" tone="subdued">
+                {receiptList.length === 1
+                  ? `Receipt: ${receiptList[0]}`
+                  : `Receipts: ${receiptList.join(", ")}`}
+              </s-badge>
             )}
             {tagsWithoutSpecialOrder.length > 0 && (
               <s-stack direction="inline" gap="small">
