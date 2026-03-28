@@ -368,6 +368,7 @@ export const loader = async ({ request, params }) => {
           adjustmentRefundAmount: adj.adjustmentRefundAmount,
           additionalPaymentAmount: adj.additionalPaymentAmount,
           currencyCode: li.originalUnitPriceSet?.shopMoney?.currencyCode || null,
+          lineItemRefunded: false,
         };
       }) ?? [];
 
@@ -475,6 +476,7 @@ export const loader = async ({ request, params }) => {
                 id
                 title
                 quantity
+                currentQuantity
                 variantTitle
                 originalUnitPriceSet {
                   shopMoney {
@@ -565,6 +567,8 @@ export const loader = async ({ request, params }) => {
           index,
           attributesOverridesByIndex[index] || li.customAttributes
         );
+        const qty = Number(li.quantity ?? 0);
+        const currentQty = Number(li.currentQuantity ?? li.quantity ?? 0);
         return {
           id: li.id,
           title: li.title,
@@ -577,6 +581,8 @@ export const loader = async ({ request, params }) => {
           adjustmentRefundAmount: adj.adjustmentRefundAmount,
           additionalPaymentAmount: adj.additionalPaymentAmount,
           currencyCode: li.originalUnitPriceSet?.shopMoney?.currencyCode || null,
+          lineItemRefunded:
+            qty > currentQty,
         };
       }) ?? [];
 
@@ -1356,6 +1362,9 @@ export default function OrderDetails() {
                         <s-heading size="large" style={{ fontSize: "1.5rem" }}>
                           {String(item.title || "").toUpperCase()}
                         </s-heading>
+                        {item.lineItemRefunded && (
+                          <s-badge tone="critical">Refunded</s-badge>
+                        )}
                       </s-stack>
                       <s-badge tone={getOrderStatusTone(item.orderStatus)}>
                         {item.orderStatus || "Not set"}
