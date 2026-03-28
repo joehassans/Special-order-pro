@@ -1189,6 +1189,8 @@ export default function OrderDetails() {
     (tag) => String(tag || "").toLowerCase().trim() !== "special-order"
   );
 
+  const printOrderSummaryPath = `/print?id=${encodeURIComponent(order.id)}`;
+
   return (
     <s-page
       heading={order.name}
@@ -1233,6 +1235,16 @@ export default function OrderDetails() {
               style={{ fontWeight: 600 }}
             >
               ← All Orders
+            </s-button>
+            <s-button
+              variant="primary"
+              size="large"
+              style={{ fontWeight: 600 }}
+              onClick={() => {
+                window.open(printOrderSummaryPath, "_blank", "noopener,noreferrer");
+              }}
+            >
+              Print Order Summary
             </s-button>
           </s-stack>
           <s-stack direction="inline" gap="small" alignItems="center">
