@@ -1,5 +1,10 @@
 import { useEffect, useState } from "react";
-import { redirect, useLoaderData, useSubmit } from "react-router";
+import {
+  redirect,
+  useLoaderData,
+  useSearchParams,
+  useSubmit,
+} from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
 import {
@@ -502,9 +507,6 @@ export const loader = async ({ request, params }) => {
             edges {
               node {
                 id
-                assignedLocation {
-                  id
-                }
                 lineItems(first: 50) {
                   edges {
                     node {
@@ -621,9 +623,10 @@ export const loader = async ({ request, params }) => {
       "USD";
 
     const fulfillmentOrderEdges = order.fulfillmentOrders?.edges || [];
-    const fulfillmentEdges = (order.fulfillments || []).map((node) => ({
-      node,
-    }));
+    const rawFulfillments = order.fulfillments;
+    const fulfillmentEdges = Array.isArray(rawFulfillments)
+      ? rawFulfillments.map((node) => ({ node }))
+      : [];
 
     const placedLineItems =
       order.lineItems?.edges?.map((edge, index) => {
@@ -762,6 +765,20 @@ const UPDATE_ORDER_NOTE = `#graphql
   }
 `;
 
+function redirectWithFulfillmentError(request, message) {
+  const url = new URL(request.url);
+  const short =
+    message.length > 450 ? `${message.slice(0, 450)}…` : message;
+  url.searchParams.set("fulfillmentError", short);
+  return redirect(url.pathname + url.search);
+}
+
+function redirectClearFulfillmentError(request) {
+  const url = new URL(request.url);
+  url.searchParams.delete("fulfillmentError");
+  return redirect(url.pathname + url.search);
+}
+
 export const action = async ({ request }) => {
   const formData = await request.formData();
   const intent = formData.get("intent");
@@ -883,19 +900,31 @@ export const action = async ({ request }) => {
   if (intent === "fulfillLineItem") {
     const lineItemId = formData.get("lineItemId");
     if (!lineItemId || String(orderId).includes("DraftOrder")) {
-      return redirect(request.url);
+      return redirectClearFulfillmentError(request);
     }
-    await fulfillOrderLineItem(admin.graphql, orderId, String(lineItemId));
-    return redirect(request.url);
+    try {
+      await fulfillOrderLineItem(admin.graphql, orderId, String(lineItemId));
+    } catch (e) {
+      const msg =
+        e instanceof Error ? e.message : "Could not fulfill this line item.";
+      return redirectWithFulfillmentError(request, msg);
+    }
+    return redirectClearFulfillmentError(request);
   }
 
   if (intent === "unfulfillLineItem") {
     const lineItemId = formData.get("lineItemId");
     if (!lineItemId || String(orderId).includes("DraftOrder")) {
-      return redirect(request.url);
+      return redirectClearFulfillmentError(request);
     }
-    await unfulfillOrderLineItem(admin.graphql, orderId, String(lineItemId));
-    return redirect(request.url);
+    try {
+      await unfulfillOrderLineItem(admin.graphql, orderId, String(lineItemId));
+    } catch (e) {
+      const msg =
+        e instanceof Error ? e.message : "Could not unfulfill this line item.";
+      return redirectWithFulfillmentError(request, msg);
+    }
+    return redirectClearFulfillmentError(request);
   }
 
   if (intent === "updateAttributes") {
@@ -1138,6 +1167,8 @@ function OrderAdjustmentsCard({ orderAdjustments }) {
 export default function OrderDetails() {
   const { order } = useLoaderData();
   const submit = useSubmit();
+  const [searchParams] = useSearchParams();
+  const fulfillmentError = searchParams.get("fulfillmentError");
   const [note, setNote] = useState(order.note || "");
 
   useEffect(() => {
@@ -1162,6 +1193,11 @@ export default function OrderDetails() {
       heading={order.name}
       inlineSize="large"
     >
+      {fulfillmentError && order.type === "order" && (
+        <s-section>
+          <s-banner tone="critical" heading={fulfillmentError} />
+        </s-section>
+      )}
       <style>{`
         .order-status-dropdown-wrapper {
           border-radius: 8px;

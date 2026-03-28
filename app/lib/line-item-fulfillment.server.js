@@ -12,9 +12,6 @@ const ORDER_FOR_FULFILLMENT_QUERY = `#graphql
         edges {
           node {
             id
-            assignedLocation {
-              id
-            }
             lineItems(first: 50) {
               edges {
                 node {
@@ -91,7 +88,8 @@ export function computeLineItemFulfillmentUi(
   let totalFoQty = 0;
 
   for (const e of fulfillmentOrderEdges || []) {
-    const node = e.node;
+    const node = e?.node;
+    if (!node) continue;
     for (const li of node.lineItems?.edges || []) {
       const foli = li.node;
       if (foli.lineItem?.id !== orderLineItemId) continue;
@@ -105,8 +103,10 @@ export function computeLineItemFulfillmentUi(
 
   const cancelFulfillmentIds = [];
   for (const e of fulfillmentEdges || []) {
-    const f = e.node;
-    if (String(f.status || "").toUpperCase() === "CANCELLED") continue;
+    const f = e?.node;
+    if (!f?.id) continue;
+    const st = String(f.status || "").toUpperCase();
+    if (st.includes("CANCEL")) continue;
     const edges = f.fulfillmentLineItems?.edges || [];
     if (edges.length === 0) continue;
     const orderLineIds = new Set(
@@ -129,64 +129,50 @@ export function computeLineItemFulfillmentUi(
   };
 }
 
+function graphqlUserMessage(json) {
+  const parts = (json.errors || []).map((e) => e.message);
+  return parts.length ? parts.join("; ") : "";
+}
+
 export async function fulfillOrderLineItem(graphql, orderId, orderLineItemId) {
   const res = await graphql(ORDER_FOR_FULFILLMENT_QUERY, {
     variables: { id: orderId },
   });
   const json = await res.json();
+  const gqlErr = graphqlUserMessage(json);
+  if (gqlErr) {
+    throw new Error(gqlErr);
+  }
   const order = json.data?.order;
   if (!order) {
     throw new Error("Order not found.");
   }
 
-  /** @type {Map<string, Array<{ fulfillmentOrderId: string, id: string, quantity: number }>>} */
-  const byLocation = new Map();
-
+  /** One fulfillmentCreate per fulfillment order (each FO is a single location). */
+  const payloads = [];
   for (const e of order.fulfillmentOrders?.edges || []) {
     const fo = e.node;
-    const locId = fo.assignedLocation?.id || "_default";
     for (const li of fo.lineItems?.edges || []) {
       const foli = li.node;
       if (foli.lineItem?.id !== orderLineItemId) continue;
       const rem = Number(foli.remainingQuantity ?? 0);
       if (rem <= 0) continue;
-      if (!byLocation.has(locId)) byLocation.set(locId, []);
-      byLocation.get(locId).push({
+      payloads.push({
         fulfillmentOrderId: fo.id,
-        id: foli.id,
-        quantity: rem,
+        fulfillmentOrderLineItems: [{ id: foli.id, quantity: rem }],
       });
     }
   }
 
-  if (byLocation.size === 0) {
+  if (payloads.length === 0) {
     throw new Error("Nothing to fulfill for this line item.");
   }
 
-  for (const [, rows] of byLocation) {
-    /** @type {Map<string, Array<{ id: string, quantity: number }>>} */
-    const byFo = new Map();
-    for (const row of rows) {
-      if (!byFo.has(row.fulfillmentOrderId)) {
-        byFo.set(row.fulfillmentOrderId, []);
-      }
-      byFo.get(row.fulfillmentOrderId).push({
-        id: row.id,
-        quantity: row.quantity,
-      });
-    }
-
-    const lineItemsByFulfillmentOrder = [...byFo.entries()].map(
-      ([fulfillmentOrderId, fulfillmentOrderLineItems]) => ({
-        fulfillmentOrderId,
-        fulfillmentOrderLineItems,
-      })
-    );
-
+  for (const foPayload of payloads) {
     const createRes = await graphql(FULFILLMENT_CREATE, {
       variables: {
         fulfillment: {
-          lineItemsByFulfillmentOrder,
+          lineItemsByFulfillmentOrder: [foPayload],
           notifyCustomer: false,
         },
       },
@@ -198,11 +184,9 @@ export async function fulfillOrderLineItem(graphql, orderId, orderLineItemId) {
         userErrors.map((e) => e.message).join(", ") || "Fulfillment failed."
       );
     }
-    if (createJson.errors?.length) {
-      throw new Error(
-        createJson.errors.map((e) => e.message).join(", ") ||
-          "Fulfillment failed."
-      );
+    const createGqlErr = graphqlUserMessage(createJson);
+    if (createGqlErr) {
+      throw new Error(createGqlErr);
     }
   }
 
@@ -214,14 +198,19 @@ export async function unfulfillOrderLineItem(graphql, orderId, orderLineItemId) 
     variables: { id: orderId },
   });
   const json = await res.json();
+  const gqlErr = graphqlUserMessage(json);
+  if (gqlErr) {
+    throw new Error(gqlErr);
+  }
   const order = json.data?.order;
   if (!order) {
     throw new Error("Order not found.");
   }
 
-  const fulfillmentEdges = (order.fulfillments || []).map((node) => ({
-    node,
-  }));
+  const rawFulfillments = order.fulfillments;
+  const fulfillmentEdges = Array.isArray(rawFulfillments)
+    ? rawFulfillments.map((node) => ({ node }))
+    : [];
   const ui = computeLineItemFulfillmentUi(
     orderLineItemId,
     order.fulfillmentOrders?.edges || [],
@@ -246,11 +235,9 @@ export async function unfulfillOrderLineItem(graphql, orderId, orderLineItemId) 
         userErrors.map((e) => e.message).join(", ") || "Could not unfulfill."
       );
     }
-    if (cancelJson.errors?.length) {
-      throw new Error(
-        cancelJson.errors.map((e) => e.message).join(", ") ||
-          "Could not unfulfill."
-      );
+    const cancelGqlErr = graphqlUserMessage(cancelJson);
+    if (cancelGqlErr) {
+      throw new Error(cancelGqlErr);
     }
   }
 
