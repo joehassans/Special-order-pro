@@ -20,6 +20,15 @@ function getProperty(lineItem, key) {
   }
 }
 
+/** Standard POS cart order note (`cart.note`), same as checkout / draft order note. */
+function getOrderNoteFromCart(cart) {
+  const fromNote = cart?.note ?? "";
+  if (String(fromNote).trim() !== "") return String(fromNote);
+  const legacy =
+    cart?.properties?.[CART_PROPERTY_KEYS.SPECIAL_ORDER_NOTES] ?? "";
+  return String(legacy);
+}
+
 function dismissModal() {
   try {
     if (typeof window !== "undefined" && typeof window.close === "function") {
@@ -92,22 +101,37 @@ function CartLineItemAction() {
     }
   }, []);
 
-  /** Load cart-level notes whenever the selected line item changes so they carry across items. */
+  /** Load order note whenever the selected line item changes (same note for whole cart). */
   useEffect(() => {
     try {
       const cart = shopify.cart.current.value;
-      const fromCart =
-        cart?.properties?.[CART_PROPERTY_KEYS.SPECIAL_ORDER_NOTES] ?? "";
-      setNotes(fromCart);
+      setNotes(getOrderNoteFromCart(cart));
     } catch (err) {
       console.error("Error loading cart notes", err);
     }
   }, [lineUuid]);
 
+  /** Writes the standard cart order note (draft / checkout) and drops legacy custom property if present. */
   async function persistCartNotes(value) {
-    await shopify.cart.addCartProperties({
-      [CART_PROPERTY_KEYS.SPECIAL_ORDER_NOTES]: value,
-    });
+    const c = shopify.cart.current.value;
+    const properties = { ...(c.properties ?? {}) };
+    delete properties[CART_PROPERTY_KEYS.SPECIAL_ORDER_NOTES];
+
+    const raw = String(value ?? "");
+    const note = raw.trim() === "" ? undefined : raw;
+
+    /** @type {Parameters<typeof shopify.cart.bulkCartUpdate>[0]} */
+    const payload = {
+      note,
+      cartDiscounts: [...(c.cartDiscounts ?? [])],
+      lineItems: [...(c.lineItems ?? [])],
+      customer: c.customer,
+      properties,
+    };
+    if (c.cartDiscount !== undefined) {
+      payload.cartDiscount = c.cartDiscount;
+    }
+    await shopify.cart.bulkCartUpdate(payload);
   }
 
   async function handleSave() {

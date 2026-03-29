@@ -15,7 +15,7 @@ export const LINE_ITEM_PROPERTY_KEYS = {
   ORDER_CONFIRMATION_NUMBER: "Order Confirmation Number",
 };
 
-/** Cart-level custom properties (shared across all line items until checkout). */
+/** Legacy cart property — notes now use standard `cart.note` (order note). Kept for one-time migration when reading old carts. */
 export const CART_PROPERTY_KEYS = {
   SPECIAL_ORDER_NOTES: "Special Order Notes",
 };
