@@ -1924,7 +1924,7 @@ export default function OrderDetails() {
         </s-box>
       </s-section>
 
-      {/* Contact status, overall status, payment, adjustments */}
+      {/* Contact, overall, payment, adjustments, notes (notes fills remaining width) */}
       <s-section>
         <s-stack direction="inline" gap="large" alignItems="stretch">
           {/* Contact status */}
@@ -2046,43 +2046,43 @@ export default function OrderDetails() {
           </s-box>
 
           <OrderAdjustmentsCard orderAdjustments={order.orderAdjustments} />
-        </s-stack>
-      </s-section>
 
-      {/* Notes */}
-      <s-section>
-        <s-box
-          padding="small-500"
-          borderRadius="base"
-          borderWidth="base"
-          background="subdued"
-        >
-          <s-stack gap="small-500">
-            <s-heading size="large" style={{ fontSize: "1.6rem" }}>
-              NOTES
-            </s-heading>
-            <s-text-area
-              label="Notes"
-              labelAccessibilityVisibility="exclusive"
-              value={note}
-              onInput={(event) => setNote(webComponentFieldValue(event))}
-              placeholder="Add notes about this order..."
-            />
-            <s-stack direction="inline" justifyContent="end" gap="small-500">
-              <s-button
-                variant="primary"
-                onClick={() => {
-                  submit(
-                    { intent: "updateNote", orderId: order.id, note },
-                    { method: "post" }
-                  );
-                }}
-              >
-                Save note
-              </s-button>
+          {/* Notes — same row as status cards; grows to fill remaining width */}
+          <s-box
+            padding="small-500"
+            borderRadius="base"
+            borderWidth="base"
+            background="subdued"
+            minInlineSize="0"
+            style={{ flex: "3 1 240px" }}
+          >
+            <s-stack gap="small-500">
+              <s-heading size="large" style={{ fontSize: "1.6rem" }}>
+                NOTES
+              </s-heading>
+              <s-text-area
+                label="Notes"
+                labelAccessibilityVisibility="exclusive"
+                value={note}
+                onInput={(event) => setNote(webComponentFieldValue(event))}
+                placeholder="Add notes about this order..."
+              />
+              <s-stack direction="inline" justifyContent="end" gap="small-500">
+                <s-button
+                  variant="primary"
+                  onClick={() => {
+                    submit(
+                      { intent: "updateNote", orderId: order.id, note },
+                      { method: "post" }
+                    );
+                  }}
+                >
+                  Save note
+                </s-button>
+              </s-stack>
             </s-stack>
-          </s-stack>
-        </s-box>
+          </s-box>
+        </s-stack>
       </s-section>
 
       {/* Line items */}
