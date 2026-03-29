@@ -1647,10 +1647,15 @@ export default function OrderDetails() {
           display: block;
           width: 100%;
         }
-        /* Address row: fixed narrow columns; remaining fields share space */
-        .customer-info-row--address .customer-info-field--grow {
-          flex: 1 1 0;
+        /* Address row: address lines share space; city is half the width of each line */
+        .customer-info-row--address .customer-info-field--address-line {
+          flex: 5 1 0;
           min-width: 100px;
+          max-width: 100%;
+        }
+        .customer-info-row--address .customer-info-field--city {
+          flex: 2 1 0;
+          min-width: 80px;
           max-width: 100%;
         }
         .customer-info-row--address .customer-info-field--state {
@@ -1665,9 +1670,9 @@ export default function OrderDetails() {
           max-width: 4rem;
         }
         .customer-info-row--address .customer-info-field--zip {
-          flex: 0 0 10ch;
-          min-width: 10ch;
-          max-width: 11ch;
+          flex: 0 0 auto;
+          min-width: 12rem;
+          max-width: 18ch;
         }
       `}</style>
       {/* Top bar: back link + order meta */}
@@ -1789,7 +1794,7 @@ export default function OrderDetails() {
                   </div>
                 </div>
                 <div className="customer-info-row customer-info-row--labels-top customer-info-row--address">
-                  <div className="customer-info-field customer-info-field--grow">
+                  <div className="customer-info-field customer-info-field--address-line">
                     <s-text-field
                       label="Address line 1"
                       value={customerForm.address1}
@@ -1800,18 +1805,7 @@ export default function OrderDetails() {
                       }
                     />
                   </div>
-                  <div className="customer-info-field customer-info-field--grow">
-                    <s-text-field
-                      label="Address line 2"
-                      value={customerForm.address2}
-                      onChange={(e) =>
-                        setCustomerForm((f) =>
-                          f ? { ...f, address2: webComponentFieldValue(e) } : f
-                        )
-                      }
-                    />
-                  </div>
-                  <div className="customer-info-field customer-info-field--grow">
+                  <div className="customer-info-field customer-info-field--city">
                     <s-text-field
                       label="City"
                       value={customerForm.city}
@@ -1846,18 +1840,11 @@ export default function OrderDetails() {
                   <div className="customer-info-field customer-info-field--zip">
                     <s-text-field
                       label="ZIP / Postal code"
-                      maxlength={10}
                       value={customerForm.zip}
                       onChange={(e) =>
                         setCustomerForm((f) =>
                           f
-                            ? {
-                                ...f,
-                                zip: webComponentFieldValue(e).replace(
-                                  /\D/g,
-                                  ""
-                                ).slice(0, 10),
-                              }
+                            ? { ...f, zip: webComponentFieldValue(e) }
                             : f
                         )
                       }
