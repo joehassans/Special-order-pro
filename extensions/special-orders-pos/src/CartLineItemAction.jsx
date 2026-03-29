@@ -2,6 +2,7 @@ import "@shopify/ui-extensions/preact";
 import { render } from "preact";
 import { useState, useEffect, useMemo } from "preact/hooks";
 import {
+  CART_PROPERTY_KEYS,
   LINE_ITEM_PROPERTY_KEYS,
   ORDER_STATUS_OPTIONS_FOR_LINE_ITEM,
 } from "./pos-line-item-attributes.js";
@@ -87,6 +88,24 @@ function CartLineItemAction() {
     }
   }, []);
 
+  /** Load cart-level notes whenever the selected line item changes so they carry across items. */
+  useEffect(() => {
+    try {
+      const cart = shopify.cart.current.value;
+      const fromCart =
+        cart?.properties?.[CART_PROPERTY_KEYS.SPECIAL_ORDER_NOTES] ?? "";
+      setNotes(fromCart);
+    } catch (err) {
+      console.error("Error loading cart notes", err);
+    }
+  }, [lineUuid]);
+
+  async function persistCartNotes(value) {
+    await shopify.cart.addCartProperties({
+      [CART_PROPERTY_KEYS.SPECIAL_ORDER_NOTES]: value,
+    });
+  }
+
   async function handleSave() {
     try {
       setSaving(true);
@@ -114,6 +133,7 @@ function CartLineItemAction() {
         [k.ORDER_CONFIRMATION_NUMBER]: orderConfirmationNumber,
       };
 
+      await persistCartNotes(notes);
       await shopify.cart.addLineItemProperties(uuid, properties);
 
       shopify.toast.show(i18n.translate("cart_line_item_saved_toast"));
@@ -250,6 +270,23 @@ function CartLineItemAction() {
                         }
                       />
                     </s-box>
+                  </s-stack>
+                  <s-stack gap="small-300">
+                    <s-text type="strong">
+                      {i18n.translate("cart_line_item_notes")}
+                    </s-text>
+                    <s-text-area
+                      value={notes}
+                      rows={4}
+                      onInput={(e) => setNotes(e.currentTarget.value)}
+                      onBlur={(e) => {
+                        const v = e.currentTarget.value;
+                        void persistCartNotes(v).catch((err) =>
+                          console.error("Error saving cart notes", err)
+                        );
+                      }}
+                      disabled={!!saving}
+                    />
                   </s-stack>
                 </s-stack>
               </s-box>

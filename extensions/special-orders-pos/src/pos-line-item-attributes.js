@@ -15,6 +15,11 @@ export const LINE_ITEM_PROPERTY_KEYS = {
   ORDER_CONFIRMATION_NUMBER: "Order Confirmation Number",
 };
 
+/** Cart-level custom properties (shared across all line items until checkout). */
+export const CART_PROPERTY_KEYS = {
+  SPECIAL_ORDER_NOTES: "Special Order Notes",
+};
+
 /**
  * Cart line item modal only — subset of Modal.jsx ORDER_STATUS_OPTIONS
  * (excludes Drop Ship - Delivered, Received, Canceled for POS cart entry).

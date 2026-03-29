@@ -54,6 +54,7 @@
   "cart_line_item_order_date": "Date de commande de l'article",
   "cart_line_item_clear_date": "Effacer la date",
   "cart_line_item_order_confirmation": "Numéro de confirmation de commande",
+  "cart_line_item_notes": "Notes",
   "cart_line_item_order_status_heading": "Statut de commande de l'article",
   "cart_line_item_save": "Enregistrer",
   "cart_line_item_saving": "Enregistrement…",
