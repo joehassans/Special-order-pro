@@ -113,6 +113,21 @@ function graphql(query, variables = {}) {
   }).then((r) => r.json());
 }
 
+function applyLineItemAttributeValue(
+  item,
+  attrKey,
+  newVal,
+  orderId,
+  lineIdx,
+  handleUpdateAttributes
+) {
+  const newAttrs = (item.customAttributes || []).map((a) => ({
+    key: a.key,
+    value: a.key === attrKey ? newVal : a.value,
+  }));
+  handleUpdateAttributes(orderId, lineIdx, newAttrs);
+}
+
 function normalizeAdjustmentType(raw) {
   const s = String(raw || "").toLowerCase().trim();
   if (!s) return null;
@@ -1424,18 +1439,56 @@ function Extension() {
                                   <s-stack gap="small-300">
                                     <s-text type="strong">{attr.key === "Date Ordered" ? "Item Order Date" : attr.key}</s-text>
                                     {attr.key === "Date Ordered" ? (
-                                      <s-date-field
-                                        value={attr.value || ""}
-                                        onBlur={(e) => {
-                                          const newVal = e.currentTarget?.value ?? "";
-                                          const newAttrs = item.customAttributes.map((a) => ({
-                                            key: a.key,
-                                            value: a.key === attr.key ? newVal : a.value,
-                                          }));
-                                          handleUpdateAttributes(order.id, idx, newAttrs);
-                                        }}
-                                        disabled={!!saving}
-                                      />
+                                      <s-stack direction="inline" gap="small" alignItems="end">
+                                        <s-box inlineSize="100%">
+                                          <s-date-field
+                                            value={attr.value || ""}
+                                            onBlur={(e) => {
+                                              applyLineItemAttributeValue(
+                                                item,
+                                                attr.key,
+                                                e.currentTarget?.value ?? "",
+                                                order.id,
+                                                idx,
+                                                handleUpdateAttributes
+                                              );
+                                            }}
+                                            onInput={(e) => {
+                                              const v = e.currentTarget?.value ?? "";
+                                              if (v === "") {
+                                                applyLineItemAttributeValue(
+                                                  item,
+                                                  attr.key,
+                                                  "",
+                                                  order.id,
+                                                  idx,
+                                                  handleUpdateAttributes
+                                                );
+                                              }
+                                            }}
+                                            disabled={!!saving}
+                                          />
+                                        </s-box>
+                                        <s-button
+                                          variant="secondary"
+                                          disabled={
+                                            !!saving ||
+                                            !(attr.value && String(attr.value).trim())
+                                          }
+                                          onClick={() => {
+                                            applyLineItemAttributeValue(
+                                              item,
+                                              attr.key,
+                                              "",
+                                              order.id,
+                                              idx,
+                                              handleUpdateAttributes
+                                            );
+                                          }}
+                                        >
+                                          {i18n.translate("clear_date")}
+                                        </s-button>
+                                      </s-stack>
                                     ) : (
                                       <s-text-field
                                         value={attr.value}
@@ -1482,18 +1535,56 @@ function Extension() {
                           <s-stack key={attr.key} gap="small-300">
                             <s-text type="bodySmall">{attr.key}</s-text>
                             {attr.key === "Date Ordered" ? (
-                              <s-date-field
-                                value={attr.value || ""}
-                                onBlur={(e) => {
-                                  const newVal = e.currentTarget?.value ?? "";
-                                  const newAttrs = item.customAttributes.map((a) => ({
-                                    key: a.key,
-                                    value: a.key === attr.key ? newVal : a.value,
-                                  }));
-                                  handleUpdateAttributes(order.id, idx, newAttrs);
-                                }}
-                                disabled={!!saving}
-                              />
+                              <s-stack direction="inline" gap="small" alignItems="end">
+                                <s-box inlineSize="100%">
+                                  <s-date-field
+                                    value={attr.value || ""}
+                                    onBlur={(e) => {
+                                      applyLineItemAttributeValue(
+                                        item,
+                                        attr.key,
+                                        e.currentTarget?.value ?? "",
+                                        order.id,
+                                        idx,
+                                        handleUpdateAttributes
+                                      );
+                                    }}
+                                    onInput={(e) => {
+                                      const v = e.currentTarget?.value ?? "";
+                                      if (v === "") {
+                                        applyLineItemAttributeValue(
+                                          item,
+                                          attr.key,
+                                          "",
+                                          order.id,
+                                          idx,
+                                          handleUpdateAttributes
+                                        );
+                                      }
+                                    }}
+                                    disabled={!!saving}
+                                  />
+                                </s-box>
+                                <s-button
+                                  variant="secondary"
+                                  disabled={
+                                    !!saving ||
+                                    !(attr.value && String(attr.value).trim())
+                                  }
+                                  onClick={() => {
+                                    applyLineItemAttributeValue(
+                                      item,
+                                      attr.key,
+                                      "",
+                                      order.id,
+                                      idx,
+                                      handleUpdateAttributes
+                                    );
+                                  }}
+                                >
+                                  {i18n.translate("clear_date")}
+                                </s-button>
+                              </s-stack>
                             ) : (
                               <s-text-field
                                 value={attr.value}

@@ -1760,13 +1760,66 @@ export default function OrderDetails() {
                                   <s-stack gap="small-300">
                                     <span className="field-label" style={{ fontWeight: 700 }}>{attr.key}</span>
                                     {attr.key === "Date Ordered" ? (
-                                      <s-date-field
-                                        data-attr-key={attr.key}
-                                        label=""
-                                        labelAccessibilityVisibility="hidden"
-                                        value={attr.value || ""}
-                                        placeholder="Select date"
-                                      />
+                                      <s-stack direction="inline" gap="small" alignItems="end">
+                                        <s-box inlineSize="100%">
+                                          <s-date-field
+                                            data-attr-key={attr.key}
+                                            label=""
+                                            labelAccessibilityVisibility="hidden"
+                                            value={attr.value || ""}
+                                            placeholder="Select date"
+                                          />
+                                        </s-box>
+                                        <s-button
+                                          variant="secondary"
+                                          disabled={
+                                            !(attr.value && String(attr.value).trim())
+                                          }
+                                          onClick={(e) => {
+                                            const container =
+                                              e.currentTarget.closest(
+                                                "[data-line-index]"
+                                              );
+                                            if (!container) return;
+                                            const wrap = e.currentTarget.closest(
+                                              ".item-detail-field"
+                                            );
+                                            const df = wrap?.querySelector(
+                                              's-date-field[data-attr-key="Date Ordered"]'
+                                            );
+                                            if (df) /** @type {any} */ (df).value = "";
+                                            const textFields = Array.from(
+                                              container.querySelectorAll("s-text-field")
+                                            );
+                                            const dateFields = Array.from(
+                                              container.querySelectorAll("s-date-field")
+                                            );
+                                            const fields = [...textFields, ...dateFields];
+                                            const updatedAttrs = fields
+                                              .map((field) => {
+                                                const key =
+                                                  field.getAttribute("data-attr-key");
+                                                const value = field.value || "";
+                                                if (!key) return null;
+                                                return { key, value };
+                                              })
+                                              .filter(Boolean);
+                                            submit(
+                                              {
+                                                intent: "updateAttributes",
+                                                orderId: order.id,
+                                                lineItemIndex: String(idx),
+                                                attributes: JSON.stringify(
+                                                  updatedAttrs
+                                                ),
+                                              },
+                                              { method: "post" }
+                                            );
+                                          }}
+                                        >
+                                          Clear date
+                                        </s-button>
+                                      </s-stack>
                                     ) : (
                                       <s-text-field
                                         data-attr-key={attr.key}

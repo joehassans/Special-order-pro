@@ -210,14 +210,31 @@ function CartLineItemAction() {
                         <s-text type="strong">
                           {i18n.translate("cart_line_item_order_date")}
                         </s-text>
-                        <s-date-field
-                          value={dateOrdered || ""}
-                          onBlur={(e) => {
-                            const newVal = e.currentTarget?.value ?? "";
-                            setDateOrdered(newVal);
-                          }}
-                          disabled={!!saving}
-                        />
+                        <s-stack direction="inline" gap="small" alignItems="end">
+                          <s-box inlineSize="100%">
+                            <s-date-field
+                              value={dateOrdered || ""}
+                              onBlur={(e) => {
+                                const newVal = e.currentTarget?.value ?? "";
+                                setDateOrdered(newVal);
+                              }}
+                              onInput={(e) => {
+                                const v = e.currentTarget?.value ?? "";
+                                if (v === "") setDateOrdered("");
+                              }}
+                              disabled={!!saving}
+                            />
+                          </s-box>
+                          <s-button
+                            variant="secondary"
+                            disabled={
+                              !!saving || !(dateOrdered && String(dateOrdered).trim())
+                            }
+                            onClick={() => setDateOrdered("")}
+                          >
+                            {i18n.translate("cart_line_item_clear_date")}
+                          </s-button>
+                        </s-stack>
                       </s-stack>
                     </s-box>
                     <s-box minInlineSize="46%" inlineSize="auto">
