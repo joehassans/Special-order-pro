@@ -196,50 +196,54 @@ function CartLineItemAction() {
                       />
                     </s-box>
                   </s-stack>
-                  {/* Row 2: Color, Item Order Date, Order Confirmation Number */}
-                  <s-stack direction="inline" gap="small" alignItems="stretch">
-                    <s-box minInlineSize="23%" inlineSize="auto">
+                  {/* Row 2: Color, Item Order Date, Order Confirmation — even columns */}
+                  <s-stack
+                    direction="inline"
+                    gap="small"
+                    alignItems="stretch"
+                    inlineSize="100%"
+                  >
+                    <s-box minInlineSize="31%" inlineSize="auto">
                       <s-text-field
                         label={i18n.translate("cart_line_item_color")}
                         value={color}
                         onInput={(e) => setColor(e.currentTarget.value)}
                       />
                     </s-box>
-                    <s-box minInlineSize="23%" inlineSize="auto">
+                    <s-box minInlineSize="31%" inlineSize="auto">
                       <s-stack gap="small-300">
                         <s-text type="strong">
                           {i18n.translate("cart_line_item_order_date")}
                         </s-text>
-                        <s-stack direction="inline" gap="small" alignItems="end">
-                          <s-box inlineSize="100%">
-                            <s-date-field
-                              value={dateOrdered || ""}
-                              onBlur={(e) => {
-                                const newVal = e.currentTarget?.value ?? "";
-                                setDateOrdered(newVal);
-                              }}
-                              onInput={(e) => {
-                                const v = e.currentTarget?.value ?? "";
-                                if (v === "") setDateOrdered("");
-                              }}
-                              disabled={!!saving}
-                            />
-                          </s-box>
-                          <s-button
-                            variant="secondary"
-                            disabled={
-                              !!saving || !(dateOrdered && String(dateOrdered).trim())
-                            }
-                            onClick={() => setDateOrdered("")}
-                          >
-                            {i18n.translate("cart_line_item_clear_date")}
-                          </s-button>
-                        </s-stack>
+                        <s-date-field
+                          value={dateOrdered || ""}
+                          onBlur={(e) => {
+                            const newVal = e.currentTarget?.value ?? "";
+                            setDateOrdered(newVal);
+                          }}
+                          onInput={(e) => {
+                            const v = e.currentTarget?.value ?? "";
+                            if (v === "") setDateOrdered("");
+                          }}
+                          disabled={!!saving}
+                        />
+                        <s-button
+                          variant="secondary"
+                          disabled={
+                            !!saving ||
+                            !(dateOrdered && String(dateOrdered).trim())
+                          }
+                          onClick={() => setDateOrdered("")}
+                        >
+                          {i18n.translate("cart_line_item_clear_date")}
+                        </s-button>
                       </s-stack>
                     </s-box>
-                    <s-box minInlineSize="46%" inlineSize="auto">
+                    <s-box minInlineSize="31%" inlineSize="auto">
                       <s-text-field
-                        label={i18n.translate("cart_line_item_order_confirmation")}
+                        label={i18n.translate(
+                          "cart_line_item_order_confirmation"
+                        )}
                         value={orderConfirmationNumber}
                         onInput={(e) =>
                           setOrderConfirmationNumber(e.currentTarget.value)
