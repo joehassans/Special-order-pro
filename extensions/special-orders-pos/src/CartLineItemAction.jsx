@@ -44,9 +44,13 @@ function CartLineItemAction() {
   const [color, setColor] = useState("");
   const [dateOrdered, setDateOrdered] = useState("");
   const [orderConfirmationNumber, setOrderConfirmationNumber] = useState("");
+  /** Cart-wide; shared when switching line items (stored on cart properties). */
+  const [notes, setNotes] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  const lineUuid = shopify.cartLineItem?.uuid ?? "";
 
   /** Show 4 standard choices; if saved status is legacy (removed from modal), keep it selectable */
   const orderStatusChoices = useMemo(() => {
