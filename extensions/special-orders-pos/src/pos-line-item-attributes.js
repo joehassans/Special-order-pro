@@ -15,13 +15,13 @@ export const LINE_ITEM_PROPERTY_KEYS = {
   ORDER_CONFIRMATION_NUMBER: "Order Confirmation Number",
 };
 
-/** Same values as Modal.jsx ORDER_STATUS_OPTIONS */
+/**
+ * Cart line item modal only — subset of Modal.jsx ORDER_STATUS_OPTIONS
+ * (excludes Drop Ship - Delivered, Received, Canceled for POS cart entry).
+ */
 export const ORDER_STATUS_OPTIONS_FOR_LINE_ITEM = [
   "Not Ordered",
   "Ordered",
   "Back Ordered",
   "Drop Ship - Ordered",
-  "Drop Ship - Delivered",
-  "Received",
-  "Canceled",
 ];

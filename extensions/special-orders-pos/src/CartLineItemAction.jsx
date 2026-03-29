@@ -1,6 +1,6 @@
 import "@shopify/ui-extensions/preact";
 import { render } from "preact";
-import { useState, useEffect } from "preact/hooks";
+import { useState, useEffect, useMemo } from "preact/hooks";
 import {
   LINE_ITEM_PROPERTY_KEYS,
   ORDER_STATUS_OPTIONS_FOR_LINE_ITEM,
@@ -46,6 +46,18 @@ function CartLineItemAction() {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  /** Show 4 standard choices; if saved status is legacy (removed from modal), keep it selectable */
+  const orderStatusChoices = useMemo(() => {
+    const base = [...ORDER_STATUS_OPTIONS_FOR_LINE_ITEM];
+    if (
+      orderStatus &&
+      !ORDER_STATUS_OPTIONS_FOR_LINE_ITEM.includes(orderStatus)
+    ) {
+      base.push(orderStatus);
+    }
+    return base;
+  }, [orderStatus]);
 
   useEffect(() => {
     try {
@@ -234,7 +246,7 @@ function CartLineItemAction() {
                     setOrderStatus(value ?? "Not Ordered");
                   }}
                 >
-                  {ORDER_STATUS_OPTIONS_FOR_LINE_ITEM.map((status) => (
+                  {orderStatusChoices.map((status) => (
                     <s-choice key={status} value={status}>
                       {status}
                     </s-choice>
