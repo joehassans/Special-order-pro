@@ -10,6 +10,9 @@ export const LINE_ITEM_PROPERTY_KEYS = {
   STYLE: "Style #",
   SIZE: "Size",
   COLOR: "Color",
+  /** Stored as "Date Ordered" on line properties; label in UI is "Item Order Date" */
+  DATE_ORDERED: "Date Ordered",
+  ORDER_CONFIRMATION_NUMBER: "Order Confirmation Number",
 };
 
 /** Same values as Modal.jsx ORDER_STATUS_OPTIONS */

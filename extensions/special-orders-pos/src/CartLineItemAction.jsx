@@ -41,6 +41,8 @@ function CartLineItemAction() {
   const [styleNumber, setStyleNumber] = useState("");
   const [size, setSize] = useState("");
   const [color, setColor] = useState("");
+  const [dateOrdered, setDateOrdered] = useState("");
+  const [orderConfirmationNumber, setOrderConfirmationNumber] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -65,6 +67,8 @@ function CartLineItemAction() {
       setStyleNumber(getProperty(lineItem, k.STYLE));
       setSize(getProperty(lineItem, k.SIZE));
       setColor(getProperty(lineItem, k.COLOR));
+      setDateOrdered(getProperty(lineItem, k.DATE_ORDERED));
+      setOrderConfirmationNumber(getProperty(lineItem, k.ORDER_CONFIRMATION_NUMBER));
     } catch (err) {
       console.error("Error loading line item properties", err);
       setError(i18n.translate("cart_line_item_load_error"));
@@ -94,6 +98,8 @@ function CartLineItemAction() {
         [k.STYLE]: styleNumber,
         [k.SIZE]: size,
         [k.COLOR]: color,
+        [k.DATE_ORDERED]: dateOrdered,
+        [k.ORDER_CONFIRMATION_NUMBER]: orderConfirmationNumber,
       };
 
       await shopify.cart.addLineItemProperties(uuid, properties);
@@ -146,32 +152,72 @@ function CartLineItemAction() {
             <s-section>
               <s-heading>{i18n.translate("cart_line_item_details_heading")}</s-heading>
               <s-box paddingBlockStart="small">
-                <s-stack direction="vertical" gap="small">
-                  <s-text-field
-                    label={i18n.translate("cart_line_item_brand")}
-                    value={brand}
-                    onInput={(e) => setBrand(e.currentTarget.value)}
-                  />
-                  <s-text-field
-                    label={i18n.translate("cart_line_item_type")}
-                    value={type}
-                    onInput={(e) => setType(e.currentTarget.value)}
-                  />
-                  <s-text-field
-                    label={i18n.translate("cart_line_item_style")}
-                    value={styleNumber}
-                    onInput={(e) => setStyleNumber(e.currentTarget.value)}
-                  />
-                  <s-text-field
-                    label={i18n.translate("cart_line_item_size")}
-                    value={size}
-                    onInput={(e) => setSize(e.currentTarget.value)}
-                  />
-                  <s-text-field
-                    label={i18n.translate("cart_line_item_color")}
-                    value={color}
-                    onInput={(e) => setColor(e.currentTarget.value)}
-                  />
+                <s-stack direction="vertical" gap="base">
+                  {/* Row 1: Brand, Type, Style #, Size */}
+                  <s-stack direction="inline" gap="small" alignItems="stretch">
+                    <s-box minInlineSize="23%" inlineSize="auto">
+                      <s-text-field
+                        label={i18n.translate("cart_line_item_brand")}
+                        value={brand}
+                        onInput={(e) => setBrand(e.currentTarget.value)}
+                      />
+                    </s-box>
+                    <s-box minInlineSize="23%" inlineSize="auto">
+                      <s-text-field
+                        label={i18n.translate("cart_line_item_type")}
+                        value={type}
+                        onInput={(e) => setType(e.currentTarget.value)}
+                      />
+                    </s-box>
+                    <s-box minInlineSize="23%" inlineSize="auto">
+                      <s-text-field
+                        label={i18n.translate("cart_line_item_style")}
+                        value={styleNumber}
+                        onInput={(e) => setStyleNumber(e.currentTarget.value)}
+                      />
+                    </s-box>
+                    <s-box minInlineSize="23%" inlineSize="auto">
+                      <s-text-field
+                        label={i18n.translate("cart_line_item_size")}
+                        value={size}
+                        onInput={(e) => setSize(e.currentTarget.value)}
+                      />
+                    </s-box>
+                  </s-stack>
+                  {/* Row 2: Color, Item Order Date, Order Confirmation Number */}
+                  <s-stack direction="inline" gap="small" alignItems="stretch">
+                    <s-box minInlineSize="23%" inlineSize="auto">
+                      <s-text-field
+                        label={i18n.translate("cart_line_item_color")}
+                        value={color}
+                        onInput={(e) => setColor(e.currentTarget.value)}
+                      />
+                    </s-box>
+                    <s-box minInlineSize="23%" inlineSize="auto">
+                      <s-stack gap="small-300">
+                        <s-text type="strong">
+                          {i18n.translate("cart_line_item_order_date")}
+                        </s-text>
+                        <s-date-field
+                          value={dateOrdered || ""}
+                          onBlur={(e) => {
+                            const newVal = e.currentTarget?.value ?? "";
+                            setDateOrdered(newVal);
+                          }}
+                          disabled={!!saving}
+                        />
+                      </s-stack>
+                    </s-box>
+                    <s-box minInlineSize="46%" inlineSize="auto">
+                      <s-text-field
+                        label={i18n.translate("cart_line_item_order_confirmation")}
+                        value={orderConfirmationNumber}
+                        onInput={(e) =>
+                          setOrderConfirmationNumber(e.currentTarget.value)
+                        }
+                      />
+                    </s-box>
+                  </s-stack>
                 </s-stack>
               </s-box>
             </s-section>

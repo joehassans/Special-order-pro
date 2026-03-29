@@ -57,6 +57,8 @@
   "cart_line_item_style": "Style #",
   "cart_line_item_size": "Size",
   "cart_line_item_color": "Color",
+  "cart_line_item_order_date": "Item Order Date",
+  "cart_line_item_order_confirmation": "Order Confirmation Number",
   "cart_line_item_order_status_heading": "Item order status",
   "cart_line_item_save": "Save",
   "cart_line_item_saving": "Saving…",
