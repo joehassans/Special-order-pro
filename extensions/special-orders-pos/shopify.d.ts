@@ -13,7 +13,25 @@ declare module './src/Modal.jsx' {
 }
 
 //@ts-ignore
+declare module './src/CartLineItemMenuItem.jsx' {
+  const shopify: import('@shopify/ui-extensions/pos.cart.line-item-details.action.menu-item.render').Api;
+  const globalThis: { shopify: typeof shopify };
+}
+
+//@ts-ignore
+declare module './src/CartLineItemAction.jsx' {
+  const shopify: import('@shopify/ui-extensions/pos.cart.line-item-details.action.render').Api;
+  const globalThis: { shopify: typeof shopify };
+}
+
+//@ts-ignore
 declare module './src/fulfillment.js' {
   const shopify: import('@shopify/ui-extensions/pos.home.modal.render').Api;
+  const globalThis: { shopify: typeof shopify };
+}
+
+//@ts-ignore
+declare module './src/pos-line-item-attributes.js' {
+  const shopify: import('@shopify/ui-extensions/pos.cart.line-item-details.action.render').Api;
   const globalThis: { shopify: typeof shopify };
 }

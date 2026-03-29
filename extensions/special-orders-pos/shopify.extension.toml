@@ -17,3 +17,12 @@ target = "pos.home.tile.render"
 [[extensions.targeting]]
 module = "./src/Modal.jsx"
 target = "pos.home.modal.render"
+
+# Cart line item: same custom properties as legacy "Special Order X" (line item details → menu)
+[[extensions.targeting]]
+module = "./src/CartLineItemMenuItem.jsx"
+target = "pos.cart.line-item-details.action.menu-item.render"
+
+[[extensions.targeting]]
+module = "./src/CartLineItemAction.jsx"
+target = "pos.cart.line-item-details.action.render"
