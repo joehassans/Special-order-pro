@@ -1628,6 +1628,22 @@ export default function OrderDetails() {
           border-radius: 8px;
           background: #fff;
         }
+        .customer-info-row {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          width: 100%;
+          align-items: flex-end;
+        }
+        .customer-info-row .customer-info-field {
+          flex: 1 1 0;
+          min-width: 140px;
+          max-width: 100%;
+        }
+        .customer-info-row .customer-info-field s-text-field {
+          display: block;
+          width: 100%;
+        }
       `}</style>
       {/* Top bar: back link + order meta */}
       <s-section>
@@ -1667,24 +1683,23 @@ export default function OrderDetails() {
         </s-stack>
       </s-section>
 
-      {/* Customer info + Contact status + Payment status top row */}
+      {/* Customer information — full width, two rows */}
       <s-section>
-        <s-stack direction="inline" gap="large" alignItems="stretch">
-          {/* Customer */}
-          <s-box
-            padding="base"
-            borderRadius="base"
-            borderWidth="base"
-            background="subdued"
-            flex="2"
-          >
-            <s-stack gap="small">
-              <s-heading size="large" style={{ fontSize: "1.6rem" }}>
-                👤 CUSTOMER INFORMATION
-              </s-heading>
-              {order.customer && customerForm ? (
-                <s-stack gap="small" alignItems="start">
-                  <s-stack direction="inline" gap="small" alignItems="end">
+        <s-box
+          padding="base"
+          borderRadius="base"
+          borderWidth="base"
+          background="subdued"
+          inlineSize="100%"
+        >
+          <s-stack gap="base">
+            <s-heading size="large" style={{ fontSize: "1.6rem" }}>
+              👤 CUSTOMER INFORMATION
+            </s-heading>
+            {order.customer && customerForm ? (
+              <s-stack gap="base" alignItems="stretch">
+                <div className="customer-info-row">
+                  <div className="customer-info-field">
                     <s-text-field
                       label="First name"
                       value={customerForm.firstName}
@@ -1696,6 +1711,8 @@ export default function OrderDetails() {
                         )
                       }
                     />
+                  </div>
+                  <div className="customer-info-field">
                     <s-text-field
                       label="Last name"
                       value={customerForm.lastName}
@@ -1707,60 +1724,72 @@ export default function OrderDetails() {
                         )
                       }
                     />
-                  </s-stack>
-                  <s-text-field
-                    label="Email"
-                    type="email"
-                    autocomplete="email"
-                    value={customerForm.email}
-                    onChange={(e) =>
-                      setCustomerForm((f) =>
-                        f ? { ...f, email: webComponentFieldValue(e) } : f
-                      )
-                    }
-                  />
-                  <s-text-field
-                    label="Phone"
-                    type="tel"
-                    autocomplete="tel"
-                    value={customerForm.phone}
-                    onChange={(e) =>
-                      setCustomerForm((f) =>
-                        f ? { ...f, phone: webComponentFieldValue(e) } : f
-                      )
-                    }
-                  />
-                  <s-text color="subdued" type="small">
-                    Default address (updates the customer profile in Shopify)
-                  </s-text>
-                  <s-text-field
-                    label="Company"
-                    value={customerForm.company}
-                    onChange={(e) =>
-                      setCustomerForm((f) =>
-                        f ? { ...f, company: webComponentFieldValue(e) } : f
-                      )
-                    }
-                  />
-                  <s-text-field
-                    label="Address line 1"
-                    value={customerForm.address1}
-                    onChange={(e) =>
-                      setCustomerForm((f) =>
-                        f ? { ...f, address1: webComponentFieldValue(e) } : f
-                      )
-                    }
-                  />
-                  <s-text-field
-                    label="Address line 2"
-                    value={customerForm.address2}
-                    onChange={(e) =>
-                      setCustomerForm((f) =>
-                        f ? { ...f, address2: webComponentFieldValue(e) } : f
-                      )
-                    }
-                  />
-                  <s-stack direction="inline" gap="small" alignItems="end">
+                  </div>
+                  <div className="customer-info-field">
+                    <s-text-field
+                      label="Email"
+                      type="email"
+                      autocomplete="email"
+                      value={customerForm.email}
+                      onChange={(e) =>
+                        setCustomerForm((f) =>
+                          f ? { ...f, email: webComponentFieldValue(e) } : f
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="customer-info-field">
+                    <s-text-field
+                      label="Phone"
+                      type="tel"
+                      autocomplete="tel"
+                      value={customerForm.phone}
+                      onChange={(e) =>
+                        setCustomerForm((f) =>
+                          f ? { ...f, phone: webComponentFieldValue(e) } : f
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="customer-info-field">
+                    <s-text-field
+                      label="Company"
+                      value={customerForm.company}
+                      onChange={(e) =>
+                        setCustomerForm((f) =>
+                          f ? { ...f, company: webComponentFieldValue(e) } : f
+                        )
+                      }
+                    />
+                  </div>
+                </div>
+                <s-text color="subdued" type="small">
+                  Address (saved to the customer default address in Shopify)
+                </s-text>
+                <div className="customer-info-row">
+                  <div className="customer-info-field">
+                    <s-text-field
+                      label="Address line 1"
+                      value={customerForm.address1}
+                      onChange={(e) =>
+                        setCustomerForm((f) =>
+                          f ? { ...f, address1: webComponentFieldValue(e) } : f
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="customer-info-field">
+                    <s-text-field
+                      label="Address line 2"
+                      value={customerForm.address2}
+                      onChange={(e) =>
+                        setCustomerForm((f) =>
+                          f ? { ...f, address2: webComponentFieldValue(e) } : f
+                        )
+                      }
+                    />
+                  </div>
+                  <div className="customer-info-field">
                     <s-text-field
                       label="City"
                       value={customerForm.city}
@@ -1770,6 +1799,8 @@ export default function OrderDetails() {
                         )
                       }
                     />
+                  </div>
+                  <div className="customer-info-field">
                     <s-text-field
                       label="State / Province code"
                       details="e.g. CA, NY"
@@ -1782,6 +1813,8 @@ export default function OrderDetails() {
                         )
                       }
                     />
+                  </div>
+                  <div className="customer-info-field">
                     <s-text-field
                       label="ZIP / Postal code"
                       value={customerForm.zip}
@@ -1791,71 +1824,78 @@ export default function OrderDetails() {
                         )
                       }
                     />
-                  </s-stack>
-                  <s-text-field
-                    label="Country code"
-                    details="ISO 3166-1 alpha-2 (e.g. US)"
-                    value={customerForm.countryCode}
-                    onChange={(e) => {
-                      const v = webComponentFieldValue(e)
-                        .toUpperCase()
-                        .replace(/[^A-Z]/g, "")
-                        .slice(0, 2);
-                      setCustomerForm((f) =>
-                        f ? { ...f, countryCode: v || "US" } : f
-                      );
-                    }}
-                  />
-                  <s-stack direction="inline" gap="small">
-                    <s-button
-                      variant="primary"
-                      onClick={() => {
-                        submit(
-                          {
-                            intent: "updateCustomer",
-                            orderId: order.id,
-                            customerId: order.customer.id,
-                            defaultAddressId:
-                              customerForm.defaultAddressId ?? "",
-                            firstName: customerForm.firstName,
-                            lastName: customerForm.lastName,
-                            email: customerForm.email,
-                            phone: customerForm.phone,
-                            company: customerForm.company,
-                            address1: customerForm.address1,
-                            address2: customerForm.address2,
-                            city: customerForm.city,
-                            provinceCode: customerForm.provinceCode,
-                            zip: customerForm.zip,
-                            countryCode: customerForm.countryCode,
-                          },
-                          { method: "post" }
+                  </div>
+                  <div className="customer-info-field">
+                    <s-text-field
+                      label="Country code"
+                      details="e.g. US"
+                      value={customerForm.countryCode}
+                      onChange={(e) => {
+                        const v = webComponentFieldValue(e)
+                          .toUpperCase()
+                          .replace(/[^A-Z]/g, "")
+                          .slice(0, 2);
+                        setCustomerForm((f) =>
+                          f ? { ...f, countryCode: v || "US" } : f
                         );
                       }}
-                    >
-                      Save customer
-                    </s-button>
-                    <s-button
-                      variant="secondary"
-                      onClick={() =>
-                        setCustomerForm(
-                          customerFormStateFromOrder(order.customer)
-                        )
-                      }
-                    >
-                      Reset
-                    </s-button>
-                  </s-stack>
+                    />
+                  </div>
+                </div>
+                <s-stack direction="inline" gap="small">
+                  <s-button
+                    variant="primary"
+                    onClick={() => {
+                      submit(
+                        {
+                          intent: "updateCustomer",
+                          orderId: order.id,
+                          customerId: order.customer.id,
+                          defaultAddressId:
+                            customerForm.defaultAddressId ?? "",
+                          firstName: customerForm.firstName,
+                          lastName: customerForm.lastName,
+                          email: customerForm.email,
+                          phone: customerForm.phone,
+                          company: customerForm.company,
+                          address1: customerForm.address1,
+                          address2: customerForm.address2,
+                          city: customerForm.city,
+                          provinceCode: customerForm.provinceCode,
+                          zip: customerForm.zip,
+                          countryCode: customerForm.countryCode,
+                        },
+                        { method: "post" }
+                      );
+                    }}
+                  >
+                    Save customer
+                  </s-button>
+                  <s-button
+                    variant="secondary"
+                    onClick={() =>
+                      setCustomerForm(
+                        customerFormStateFromOrder(order.customer)
+                      )
+                    }
+                  >
+                    Reset
+                  </s-button>
                 </s-stack>
-              ) : (
-                <s-text color="subdued">
-                  No customer on this order. Add or associate a customer in
-                  Shopify admin.
-                </s-text>
-              )}
-            </s-stack>
-          </s-box>
+              </s-stack>
+            ) : (
+              <s-text color="subdued">
+                No customer on this order. Add or associate a customer in
+                Shopify admin.
+              </s-text>
+            )}
+          </s-stack>
+        </s-box>
+      </s-section>
 
+      {/* Contact status, overall status, payment, adjustments */}
+      <s-section>
+        <s-stack direction="inline" gap="large" alignItems="stretch">
           {/* Contact status */}
           <s-box
             padding="base"
