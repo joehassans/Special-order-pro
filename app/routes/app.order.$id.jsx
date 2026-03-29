@@ -1635,6 +1635,9 @@ export default function OrderDetails() {
           width: 100%;
           align-items: flex-end;
         }
+        .customer-info-row.customer-info-row--labels-top {
+          align-items: flex-start;
+        }
         .customer-info-row .customer-info-field {
           flex: 1 1 0;
           min-width: 140px;
@@ -1763,10 +1766,7 @@ export default function OrderDetails() {
                     />
                   </div>
                 </div>
-                <s-text color="subdued" type="small">
-                  Address (saved to the customer default address in Shopify)
-                </s-text>
-                <div className="customer-info-row">
+                <div className="customer-info-row customer-info-row--labels-top">
                   <div className="customer-info-field">
                     <s-text-field
                       label="Address line 1"
