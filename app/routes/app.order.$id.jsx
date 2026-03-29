@@ -112,6 +112,21 @@ function customerFormStateFromOrder(customer) {
   };
 }
 
+/**
+ * Polaris web components may emit events where `currentTarget` is null after
+ * React's delegation; use target fallback for `.value` and DOM traversal.
+ */
+function webComponentFieldValue(event) {
+  const t = event?.currentTarget ?? event?.target;
+  if (t == null) return "";
+  const v = /** @type {{ value?: unknown }} */ (t).value;
+  return v == null ? "" : String(v);
+}
+
+function eventTargetElement(event) {
+  return (event?.currentTarget ?? event?.target) ?? null;
+}
+
 const VALID_CONTACT_STATUSES = [
   "Not Contacted",
   "No Answer",
@@ -1676,7 +1691,7 @@ export default function OrderDetails() {
                       onChange={(e) =>
                         setCustomerForm((f) =>
                           f
-                            ? { ...f, firstName: e.currentTarget.value }
+                            ? { ...f, firstName: webComponentFieldValue(e) }
                             : f
                         )
                       }
@@ -1687,7 +1702,7 @@ export default function OrderDetails() {
                       onChange={(e) =>
                         setCustomerForm((f) =>
                           f
-                            ? { ...f, lastName: e.currentTarget.value }
+                            ? { ...f, lastName: webComponentFieldValue(e) }
                             : f
                         )
                       }
@@ -1700,7 +1715,7 @@ export default function OrderDetails() {
                     value={customerForm.email}
                     onChange={(e) =>
                       setCustomerForm((f) =>
-                        f ? { ...f, email: e.currentTarget.value } : f
+                        f ? { ...f, email: webComponentFieldValue(e) } : f
                       )
                     }
                   />
@@ -1711,7 +1726,7 @@ export default function OrderDetails() {
                     value={customerForm.phone}
                     onChange={(e) =>
                       setCustomerForm((f) =>
-                        f ? { ...f, phone: e.currentTarget.value } : f
+                        f ? { ...f, phone: webComponentFieldValue(e) } : f
                       )
                     }
                   />
@@ -1723,7 +1738,7 @@ export default function OrderDetails() {
                     value={customerForm.company}
                     onChange={(e) =>
                       setCustomerForm((f) =>
-                        f ? { ...f, company: e.currentTarget.value } : f
+                        f ? { ...f, company: webComponentFieldValue(e) } : f
                       )
                     }
                   />
@@ -1732,7 +1747,7 @@ export default function OrderDetails() {
                     value={customerForm.address1}
                     onChange={(e) =>
                       setCustomerForm((f) =>
-                        f ? { ...f, address1: e.currentTarget.value } : f
+                        f ? { ...f, address1: webComponentFieldValue(e) } : f
                       )
                     }
                   />
@@ -1741,7 +1756,7 @@ export default function OrderDetails() {
                     value={customerForm.address2}
                     onChange={(e) =>
                       setCustomerForm((f) =>
-                        f ? { ...f, address2: e.currentTarget.value } : f
+                        f ? { ...f, address2: webComponentFieldValue(e) } : f
                       )
                     }
                   />
@@ -1751,7 +1766,7 @@ export default function OrderDetails() {
                       value={customerForm.city}
                       onChange={(e) =>
                         setCustomerForm((f) =>
-                          f ? { ...f, city: e.currentTarget.value } : f
+                          f ? { ...f, city: webComponentFieldValue(e) } : f
                         )
                       }
                     />
@@ -1762,7 +1777,7 @@ export default function OrderDetails() {
                       onChange={(e) =>
                         setCustomerForm((f) =>
                           f
-                            ? { ...f, provinceCode: e.currentTarget.value }
+                            ? { ...f, provinceCode: webComponentFieldValue(e) }
                             : f
                         )
                       }
@@ -1772,7 +1787,7 @@ export default function OrderDetails() {
                       value={customerForm.zip}
                       onChange={(e) =>
                         setCustomerForm((f) =>
-                          f ? { ...f, zip: e.currentTarget.value } : f
+                          f ? { ...f, zip: webComponentFieldValue(e) } : f
                         )
                       }
                     />
@@ -1782,7 +1797,7 @@ export default function OrderDetails() {
                     details="ISO 3166-1 alpha-2 (e.g. US)"
                     value={customerForm.countryCode}
                     onChange={(e) => {
-                      const v = e.currentTarget.value
+                      const v = webComponentFieldValue(e)
                         .toUpperCase()
                         .replace(/[^A-Z]/g, "")
                         .slice(0, 2);
@@ -1866,7 +1881,7 @@ export default function OrderDetails() {
                     {
                       intent: "updateContactStatus",
                       orderId: order.id,
-                      contactStatus: event.currentTarget.value,
+                      contactStatus: webComponentFieldValue(event),
                     },
                     { method: "post" }
                   );
@@ -1912,7 +1927,7 @@ export default function OrderDetails() {
                     {
                       intent: "updateOverallOrderStatus",
                       orderId: order.id,
-                      overallOrderStatus: event.currentTarget.value,
+                      overallOrderStatus: webComponentFieldValue(event),
                     },
                     { method: "post" }
                   );
@@ -1979,7 +1994,7 @@ export default function OrderDetails() {
               label="Notes"
               labelAccessibilityVisibility="exclusive"
               value={note}
-              onInput={(event) => setNote(event.currentTarget.value)}
+              onInput={(event) => setNote(webComponentFieldValue(event))}
               placeholder="Add notes about this order..."
             />
             <s-stack direction="inline" justifyContent="end" gap="small-500">
@@ -2136,7 +2151,7 @@ export default function OrderDetails() {
                                   {
                                     orderId: order.id,
                                     lineItemId: item.id,
-                                    orderStatus: event.currentTarget.value,
+                                    orderStatus: webComponentFieldValue(event),
                                   },
                                   { method: "post" }
                                 );
@@ -2199,12 +2214,11 @@ export default function OrderDetails() {
                                             !(attr.value && String(attr.value).trim())
                                           }
                                           onClick={(e) => {
+                                            const el = eventTargetElement(e);
                                             const container =
-                                              e.currentTarget.closest(
-                                                "[data-line-index]"
-                                              );
+                                              el?.closest?.("[data-line-index]");
                                             if (!container) return;
-                                            const wrap = e.currentTarget.closest(
+                                            const wrap = el?.closest?.(
                                               ".item-detail-field"
                                             );
                                             const df = wrap?.querySelector(
@@ -2277,10 +2291,9 @@ export default function OrderDetails() {
                                 <s-button
                                   variant="secondary"
                                   onClick={(event) => {
+                                    const el = eventTargetElement(event);
                                     const container =
-                                      event.currentTarget.closest(
-                                        "[data-line-index]"
-                                      );
+                                      el?.closest?.("[data-line-index]");
                                     if (!container) return;
                                     const textFields = Array.from(
                                       container.querySelectorAll("s-text-field")
