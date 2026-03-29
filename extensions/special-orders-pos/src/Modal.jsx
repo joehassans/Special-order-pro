@@ -15,6 +15,9 @@ export default async () => {
 const SPECIAL_ORDER_TAG = "special-order";
 const OPEN_STATUSES = ["Not Ordered", "Ordered", "Back Ordered", "Drop Ship - Ordered", "Drop Ship - Delivered", "Received"];
 const ALWAYS_PRESENT_ATTRIBUTES = ["Brand", "Type", "Style #", "Size", "Color", "Date Ordered", "Order Confirmation Number"];
+/** iPad order detail: two rows so Color / Item Order Date / Order Confirmation share one line (even columns). */
+const TABLET_ORDER_DETAIL_ROW1_KEYS = ["Brand", "Type", "Style #", "Size"];
+const TABLET_ORDER_DETAIL_ROW2_KEYS = ["Color", "Date Ordered", "Order Confirmation Number"];
 const HIDDEN_ATTRIBUTES = new Set([
   "_shopify_item_type",
   "Order Status",
@@ -126,6 +129,143 @@ function applyLineItemAttributeValue(
     value: a.key === attrKey ? newVal : a.value,
   }));
   handleUpdateAttributes(orderId, lineIdx, newAttrs);
+}
+
+/** Renders one line-item attribute cell for tablet order detail rows. */
+function TabletOrderDetailAttributeCell({
+  attr,
+  item,
+  orderId,
+  lineIndex,
+  saving,
+  minInlineSize,
+  handleUpdateAttributes,
+  i18n,
+  stackDateControlsVertically,
+}) {
+  const label = attr.key === "Date Ordered" ? "Item Order Date" : attr.key;
+  const dateControls =
+    stackDateControlsVertically && attr.key === "Date Ordered" ? (
+      <s-stack gap="small-300">
+        <s-date-field
+          value={attr.value || ""}
+          onBlur={(e) => {
+            applyLineItemAttributeValue(
+              item,
+              attr.key,
+              e.currentTarget?.value ?? "",
+              orderId,
+              lineIndex,
+              handleUpdateAttributes
+            );
+          }}
+          onInput={(e) => {
+            const v = e.currentTarget?.value ?? "";
+            if (v === "") {
+              applyLineItemAttributeValue(
+                item,
+                attr.key,
+                "",
+                orderId,
+                lineIndex,
+                handleUpdateAttributes
+              );
+            }
+          }}
+          disabled={!!saving}
+        />
+        <s-button
+          variant="secondary"
+          disabled={
+            !!saving || !(attr.value && String(attr.value).trim())
+          }
+          onClick={() => {
+            applyLineItemAttributeValue(
+              item,
+              attr.key,
+              "",
+              orderId,
+              lineIndex,
+              handleUpdateAttributes
+            );
+          }}
+        >
+          {i18n.translate("clear_date")}
+        </s-button>
+      </s-stack>
+    ) : attr.key === "Date Ordered" ? (
+      <s-stack direction="inline" gap="small" alignItems="end">
+        <s-box inlineSize="100%">
+          <s-date-field
+            value={attr.value || ""}
+            onBlur={(e) => {
+              applyLineItemAttributeValue(
+                item,
+                attr.key,
+                e.currentTarget?.value ?? "",
+                orderId,
+                lineIndex,
+                handleUpdateAttributes
+              );
+            }}
+            onInput={(e) => {
+              const v = e.currentTarget?.value ?? "";
+              if (v === "") {
+                applyLineItemAttributeValue(
+                  item,
+                  attr.key,
+                  "",
+                  orderId,
+                  lineIndex,
+                  handleUpdateAttributes
+                );
+              }
+            }}
+            disabled={!!saving}
+          />
+        </s-box>
+        <s-button
+          variant="secondary"
+          disabled={
+            !!saving || !(attr.value && String(attr.value).trim())
+          }
+          onClick={() => {
+            applyLineItemAttributeValue(
+              item,
+              attr.key,
+              "",
+              orderId,
+              lineIndex,
+              handleUpdateAttributes
+            );
+          }}
+        >
+          {i18n.translate("clear_date")}
+        </s-button>
+      </s-stack>
+    ) : (
+      <s-text-field
+        value={attr.value}
+        onBlur={(e) => {
+          const newVal = e.currentTarget.value;
+          const newAttrs = item.customAttributes.map((a) => ({
+            key: a.key,
+            value: a.key === attr.key ? newVal : a.value,
+          }));
+          handleUpdateAttributes(orderId, lineIndex, newAttrs);
+        }}
+        disabled={!!saving}
+      />
+    );
+
+  return (
+    <s-box minInlineSize={minInlineSize} inlineSize="auto">
+      <s-stack gap="small-300">
+        <s-text type="strong">{label}</s-text>
+        {dateControls}
+      </s-stack>
+    </s-box>
+  );
 }
 
 function normalizeAdjustmentType(raw) {
@@ -1429,83 +1569,59 @@ function Extension() {
                       </s-stack>
                       {isTablet ? (
                         <>
-                          <s-stack direction="inline" gap="small" alignItems="stretch">
-                            {(item.customAttributes || [])
-                              .filter((a) =>
-                                ["Brand", "Type", "Style #", "Size", "Color", "Date Ordered", "Order Confirmation Number"].includes(a.key)
-                              )
-                              .map((attr) => (
-                                <s-box key={attr.key} minInlineSize="235px" inlineSize="auto">
-                                  <s-stack gap="small-300">
-                                    <s-text type="strong">{attr.key === "Date Ordered" ? "Item Order Date" : attr.key}</s-text>
-                                    {attr.key === "Date Ordered" ? (
-                                      <s-stack direction="inline" gap="small" alignItems="end">
-                                        <s-box inlineSize="100%">
-                                          <s-date-field
-                                            value={attr.value || ""}
-                                            onBlur={(e) => {
-                                              applyLineItemAttributeValue(
-                                                item,
-                                                attr.key,
-                                                e.currentTarget?.value ?? "",
-                                                order.id,
-                                                idx,
-                                                handleUpdateAttributes
-                                              );
-                                            }}
-                                            onInput={(e) => {
-                                              const v = e.currentTarget?.value ?? "";
-                                              if (v === "") {
-                                                applyLineItemAttributeValue(
-                                                  item,
-                                                  attr.key,
-                                                  "",
-                                                  order.id,
-                                                  idx,
-                                                  handleUpdateAttributes
-                                                );
-                                              }
-                                            }}
-                                            disabled={!!saving}
-                                          />
-                                        </s-box>
-                                        <s-button
-                                          variant="secondary"
-                                          disabled={
-                                            !!saving ||
-                                            !(attr.value && String(attr.value).trim())
-                                          }
-                                          onClick={() => {
-                                            applyLineItemAttributeValue(
-                                              item,
-                                              attr.key,
-                                              "",
-                                              order.id,
-                                              idx,
-                                              handleUpdateAttributes
-                                            );
-                                          }}
-                                        >
-                                          {i18n.translate("clear_date")}
-                                        </s-button>
-                                      </s-stack>
-                                    ) : (
-                                      <s-text-field
-                                        value={attr.value}
-                                        onBlur={(e) => {
-                                          const newVal = e.currentTarget.value;
-                                          const newAttrs = item.customAttributes.map((a) => ({
-                                            key: a.key,
-                                            value: a.key === attr.key ? newVal : a.value,
-                                          }));
-                                          handleUpdateAttributes(order.id, idx, newAttrs);
-                                        }}
-                                        disabled={!!saving}
-                                      />
-                                    )}
-                                  </s-stack>
-                                </s-box>
-                              ))}
+                          <s-stack
+                            direction="inline"
+                            gap="small"
+                            alignItems="stretch"
+                            inlineSize="100%"
+                          >
+                            {TABLET_ORDER_DETAIL_ROW1_KEYS.map((key) => {
+                              const attr = (item.customAttributes || []).find(
+                                (a) => a.key === key
+                              );
+                              if (!attr) return null;
+                              return (
+                                <TabletOrderDetailAttributeCell
+                                  key={attr.key}
+                                  attr={attr}
+                                  item={item}
+                                  orderId={order.id}
+                                  lineIndex={idx}
+                                  saving={saving}
+                                  minInlineSize="23%"
+                                  handleUpdateAttributes={handleUpdateAttributes}
+                                  i18n={i18n}
+                                  stackDateControlsVertically={false}
+                                />
+                              );
+                            })}
+                          </s-stack>
+                          <s-stack
+                            direction="inline"
+                            gap="small"
+                            alignItems="stretch"
+                            inlineSize="100%"
+                          >
+                            {TABLET_ORDER_DETAIL_ROW2_KEYS.map((key) => {
+                              const attr = (item.customAttributes || []).find(
+                                (a) => a.key === key
+                              );
+                              if (!attr) return null;
+                              return (
+                                <TabletOrderDetailAttributeCell
+                                  key={attr.key}
+                                  attr={attr}
+                                  item={item}
+                                  orderId={order.id}
+                                  lineIndex={idx}
+                                  saving={saving}
+                                  minInlineSize="31%"
+                                  handleUpdateAttributes={handleUpdateAttributes}
+                                  i18n={i18n}
+                                  stackDateControlsVertically
+                                />
+                              );
+                            })}
                           </s-stack>
                           {(item.customAttributes || [])
                             .filter(
