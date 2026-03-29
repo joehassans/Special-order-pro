@@ -1674,6 +1674,11 @@ export default function OrderDetails() {
           min-width: 12rem;
           max-width: 18ch;
         }
+        .customer-info-row--address .customer-info-address-actions {
+          flex: 0 0 auto;
+          margin-left: auto;
+          align-self: flex-end;
+        }
       `}</style>
       {/* Top bar: back link + order meta */}
       <s-section>
@@ -1819,7 +1824,6 @@ export default function OrderDetails() {
                   <div className="customer-info-field customer-info-field--state">
                     <s-text-field
                       label="State"
-                      details="2 letters (e.g. CA)"
                       maxlength={2}
                       value={customerForm.provinceCode}
                       onChange={(e) =>
@@ -1853,7 +1857,6 @@ export default function OrderDetails() {
                   <div className="customer-info-field customer-info-field--country">
                     <s-text-field
                       label="Country"
-                      details="2 letters (e.g. US)"
                       maxlength={2}
                       value={customerForm.countryCode}
                       onChange={(e) => {
@@ -1867,47 +1870,49 @@ export default function OrderDetails() {
                       }}
                     />
                   </div>
+                  <div className="customer-info-address-actions">
+                    <s-stack direction="inline" gap="small" alignItems="end">
+                      <s-button
+                        variant="primary"
+                        onClick={() => {
+                          submit(
+                            {
+                              intent: "updateCustomer",
+                              orderId: order.id,
+                              customerId: order.customer.id,
+                              defaultAddressId:
+                                customerForm.defaultAddressId ?? "",
+                              firstName: customerForm.firstName,
+                              lastName: customerForm.lastName,
+                              email: customerForm.email,
+                              phone: customerForm.phone,
+                              company: customerForm.company,
+                              address1: customerForm.address1,
+                              address2: customerForm.address2,
+                              city: customerForm.city,
+                              provinceCode: customerForm.provinceCode,
+                              zip: customerForm.zip,
+                              countryCode: customerForm.countryCode,
+                            },
+                            { method: "post" }
+                          );
+                        }}
+                      >
+                        Save customer
+                      </s-button>
+                      <s-button
+                        variant="secondary"
+                        onClick={() =>
+                          setCustomerForm(
+                            customerFormStateFromOrder(order.customer)
+                          )
+                        }
+                      >
+                        Reset
+                      </s-button>
+                    </s-stack>
+                  </div>
                 </div>
-                <s-stack direction="inline" gap="small">
-                  <s-button
-                    variant="primary"
-                    onClick={() => {
-                      submit(
-                        {
-                          intent: "updateCustomer",
-                          orderId: order.id,
-                          customerId: order.customer.id,
-                          defaultAddressId:
-                            customerForm.defaultAddressId ?? "",
-                          firstName: customerForm.firstName,
-                          lastName: customerForm.lastName,
-                          email: customerForm.email,
-                          phone: customerForm.phone,
-                          company: customerForm.company,
-                          address1: customerForm.address1,
-                          address2: customerForm.address2,
-                          city: customerForm.city,
-                          provinceCode: customerForm.provinceCode,
-                          zip: customerForm.zip,
-                          countryCode: customerForm.countryCode,
-                        },
-                        { method: "post" }
-                      );
-                    }}
-                  >
-                    Save customer
-                  </s-button>
-                  <s-button
-                    variant="secondary"
-                    onClick={() =>
-                      setCustomerForm(
-                        customerFormStateFromOrder(order.customer)
-                      )
-                    }
-                  >
-                    Reset
-                  </s-button>
-                </s-stack>
               </s-stack>
             ) : (
               <s-text color="subdued">
