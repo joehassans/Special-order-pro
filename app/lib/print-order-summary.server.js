@@ -1,3 +1,5 @@
+import { normalizeSpecialOrderAttributeValue } from "./special-order-line-item-attributes";
+
 /**
  * Shared Order Summary print layout. Used by both draft-order and order print routes.
  * Layout: Letter 8.5" x 11", max 9 items per page.
@@ -39,7 +41,10 @@ export function getAttributesForDisplay(attrs) {
   }
   const result = [];
   for (const key of ALWAYS_PRESENT_ATTRIBUTES) {
-    result.push({ key, value: map.get(key) || "" });
+    result.push({
+      key,
+      value: normalizeSpecialOrderAttributeValue(key, map.get(key) || ""),
+    });
   }
   return result;
 }

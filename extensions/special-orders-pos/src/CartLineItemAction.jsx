@@ -5,6 +5,7 @@ import {
   LINE_ITEM_PROPERTY_KEYS,
   ORDER_STATUS_OPTIONS_FOR_LINE_ITEM,
 } from "./pos-line-item-attributes.js";
+import { normalizeSpecialOrderAttributeValue } from "./special-order-line-item-attributes.js";
 
 export default async () => {
   render(<CartLineItemAction />, document.body);
@@ -74,13 +75,36 @@ function CartLineItemAction() {
         setOrderStatus(status);
       }
 
-      setBrand(getProperty(lineItem, k.BRAND));
-      setType(getProperty(lineItem, k.TYPE));
-      setStyleNumber(getProperty(lineItem, k.STYLE));
-      setSize(getProperty(lineItem, k.SIZE));
-      setColor(getProperty(lineItem, k.COLOR));
-      setDateOrdered(getProperty(lineItem, k.DATE_ORDERED));
-      setOrderConfirmationNumber(getProperty(lineItem, k.ORDER_CONFIRMATION_NUMBER));
+      setBrand(
+        normalizeSpecialOrderAttributeValue(k.BRAND, getProperty(lineItem, k.BRAND))
+      );
+      setType(
+        normalizeSpecialOrderAttributeValue(k.TYPE, getProperty(lineItem, k.TYPE))
+      );
+      setStyleNumber(
+        normalizeSpecialOrderAttributeValue(
+          k.STYLE,
+          getProperty(lineItem, k.STYLE)
+        )
+      );
+      setSize(
+        normalizeSpecialOrderAttributeValue(k.SIZE, getProperty(lineItem, k.SIZE))
+      );
+      setColor(
+        normalizeSpecialOrderAttributeValue(k.COLOR, getProperty(lineItem, k.COLOR))
+      );
+      setDateOrdered(
+        normalizeSpecialOrderAttributeValue(
+          k.DATE_ORDERED,
+          getProperty(lineItem, k.DATE_ORDERED)
+        )
+      );
+      setOrderConfirmationNumber(
+        normalizeSpecialOrderAttributeValue(
+          k.ORDER_CONFIRMATION_NUMBER,
+          getProperty(lineItem, k.ORDER_CONFIRMATION_NUMBER)
+        )
+      );
     } catch (err) {
       console.error("Error loading line item properties", err);
       setError(i18n.translate("cart_line_item_load_error"));
@@ -105,17 +129,21 @@ function CartLineItemAction() {
       const properties = {
         [k.SPECIAL_ORDER]: specialOrder,
         [k.INITIAL_STATUS]: orderStatus,
-        [k.BRAND]: brand,
-        [k.TYPE]: type,
-        [k.STYLE]: styleNumber,
-        [k.SIZE]: size,
-        [k.COLOR]: color,
-        [k.DATE_ORDERED]: dateOrdered,
-        [k.ORDER_CONFIRMATION_NUMBER]: orderConfirmationNumber,
+        [k.BRAND]: normalizeSpecialOrderAttributeValue(k.BRAND, brand),
+        [k.TYPE]: normalizeSpecialOrderAttributeValue(k.TYPE, type),
+        [k.STYLE]: normalizeSpecialOrderAttributeValue(k.STYLE, styleNumber),
+        [k.SIZE]: normalizeSpecialOrderAttributeValue(k.SIZE, size),
+        [k.COLOR]: normalizeSpecialOrderAttributeValue(k.COLOR, color),
+        [k.DATE_ORDERED]: normalizeSpecialOrderAttributeValue(
+          k.DATE_ORDERED,
+          dateOrdered
+        ),
+        [k.ORDER_CONFIRMATION_NUMBER]: normalizeSpecialOrderAttributeValue(
+          k.ORDER_CONFIRMATION_NUMBER,
+          orderConfirmationNumber
+        ),
       };
 
-      await persistCartNotes(notes);
-      notesDirtyRef.current = false;
       await shopify.cart.addLineItemProperties(uuid, properties);
 
       shopify.toast.show(i18n.translate("cart_line_item_saved_toast"));

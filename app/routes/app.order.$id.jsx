@@ -21,6 +21,10 @@ import {
   fulfillOrderLineItem,
   unfulfillOrderLineItem,
 } from "../lib/line-item-fulfillment.server";
+import {
+  normalizeAttributesArrayForSave,
+  normalizeSpecialOrderAttributeValue,
+} from "../lib/special-order-line-item-attributes";
 
 function formatMoneySet(moneySet) {
   if (!moneySet || !moneySet.shopMoney) return null;
@@ -199,7 +203,10 @@ function getAttributesForDisplay(attrs) {
   }
   const result = [];
   for (const key of ALWAYS_PRESENT_ATTRIBUTES) {
-    result.push({ key, value: map.get(key) || "" });
+    result.push({
+      key,
+      value: normalizeSpecialOrderAttributeValue(key, map.get(key) || ""),
+    });
   }
   for (const [key, value] of map) {
     if (!ALWAYS_PRESENT_ATTRIBUTES.includes(key)) {
@@ -939,6 +946,19 @@ export const action = async ({ request }) => {
       return redirect(request.url);
     }
 
+    let parsedAttributes;
+    try {
+      parsedAttributes = JSON.parse(String(attributesJson));
+    } catch {
+      return redirect(request.url);
+    }
+    if (!Array.isArray(parsedAttributes)) {
+      return redirect(request.url);
+    }
+    const normalizedJson = JSON.stringify(
+      normalizeAttributesArrayForSave(parsedAttributes)
+    );
+
     const metafieldKey = `lineitem_${index + 1}_attributes`;
     const metaResponse = await admin.graphql(METAFIELDS_SET, {
       variables: {
@@ -947,7 +967,7 @@ export const action = async ({ request }) => {
             ownerId: orderId,
             namespace: "custom",
             key: metafieldKey,
-            value: String(attributesJson),
+            value: normalizedJson,
             type: "json",
           },
         ],

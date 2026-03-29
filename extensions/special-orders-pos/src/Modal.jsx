@@ -7,6 +7,10 @@ import {
   unfulfillOrderLineItem,
   ORDER_REFRESH_QUERY,
 } from "./fulfillment.js";
+import {
+  normalizeAttributesArrayForSave,
+  normalizeSpecialOrderAttributeValue,
+} from "./special-order-line-item-attributes.js";
 
 export default async () => {
   render(<Extension />, document.body);
@@ -126,7 +130,10 @@ function applyLineItemAttributeValue(
 ) {
   const newAttrs = (item.customAttributes || []).map((a) => ({
     key: a.key,
-    value: a.key === attrKey ? newVal : a.value,
+    value:
+      a.key === attrKey
+        ? normalizeSpecialOrderAttributeValue(attrKey, newVal)
+        : normalizeSpecialOrderAttributeValue(a.key, a.value),
   }));
   handleUpdateAttributes(orderId, lineIdx, newAttrs);
 }
@@ -455,7 +462,10 @@ function getAttributesForDisplay(attrs, overrides) {
   }
   const result = [];
   for (const key of ALWAYS_PRESENT_ATTRIBUTES) {
-    result.push({ key, value: map.get(key) || "" });
+    result.push({
+      key,
+      value: normalizeSpecialOrderAttributeValue(key, map.get(key) || ""),
+    });
   }
   for (const [key, value] of map) {
     if (!ALWAYS_PRESENT_ATTRIBUTES.includes(key)) result.push({ key, value });
@@ -971,6 +981,7 @@ function Extension() {
       setSaving("attributes");
       try {
         const key = `lineitem_${lineItemIndex + 1}_attributes`;
+        const normalized = normalizeAttributesArrayForSave(attributes);
         const res = await graphql(
           `mutation SetMetafield($metafields: [MetafieldsSetInput!]!) {
             metafieldsSet(metafields: $metafields) {
@@ -983,7 +994,7 @@ function Extension() {
                 ownerId: orderId,
                 namespace: "custom",
                 key,
-                value: JSON.stringify(attributes),
+                value: JSON.stringify(normalized),
                 type: "json",
               },
             ],
@@ -1001,7 +1012,7 @@ function Extension() {
               metafields: {
                 edges: [
                   ...filtered,
-                  { node: { key, value: JSON.stringify(attributes) } },
+                  { node: { key, value: JSON.stringify(normalized) } },
                 ],
               },
             };
