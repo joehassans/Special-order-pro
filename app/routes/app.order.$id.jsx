@@ -55,6 +55,63 @@ function formatUsPhone(phone) {
   return phone;
 }
 
+/** Prefer E.164 for Shopify customer/address phone fields. */
+function normalizePhoneForShopify(phone) {
+  const t = String(phone ?? "").trim();
+  if (!t) return null;
+  const digits = t.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (t.startsWith("+")) return t;
+  return t;
+}
+
+function normalizeCustomerFromGraphql(customer) {
+  if (!customer) return null;
+  const addr = customer.defaultAddress;
+  return {
+    id: customer.id,
+    firstName: customer.firstName ?? "",
+    lastName: customer.lastName ?? "",
+    displayName: customer.displayName ?? "",
+    email: customer.email ?? "",
+    phone: customer.phone ?? "",
+    defaultAddress: addr
+      ? {
+          id: addr.id,
+          address1: addr.address1 ?? "",
+          address2: addr.address2 ?? "",
+          city: addr.city ?? "",
+          province: addr.province ?? "",
+          provinceCode: addr.provinceCode ?? "",
+          zip: addr.zip ?? "",
+          country: addr.country ?? "",
+          countryCodeV2: addr.countryCodeV2 ?? "US",
+          company: addr.company ?? "",
+        }
+      : null,
+  };
+}
+
+function customerFormStateFromOrder(customer) {
+  if (!customer) return null;
+  const a = customer.defaultAddress;
+  return {
+    firstName: customer.firstName ?? "",
+    lastName: customer.lastName ?? "",
+    email: customer.email ?? "",
+    phone: customer.phone ?? "",
+    company: a?.company ?? "",
+    address1: a?.address1 ?? "",
+    address2: a?.address2 ?? "",
+    city: a?.city ?? "",
+    provinceCode: a?.provinceCode ?? "",
+    zip: a?.zip ?? "",
+    countryCode: a?.countryCodeV2 ?? "US",
+    defaultAddressId: a?.id ?? null,
+  };
+}
+
 const VALID_CONTACT_STATUSES = [
   "Not Contacted",
   "No Answer",
@@ -291,16 +348,21 @@ export const loader = async ({ request, params }) => {
           invoiceUrl
           customer {
             id
+            firstName
+            lastName
             displayName
             email
             phone
             defaultAddress {
+              id
               address1
               address2
               city
               province
+              provinceCode
               zip
               country
+              countryCodeV2
               company
             }
           }
@@ -428,7 +490,7 @@ export const loader = async ({ request, params }) => {
       total: formatMoneySet(draftOrder.totalPriceSet),
       outstanding: null, // Draft orders don't have outstanding set in same way
       invoiceUrl: draftOrder.invoiceUrl || null,
-      customer: draftOrder.customer || null,
+      customer: normalizeCustomerFromGraphql(draftOrder.customer),
       totalRefundedAmount: 0,
       totalRefundedCurrency: draftLineItems[0]?.currencyCode || "USD",
       orderAdjustmentsAdditionalPaymentMetafield: getOrderMetafieldNumber(
@@ -489,16 +551,21 @@ export const loader = async ({ request, params }) => {
           }
           customer {
             id
+            firstName
+            lastName
             displayName
             email
             phone
             defaultAddress {
+              id
               address1
               address2
               city
               province
+              provinceCode
               zip
               country
+              countryCodeV2
               company
             }
           }
@@ -704,7 +771,7 @@ export const loader = async ({ request, params }) => {
       total: formatMoneySet(order.totalPriceSet),
       outstanding: formatMoneySet(order.totalOutstandingSet),
       paid,
-      customer: order.customer || null,
+      customer: normalizeCustomerFromGraphql(order.customer),
       totalRefundedAmount: Number.isFinite(totalRefundedAmount) ? totalRefundedAmount : 0,
       totalRefundedCurrency,
       orderAdjustmentsAdditionalPaymentMetafield: getOrderMetafieldNumber(
@@ -773,6 +840,65 @@ const UPDATE_ORDER_NOTE = `#graphql
   }
 `;
 
+const CUSTOMER_UPDATE = `#graphql
+  mutation CustomerUpdate($input: CustomerInput!) {
+    customerUpdate(input: $input) {
+      customer {
+        id
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const CUSTOMER_ADDRESS_UPDATE = `#graphql
+  mutation CustomerAddressUpdate(
+    $customerId: ID!
+    $addressId: ID!
+    $address: MailingAddressInput!
+  ) {
+    customerAddressUpdate(
+      customerId: $customerId
+      addressId: $addressId
+      address: $address
+      setAsDefault: true
+    ) {
+      address {
+        id
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+const CUSTOMER_ADDRESS_CREATE = `#graphql
+  mutation CustomerAddressCreate(
+    $customerId: ID!
+    $address: MailingAddressInput!
+    $setAsDefault: Boolean
+  ) {
+    customerAddressCreate(
+      customerId: $customerId
+      address: $address
+      setAsDefault: $setAsDefault
+    ) {
+      address {
+        id
+      }
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
 function redirectWithFulfillmentError(request, message) {
   const url = new URL(request.url);
   const short =
@@ -784,6 +910,20 @@ function redirectWithFulfillmentError(request, message) {
 function redirectClearFulfillmentError(request) {
   const url = new URL(request.url);
   url.searchParams.delete("fulfillmentError");
+  return redirect(url.pathname + url.search);
+}
+
+function redirectWithCustomerError(request, message) {
+  const url = new URL(request.url);
+  const short =
+    message.length > 450 ? `${message.slice(0, 450)}…` : message;
+  url.searchParams.set("customerError", short);
+  return redirect(url.pathname + url.search);
+}
+
+function redirectClearCustomerError(request) {
+  const url = new URL(request.url);
+  url.searchParams.delete("customerError");
   return redirect(url.pathname + url.search);
 }
 
@@ -843,6 +983,128 @@ export const action = async ({ request }) => {
     }
 
     return redirect(request.url);
+  }
+
+  if (intent === "updateCustomer") {
+    const customerId = formData.get("customerId");
+    if (!customerId) {
+      return redirect(request.url);
+    }
+
+    const firstName = String(formData.get("firstName") ?? "").trim();
+    const lastName = String(formData.get("lastName") ?? "").trim();
+    const email = String(formData.get("email") ?? "").trim();
+    const phoneRaw = String(formData.get("phone") ?? "").trim();
+
+    const company = String(formData.get("company") ?? "").trim();
+    const address1 = String(formData.get("address1") ?? "").trim();
+    const address2 = String(formData.get("address2") ?? "").trim();
+    const city = String(formData.get("city") ?? "").trim();
+    const provinceCode = String(formData.get("provinceCode") ?? "").trim();
+    const zip = String(formData.get("zip") ?? "").trim();
+    let countryCode = String(formData.get("countryCode") ?? "US")
+      .trim()
+      .toUpperCase();
+    if (!countryCode) countryCode = "US";
+
+    const defaultAddressIdRaw = formData.get("defaultAddressId");
+    const hasDefaultAddressId =
+      typeof defaultAddressIdRaw === "string" &&
+      defaultAddressIdRaw.trim().length > 0;
+
+    const phone = normalizePhoneForShopify(phoneRaw);
+
+    const customerInput = {
+      id: String(customerId),
+      firstName,
+      lastName,
+      email: email || null,
+      phone,
+    };
+
+    const cuRes = await admin.graphql(CUSTOMER_UPDATE, {
+      variables: { input: customerInput },
+    });
+    const cuJson = await cuRes.json();
+    if (cuJson.errors?.length) {
+      return redirectWithCustomerError(
+        request,
+        cuJson.errors.map((e) => e.message).join("; ")
+      );
+    }
+    const cuErrors = cuJson.data?.customerUpdate?.userErrors ?? [];
+    if (cuErrors.length > 0) {
+      return redirectWithCustomerError(
+        request,
+        cuErrors.map((e) => e.message).join(", ") || "Failed to update customer."
+      );
+    }
+
+    const addressInput = {
+      address1: address1 || "",
+      city: city || "",
+      zip: zip || "",
+      countryCode,
+    };
+    if (address2) addressInput.address2 = address2;
+    if (company) addressInput.company = company;
+    if (provinceCode) addressInput.provinceCode = provinceCode;
+
+    const hasAddress =
+      Boolean(address1) ||
+      Boolean(city) ||
+      Boolean(zip) ||
+      Boolean(company) ||
+      Boolean(address2);
+
+    if (hasDefaultAddressId) {
+      const addrRes = await admin.graphql(CUSTOMER_ADDRESS_UPDATE, {
+        variables: {
+          customerId: String(customerId),
+          addressId: String(defaultAddressIdRaw).trim(),
+          address: addressInput,
+        },
+      });
+      const addrJson = await addrRes.json();
+      if (addrJson.errors?.length) {
+        return redirectWithCustomerError(
+          request,
+          addrJson.errors.map((e) => e.message).join("; ")
+        );
+      }
+      const addrErrors = addrJson.data?.customerAddressUpdate?.userErrors ?? [];
+      if (addrErrors.length > 0) {
+        return redirectWithCustomerError(
+          request,
+          addrErrors.map((e) => e.message).join(", ") ||
+            "Failed to update address."
+        );
+      }
+    } else if (hasAddress) {
+      const acRes = await admin.graphql(CUSTOMER_ADDRESS_CREATE, {
+        variables: {
+          customerId: String(customerId),
+          address: addressInput,
+          setAsDefault: true,
+        },
+      });
+      const acJson = await acRes.json();
+      if (acJson.errors?.length) {
+        return redirectWithCustomerError(
+          request,
+          acJson.errors.map((e) => e.message).join("; ")
+        );
+      }
+      const acErrors = acJson.data?.customerAddressCreate?.userErrors ?? [];
+      if (acErrors.length > 0) {
+        return redirectWithCustomerError(
+          request,
+          acErrors.map((e) => e.message).join(", ") || "Failed to add address."
+        );
+      }
+    }
+
+    return redirectClearCustomerError(request);
   }
 
   if (intent === "updateContactStatus") {
@@ -1190,11 +1452,19 @@ export default function OrderDetails() {
   const submit = useSubmit();
   const [searchParams] = useSearchParams();
   const fulfillmentError = searchParams.get("fulfillmentError");
+  const customerError = searchParams.get("customerError");
   const [note, setNote] = useState(order.note || "");
+  const [customerForm, setCustomerForm] = useState(() =>
+    customerFormStateFromOrder(order.customer)
+  );
 
   useEffect(() => {
     setNote(order.note || "");
   }, [order.note]);
+
+  useEffect(() => {
+    setCustomerForm(customerFormStateFromOrder(order.customer));
+  }, [order.customer, order.updatedAt]);
 
   const createdLabel = new Date(order.createdAt).toLocaleString();
   const updatedLabel = new Date(order.updatedAt).toLocaleString();
@@ -1269,6 +1539,11 @@ export default function OrderDetails() {
       {fulfillmentError && order.type === "order" && (
         <s-section>
           <s-banner tone="critical" heading={fulfillmentError} />
+        </s-section>
+      )}
+      {customerError && (
+        <s-section>
+          <s-banner tone="critical" heading={customerError} />
         </s-section>
       )}
       <style>{`
@@ -1392,47 +1667,175 @@ export default function OrderDetails() {
               <s-heading size="large" style={{ fontSize: "1.6rem" }}>
                 👤 CUSTOMER INFORMATION
               </s-heading>
-              {order.customer ? (
+              {order.customer && customerForm ? (
                 <s-stack gap="small" alignItems="start">
-                  <s-heading>{order.customer.displayName}</s-heading>
-                  {order.customer.email && (
-                    <s-text color="subdued">
-                      {order.customer.email}
-                    </s-text>
-                  )}
-                  {order.customer.phone && (
-                    <s-text type="strong">
-                      {formatUsPhone(order.customer.phone)}
-                    </s-text>
-                  )}
-                  {order.customer.defaultAddress && (
-                    <s-stack gap="small-300" alignItems="start">
-                      {order.customer.defaultAddress.company && (
-                        <s-text color="subdued">
-                          {order.customer.defaultAddress.company}
-                        </s-text>
-                      )}
-                      <s-text color="subdued">
-                        {order.customer.defaultAddress.address1}
-                      </s-text>
-                      {order.customer.defaultAddress.address2 && (
-                        <s-text color="subdued">
-                          {order.customer.defaultAddress.address2}
-                        </s-text>
-                      )}
-                      <s-text color="subdued">
-                        {[order.customer.defaultAddress.city,
-                          order.customer.defaultAddress.province,
-                          order.customer.defaultAddress.zip]
-                          .filter(Boolean)
-                          .join(", ")}
-                      </s-text>
-                    </s-stack>
-                  )}
+                  <s-stack direction="inline" gap="small" alignItems="end">
+                    <s-text-field
+                      label="First name"
+                      value={customerForm.firstName}
+                      onChange={(e) =>
+                        setCustomerForm((f) =>
+                          f
+                            ? { ...f, firstName: e.currentTarget.value }
+                            : f
+                        )
+                      }
+                    />
+                    <s-text-field
+                      label="Last name"
+                      value={customerForm.lastName}
+                      onChange={(e) =>
+                        setCustomerForm((f) =>
+                          f
+                            ? { ...f, lastName: e.currentTarget.value }
+                            : f
+                        )
+                      }
+                    />
+                  </s-stack>
+                  <s-text-field
+                    label="Email"
+                    type="email"
+                    autocomplete="email"
+                    value={customerForm.email}
+                    onChange={(e) =>
+                      setCustomerForm((f) =>
+                        f ? { ...f, email: e.currentTarget.value } : f
+                      )
+                    }
+                  />
+                  <s-text-field
+                    label="Phone"
+                    type="tel"
+                    autocomplete="tel"
+                    value={customerForm.phone}
+                    onChange={(e) =>
+                      setCustomerForm((f) =>
+                        f ? { ...f, phone: e.currentTarget.value } : f
+                      )
+                    }
+                  />
+                  <s-text color="subdued" type="small">
+                    Default address (updates the customer profile in Shopify)
+                  </s-text>
+                  <s-text-field
+                    label="Company"
+                    value={customerForm.company}
+                    onChange={(e) =>
+                      setCustomerForm((f) =>
+                        f ? { ...f, company: e.currentTarget.value } : f
+                      )
+                    }
+                  />
+                  <s-text-field
+                    label="Address line 1"
+                    value={customerForm.address1}
+                    onChange={(e) =>
+                      setCustomerForm((f) =>
+                        f ? { ...f, address1: e.currentTarget.value } : f
+                      )
+                    }
+                  />
+                  <s-text-field
+                    label="Address line 2"
+                    value={customerForm.address2}
+                    onChange={(e) =>
+                      setCustomerForm((f) =>
+                        f ? { ...f, address2: e.currentTarget.value } : f
+                      )
+                    }
+                  />
+                  <s-stack direction="inline" gap="small" alignItems="end">
+                    <s-text-field
+                      label="City"
+                      value={customerForm.city}
+                      onChange={(e) =>
+                        setCustomerForm((f) =>
+                          f ? { ...f, city: e.currentTarget.value } : f
+                        )
+                      }
+                    />
+                    <s-text-field
+                      label="State / Province code"
+                      details="e.g. CA, NY"
+                      value={customerForm.provinceCode}
+                      onChange={(e) =>
+                        setCustomerForm((f) =>
+                          f
+                            ? { ...f, provinceCode: e.currentTarget.value }
+                            : f
+                        )
+                      }
+                    />
+                    <s-text-field
+                      label="ZIP / Postal code"
+                      value={customerForm.zip}
+                      onChange={(e) =>
+                        setCustomerForm((f) =>
+                          f ? { ...f, zip: e.currentTarget.value } : f
+                        )
+                      }
+                    />
+                  </s-stack>
+                  <s-text-field
+                    label="Country code"
+                    details="ISO 3166-1 alpha-2 (e.g. US)"
+                    value={customerForm.countryCode}
+                    onChange={(e) => {
+                      const v = e.currentTarget.value
+                        .toUpperCase()
+                        .replace(/[^A-Z]/g, "")
+                        .slice(0, 2);
+                      setCustomerForm((f) =>
+                        f ? { ...f, countryCode: v || "US" } : f
+                      );
+                    }}
+                  />
+                  <s-stack direction="inline" gap="small">
+                    <s-button
+                      variant="primary"
+                      onClick={() => {
+                        submit(
+                          {
+                            intent: "updateCustomer",
+                            orderId: order.id,
+                            customerId: order.customer.id,
+                            defaultAddressId:
+                              customerForm.defaultAddressId ?? "",
+                            firstName: customerForm.firstName,
+                            lastName: customerForm.lastName,
+                            email: customerForm.email,
+                            phone: customerForm.phone,
+                            company: customerForm.company,
+                            address1: customerForm.address1,
+                            address2: customerForm.address2,
+                            city: customerForm.city,
+                            provinceCode: customerForm.provinceCode,
+                            zip: customerForm.zip,
+                            countryCode: customerForm.countryCode,
+                          },
+                          { method: "post" }
+                        );
+                      }}
+                    >
+                      Save customer
+                    </s-button>
+                    <s-button
+                      variant="secondary"
+                      onClick={() =>
+                        setCustomerForm(
+                          customerFormStateFromOrder(order.customer)
+                        )
+                      }
+                    >
+                      Reset
+                    </s-button>
+                  </s-stack>
                 </s-stack>
               ) : (
                 <s-text color="subdued">
-                  No customer information available
+                  No customer on this order. Add or associate a customer in
+                  Shopify admin.
                 </s-text>
               )}
             </s-stack>
