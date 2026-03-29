@@ -1,8 +1,7 @@
 import "@shopify/ui-extensions/preact";
 import { render } from "preact";
-import { useState, useEffect, useMemo, useRef } from "preact/hooks";
+import { useState, useEffect, useMemo } from "preact/hooks";
 import {
-  CART_PROPERTY_KEYS,
   LINE_ITEM_PROPERTY_KEYS,
   ORDER_STATUS_OPTIONS_FOR_LINE_ITEM,
 } from "./pos-line-item-attributes.js";
@@ -18,20 +17,6 @@ function getProperty(lineItem, key) {
   } catch {
     return "";
   }
-}
-
-/**
- * POS may surface the order note on `cart.note`, `cart.properties.note`, or both.
- * Prefer top-level `note`, then cart property `note`, then legacy app key.
- */
-function getOrderNoteFromCart(cart) {
-  const top = cart?.note;
-  if (top != null && String(top).trim() !== "") return String(top);
-  const propNote = cart?.properties?.note;
-  if (propNote != null && String(propNote).trim() !== "") return String(propNote);
-  const legacy =
-    cart?.properties?.[CART_PROPERTY_KEYS.SPECIAL_ORDER_NOTES] ?? "";
-  return String(legacy);
 }
 
 function dismissModal() {
@@ -58,15 +43,9 @@ function CartLineItemAction() {
   const [color, setColor] = useState("");
   const [dateOrdered, setDateOrdered] = useState("");
   const [orderConfirmationNumber, setOrderConfirmationNumber] = useState("");
-  /** Cart-wide order note (same as POS cart / checkout note). */
-  const [notes, setNotes] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-
-  const lineUuid = shopify.cartLineItem?.uuid ?? "";
-  /** Avoid cart subscription overwriting the textarea while the user is typing. */
-  const notesDirtyRef = useRef(false);
 
   /** Show 4 standard choices; if saved status is legacy (removed from modal), keep it selectable */
   const orderStatusChoices = useMemo(() => {
@@ -107,60 +86,6 @@ function CartLineItemAction() {
       setError(i18n.translate("cart_line_item_load_error"));
     }
   }, []);
-
-  /** Load order note when switching line items; reset dirty flag so cart can drive the field. */
-  useEffect(() => {
-    try {
-      notesDirtyRef.current = false;
-      const cart = shopify.cart.current.value;
-      setNotes(getOrderNoteFromCart(cart));
-    } catch (err) {
-      console.error("Error loading cart notes", err);
-    }
-  }, [lineUuid]);
-
-  /** When POS updates the cart (e.g. note edited in the native cart UI), mirror it here. */
-  useEffect(() => {
-    return shopify.cart.current.subscribe(() => {
-      if (notesDirtyRef.current) return;
-      try {
-        setNotes(getOrderNoteFromCart(shopify.cart.current.value));
-      } catch (_) {}
-    });
-  }, []);
-
-  /**
-   * Writes the same order note POS uses: top-level `note` plus `properties.note`, and
-   * passes `lineItems` by reference (spreading can break POS sync).
-   */
-  async function persistCartNotes(value) {
-    const c = shopify.cart.current.value;
-    const properties = { ...(c.properties ?? {}) };
-    delete properties[CART_PROPERTY_KEYS.SPECIAL_ORDER_NOTES];
-
-    const raw = String(value ?? "");
-    const trimmed = raw.trim();
-    if (trimmed === "") {
-      delete properties.note;
-    } else {
-      properties.note = trimmed;
-    }
-
-    const note = trimmed === "" ? undefined : trimmed;
-
-    /** @type {Parameters<typeof shopify.cart.bulkCartUpdate>[0]} */
-    const payload = {
-      note,
-      cartDiscounts: c.cartDiscounts ?? [],
-      lineItems: c.lineItems ?? [],
-      customer: c.customer,
-      properties,
-    };
-    if (c.cartDiscount !== undefined) {
-      payload.cartDiscount = c.cartDiscount;
-    }
-    return shopify.cart.bulkCartUpdate(payload);
-  }
 
   async function handleSave() {
     try {
@@ -327,33 +252,6 @@ function CartLineItemAction() {
                         }
                       />
                     </s-box>
-                  </s-stack>
-                  <s-stack gap="small-300">
-                    <s-text type="strong">
-                      {i18n.translate("cart_line_item_notes")}
-                    </s-text>
-                    <s-text-area
-                      value={notes}
-                      rows={4}
-                      onInput={(e) => {
-                        notesDirtyRef.current = true;
-                        setNotes(e.currentTarget.value);
-                      }}
-                      onBlur={async (e) => {
-                        const v = e.currentTarget.value;
-                        try {
-                          const updated = await persistCartNotes(v);
-                          if (updated) {
-                            setNotes(getOrderNoteFromCart(updated));
-                          }
-                        } catch (err) {
-                          console.error("Error saving cart notes", err);
-                        } finally {
-                          notesDirtyRef.current = false;
-                        }
-                      }}
-                      disabled={!!saving}
-                    />
                   </s-stack>
                 </s-stack>
               </s-box>
