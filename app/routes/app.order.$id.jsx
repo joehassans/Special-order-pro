@@ -2105,7 +2105,7 @@ export default function OrderDetails() {
                 label="Notes"
                 labelAccessibilityVisibility="exclusive"
                 value={note}
-                rows={3}
+                rows={5}
                 onInput={(event) => setNote(webComponentFieldValue(event))}
                 placeholder="Add notes about this order..."
               />
