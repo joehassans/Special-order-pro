@@ -1679,6 +1679,45 @@ export default function OrderDetails() {
           margin-left: auto;
           align-self: flex-end;
         }
+        /* Status + notes row: four compact cards, then notes fills remaining width and stretches */
+        .order-status-grid {
+          display: grid;
+          grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 3fr);
+          gap: 16px;
+          align-items: stretch;
+          width: 100%;
+        }
+        @media (max-width: 1100px) {
+          .order-status-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+          }
+          .order-status-notes-card {
+            grid-column: 1 / -1;
+          }
+        }
+        @media (max-width: 600px) {
+          .order-status-grid {
+            grid-template-columns: 1fr;
+          }
+        }
+        .order-status-notes-card {
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+          min-block-size: 100%;
+          height: 100%;
+        }
+        .order-status-notes-inner {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          min-height: 0;
+          gap: 12px;
+        }
+        .order-status-notes-inner s-text-area {
+          flex: 1 1 auto;
+          min-block-size: 220px;
+        }
       `}</style>
       {/* Top bar: back link + order meta */}
       <s-section>
@@ -1924,9 +1963,9 @@ export default function OrderDetails() {
         </s-box>
       </s-section>
 
-      {/* Contact, overall, payment, adjustments, notes (notes fills remaining width) */}
+      {/* Contact, overall, payment, adjustments, notes (grid: notes column is wide; stretches to row height) */}
       <s-section>
-        <s-stack direction="inline" gap="large" alignItems="stretch">
+        <div className="order-status-grid">
           {/* Contact status */}
           <s-box
             padding="base"
@@ -2047,16 +2086,17 @@ export default function OrderDetails() {
 
           <OrderAdjustmentsCard orderAdjustments={order.orderAdjustments} />
 
-          {/* Notes — same row as status cards; grows to fill remaining width */}
+          {/* Notes — wide column; stretches to match tallest card in row */}
           <s-box
+            className="order-status-notes-card"
             padding="small-500"
             borderRadius="base"
             borderWidth="base"
             background="subdued"
             minInlineSize="0"
-            style={{ flex: "3 1 240px" }}
+            inlineSize="100%"
           >
-            <s-stack gap="small-500">
+            <div className="order-status-notes-inner">
               <s-heading size="large" style={{ fontSize: "1.6rem" }}>
                 NOTES
               </s-heading>
@@ -2064,6 +2104,7 @@ export default function OrderDetails() {
                 label="Notes"
                 labelAccessibilityVisibility="exclusive"
                 value={note}
+                rows={12}
                 onInput={(event) => setNote(webComponentFieldValue(event))}
                 placeholder="Add notes about this order..."
               />
@@ -2080,9 +2121,9 @@ export default function OrderDetails() {
                   Save note
                 </s-button>
               </s-stack>
-            </s-stack>
+            </div>
           </s-box>
-        </s-stack>
+        </div>
       </s-section>
 
       {/* Line items */}
