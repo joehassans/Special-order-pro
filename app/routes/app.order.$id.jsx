@@ -1704,7 +1704,6 @@ export default function OrderDetails() {
           display: flex;
           flex-direction: column;
           min-height: 0;
-          min-block-size: 100%;
           height: 100%;
         }
         .order-status-notes-inner {
@@ -1712,11 +1711,13 @@ export default function OrderDetails() {
           display: flex;
           flex-direction: column;
           min-height: 0;
+          height: 100%;
           gap: 12px;
         }
+        /* Row height follows the other cards; textarea fills card without forcing extra height */
         .order-status-notes-inner s-text-area {
-          flex: 1 1 auto;
-          min-block-size: 220px;
+          flex: 1 1 0;
+          min-height: 0;
         }
       `}</style>
       {/* Top bar: back link + order meta */}
@@ -2104,7 +2105,7 @@ export default function OrderDetails() {
                 label="Notes"
                 labelAccessibilityVisibility="exclusive"
                 value={note}
-                rows={12}
+                rows={3}
                 onInput={(event) => setNote(webComponentFieldValue(event))}
                 placeholder="Add notes about this order..."
               />
