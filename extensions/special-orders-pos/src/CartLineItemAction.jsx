@@ -1,6 +1,6 @@
 import "@shopify/ui-extensions/preact";
 import { render } from "preact";
-import { useState, useEffect, useMemo } from "preact/hooks";
+import { useState, useEffect, useMemo, useRef } from "preact/hooks";
 import {
   CART_PROPERTY_KEYS,
   LINE_ITEM_PROPERTY_KEYS,
@@ -20,10 +20,15 @@ function getProperty(lineItem, key) {
   }
 }
 
-/** Standard POS cart order note (`cart.note`), same as checkout / draft order note. */
+/**
+ * POS may surface the order note on `cart.note`, `cart.properties.note`, or both.
+ * Prefer top-level `note`, then cart property `note`, then legacy app key.
+ */
 function getOrderNoteFromCart(cart) {
-  const fromNote = cart?.note ?? "";
-  if (String(fromNote).trim() !== "") return String(fromNote);
+  const top = cart?.note;
+  if (top != null && String(top).trim() !== "") return String(top);
+  const propNote = cart?.properties?.note;
+  if (propNote != null && String(propNote).trim() !== "") return String(propNote);
   const legacy =
     cart?.properties?.[CART_PROPERTY_KEYS.SPECIAL_ORDER_NOTES] ?? "";
   return String(legacy);
@@ -53,13 +58,15 @@ function CartLineItemAction() {
   const [color, setColor] = useState("");
   const [dateOrdered, setDateOrdered] = useState("");
   const [orderConfirmationNumber, setOrderConfirmationNumber] = useState("");
-  /** Cart-wide; shared when switching line items (stored on cart properties). */
+  /** Cart-wide order note (same as POS cart / checkout note). */
   const [notes, setNotes] = useState("");
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const lineUuid = shopify.cartLineItem?.uuid ?? "";
+  /** Avoid cart subscription overwriting the textarea while the user is typing. */
+  const notesDirtyRef = useRef(false);
 
   /** Show 4 standard choices; if saved status is legacy (removed from modal), keep it selectable */
   const orderStatusChoices = useMemo(() => {
@@ -101,9 +108,10 @@ function CartLineItemAction() {
     }
   }, []);
 
-  /** Load order note whenever the selected line item changes (same note for whole cart). */
+  /** Load order note when switching line items; reset dirty flag so cart can drive the field. */
   useEffect(() => {
     try {
+      notesDirtyRef.current = false;
       const cart = shopify.cart.current.value;
       setNotes(getOrderNoteFromCart(cart));
     } catch (err) {
@@ -111,27 +119,47 @@ function CartLineItemAction() {
     }
   }, [lineUuid]);
 
-  /** Writes the standard cart order note (draft / checkout) and drops legacy custom property if present. */
+  /** When POS updates the cart (e.g. note edited in the native cart UI), mirror it here. */
+  useEffect(() => {
+    return shopify.cart.current.subscribe(() => {
+      if (notesDirtyRef.current) return;
+      try {
+        setNotes(getOrderNoteFromCart(shopify.cart.current.value));
+      } catch (_) {}
+    });
+  }, []);
+
+  /**
+   * Writes the same order note POS uses: top-level `note` plus `properties.note`, and
+   * passes `lineItems` by reference (spreading can break POS sync).
+   */
   async function persistCartNotes(value) {
     const c = shopify.cart.current.value;
     const properties = { ...(c.properties ?? {}) };
     delete properties[CART_PROPERTY_KEYS.SPECIAL_ORDER_NOTES];
 
     const raw = String(value ?? "");
-    const note = raw.trim() === "" ? undefined : raw;
+    const trimmed = raw.trim();
+    if (trimmed === "") {
+      delete properties.note;
+    } else {
+      properties.note = trimmed;
+    }
+
+    const note = trimmed === "" ? undefined : trimmed;
 
     /** @type {Parameters<typeof shopify.cart.bulkCartUpdate>[0]} */
     const payload = {
       note,
-      cartDiscounts: [...(c.cartDiscounts ?? [])],
-      lineItems: [...(c.lineItems ?? [])],
+      cartDiscounts: c.cartDiscounts ?? [],
+      lineItems: c.lineItems ?? [],
       customer: c.customer,
       properties,
     };
     if (c.cartDiscount !== undefined) {
       payload.cartDiscount = c.cartDiscount;
     }
-    await shopify.cart.bulkCartUpdate(payload);
+    return shopify.cart.bulkCartUpdate(payload);
   }
 
   async function handleSave() {
@@ -162,6 +190,7 @@ function CartLineItemAction() {
       };
 
       await persistCartNotes(notes);
+      notesDirtyRef.current = false;
       await shopify.cart.addLineItemProperties(uuid, properties);
 
       shopify.toast.show(i18n.translate("cart_line_item_saved_toast"));
@@ -306,12 +335,22 @@ function CartLineItemAction() {
                     <s-text-area
                       value={notes}
                       rows={4}
-                      onInput={(e) => setNotes(e.currentTarget.value)}
-                      onBlur={(e) => {
+                      onInput={(e) => {
+                        notesDirtyRef.current = true;
+                        setNotes(e.currentTarget.value);
+                      }}
+                      onBlur={async (e) => {
                         const v = e.currentTarget.value;
-                        void persistCartNotes(v).catch((err) =>
-                          console.error("Error saving cart notes", err)
-                        );
+                        try {
+                          const updated = await persistCartNotes(v);
+                          if (updated) {
+                            setNotes(getOrderNoteFromCart(updated));
+                          }
+                        } catch (err) {
+                          console.error("Error saving cart notes", err);
+                        } finally {
+                          notesDirtyRef.current = false;
+                        }
                       }}
                       disabled={!!saving}
                     />
