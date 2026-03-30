@@ -85,13 +85,14 @@ const CUSTOMER_FIELD_WIDTH = {
   country: "150px",
 };
 
-/** iPad order detail: adjusted first/last/email/phone column widths. */
+/** iPad order detail: adjusted first/last/email/phone/address column widths. */
 const CUSTOMER_FIELD_WIDTH_IPAD = {
   ...CUSTOMER_FIELD_WIDTH,
   firstName: "200px",
   lastName: "200px",
   email: "400px",
   phone: "180px",
+  address1: "500px",
 };
 
 // Same names as admin; Picked Up and Order Canceled at bottom
