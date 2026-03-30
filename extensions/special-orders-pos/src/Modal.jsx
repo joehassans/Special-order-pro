@@ -112,6 +112,41 @@ function formatUsPhone(phone) {
   return phone;
 }
 
+/** E.164-style phone for Admin API `customerUpdate`. */
+function normalizePhoneForShopify(phone) {
+  const t = String(phone ?? "").trim();
+  if (!t) return null;
+  const digits = t.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (t.startsWith("+")) return t;
+  return t;
+}
+
+/** Editable customer + default address fields (matches admin order page). */
+function customerFormFromCustomer(customer) {
+  if (!customer?.id) return null;
+  const a = customer.defaultAddress;
+  return {
+    customerId: customer.id,
+    firstName: customer.firstName ?? "",
+    lastName: customer.lastName ?? "",
+    email: customer.email ?? "",
+    phone: customer.phone ?? "",
+    company: a?.company ?? "",
+    address1: a?.address1 ?? "",
+    address2: a?.address2 ?? "",
+    city: a?.city ?? "",
+    provinceCode: a?.provinceCode ?? "",
+    zip: a?.zip ?? "",
+    countryCode: String(a?.countryCodeV2 ?? "US")
+      .toUpperCase()
+      .replace(/[^A-Z]/g, "")
+      .slice(0, 2) || "US",
+    defaultAddressId: a?.id ?? null,
+  };
+}
+
 function graphql(query, variables = {}) {
   return fetch("shopify:admin/api/graphql.json", {
     method: "POST",
@@ -541,7 +576,24 @@ const LIST_QUERY = `
           totalPriceSet { shopMoney { amount currencyCode } }
           totalRefundedSet { shopMoney { amount currencyCode } }
           totalOutstandingSet { shopMoney { amount currencyCode } }
-          customer { id displayName email phone }
+          customer {
+            id
+            displayName
+            firstName
+            lastName
+            email
+            phone
+            defaultAddress {
+              id
+              address1
+              address2
+              city
+              provinceCode
+              zip
+              countryCodeV2
+              company
+            }
+          }
           metafields(first: 250, namespace: "custom") {
             edges { node { key value } }
           }
@@ -566,7 +618,24 @@ const LIST_QUERY = `
           subtotalPriceSet { shopMoney { amount currencyCode } }
           totalTaxSet { shopMoney { amount currencyCode } }
           totalPriceSet { shopMoney { amount currencyCode } }
-          customer { id displayName email phone }
+          customer {
+            id
+            displayName
+            firstName
+            lastName
+            email
+            phone
+            defaultAddress {
+              id
+              address1
+              address2
+              city
+              provinceCode
+              zip
+              countryCodeV2
+              company
+            }
+          }
           metafields(first: 250, namespace: "custom") {
             edges { node { key value } }
           }
@@ -587,6 +656,97 @@ const LIST_QUERY = `
   }
 `;
 
+const CUSTOMER_UPDATE_MUTATION = `
+  mutation PosCustomerUpdate($input: CustomerInput!) {
+    customerUpdate(input: $input) {
+      customer { id }
+      userErrors { field message }
+    }
+  }
+`;
+
+const CUSTOMER_ADDRESS_UPDATE_MUTATION = `
+  mutation PosCustomerAddressUpdate(
+    $customerId: ID!
+    $addressId: ID!
+    $address: MailingAddressInput!
+  ) {
+    customerAddressUpdate(
+      customerId: $customerId
+      addressId: $addressId
+      address: $address
+      setAsDefault: true
+    ) {
+      address { id }
+      userErrors { field message }
+    }
+  }
+`;
+
+const CUSTOMER_ADDRESS_CREATE_MUTATION = `
+  mutation PosCustomerAddressCreate(
+    $customerId: ID!
+    $address: MailingAddressInput!
+    $setAsDefault: Boolean
+  ) {
+    customerAddressCreate(
+      customerId: $customerId
+      address: $address
+      setAsDefault: $setAsDefault
+    ) {
+      address { id }
+      userErrors { field message }
+    }
+  }
+`;
+
+const NODE_CUSTOMER_QUERY = `
+  query PosNodeCustomer($id: ID!) {
+    node(id: $id) {
+      ... on Order {
+        customer {
+          id
+          displayName
+          firstName
+          lastName
+          email
+          phone
+          defaultAddress {
+            id
+            address1
+            address2
+            city
+            provinceCode
+            zip
+            countryCodeV2
+            company
+          }
+        }
+      }
+      ... on DraftOrder {
+        customer {
+          id
+          displayName
+          firstName
+          lastName
+          email
+          phone
+          defaultAddress {
+            id
+            address1
+            address2
+            city
+            provinceCode
+            zip
+            countryCodeV2
+            company
+          }
+        }
+      }
+    }
+  }
+`;
+
 function Extension() {
   const { i18n } = shopify;
   const [rawOrders, setRawOrders] = useState([]);
@@ -597,6 +757,8 @@ function Extension() {
   const [statusFilter, setStatusFilter] = useState("");
   const [saving, setSaving] = useState(null);
   const [fulfillmentError, setFulfillmentError] = useState(null);
+  const [customerForm, setCustomerForm] = useState(null);
+  const [customerError, setCustomerError] = useState(null);
   const [isTablet, setIsTablet] = useState(null);
 
   useEffect(() => {
@@ -606,6 +768,39 @@ function Extension() {
   useEffect(() => {
     setFulfillmentError(null);
   }, [selectedOrder?.id]);
+
+  const detailOrder = useMemo(() => {
+    if (!selectedOrder) return null;
+    return rawOrders.find((o) => o.id === selectedOrder.id) || selectedOrder;
+  }, [rawOrders, selectedOrder]);
+
+  const customerSyncKey = useMemo(() => {
+    const c = detailOrder?.customer;
+    if (!c?.id) return "";
+    const a = c.defaultAddress;
+    return [
+      c.id,
+      c.firstName ?? "",
+      c.lastName ?? "",
+      c.email ?? "",
+      c.phone ?? "",
+      a?.id ?? "",
+      a?.address1 ?? "",
+      a?.city ?? "",
+      a?.zip ?? "",
+    ].join("|");
+  }, [detailOrder?.customer]);
+
+  useEffect(() => {
+    if (!selectedOrder) {
+      setCustomerForm(null);
+      setCustomerError(null);
+      return;
+    }
+    const f = customerFormFromCustomer(detailOrder?.customer);
+    setCustomerForm(f);
+    setCustomerError(null);
+  }, [selectedOrder?.id, customerSyncKey]);
 
   const col = isTablet ? COL_IPAD : COL_MOBILE;
   const minTableWidth = isTablet ? MIN_TABLE_IPAD : MIN_TABLE_MOBILE;
@@ -1063,6 +1258,94 @@ function Extension() {
     }
   }, []);
 
+  const handleSaveCustomer = useCallback(async () => {
+    if (!customerForm?.customerId || !detailOrder) return;
+    setSaving("customer");
+    setCustomerError(null);
+    try {
+      const phone = normalizePhoneForShopify(customerForm.phone);
+      const cuRes = await graphql(CUSTOMER_UPDATE_MUTATION, {
+        input: {
+          id: customerForm.customerId,
+          firstName: customerForm.firstName,
+          lastName: customerForm.lastName,
+          email: customerForm.email?.trim() || null,
+          phone,
+        },
+      });
+      const cuErrors = cuRes?.data?.customerUpdate?.userErrors ?? [];
+      if (cuErrors.length) {
+        throw new Error(cuErrors.map((e) => e.message).join(", "));
+      }
+      const addressInput = {
+        address1: customerForm.address1 || "",
+        city: customerForm.city || "",
+        zip: customerForm.zip || "",
+        countryCode:
+          (customerForm.countryCode || "US").toUpperCase().slice(0, 2) || "US",
+      };
+      if (customerForm.address2?.trim()) {
+        addressInput.address2 = customerForm.address2.trim();
+      }
+      if (customerForm.company?.trim()) {
+        addressInput.company = customerForm.company.trim();
+      }
+      if (customerForm.provinceCode?.trim()) {
+        addressInput.provinceCode = customerForm.provinceCode
+          .trim()
+          .slice(0, 2);
+      }
+      const hasAddress =
+        Boolean(customerForm.address1?.trim()) ||
+        Boolean(customerForm.city?.trim()) ||
+        Boolean(customerForm.zip?.trim()) ||
+        Boolean(customerForm.company?.trim()) ||
+        Boolean(customerForm.address2?.trim());
+      if (customerForm.defaultAddressId) {
+        const ar = await graphql(CUSTOMER_ADDRESS_UPDATE_MUTATION, {
+          customerId: customerForm.customerId,
+          addressId: customerForm.defaultAddressId,
+          address: addressInput,
+        });
+        const ae = ar?.data?.customerAddressUpdate?.userErrors ?? [];
+        if (ae.length) throw new Error(ae.map((e) => e.message).join(", "));
+      } else if (hasAddress) {
+        const ar = await graphql(CUSTOMER_ADDRESS_CREATE_MUTATION, {
+          customerId: customerForm.customerId,
+          address: addressInput,
+          setAsDefault: true,
+        });
+        const ae = ar?.data?.customerAddressCreate?.userErrors ?? [];
+        if (ae.length) throw new Error(ae.map((e) => e.message).join(", "));
+      }
+      const ref = await graphql(NODE_CUSTOMER_QUERY, { id: detailOrder.id });
+      const node = ref?.data?.node;
+      const customer = node?.customer;
+      if (!customer) throw new Error("Could not refresh customer");
+      setRawOrders((prev) =>
+        prev.map((o) => (o.id === detailOrder.id ? { ...o, customer } : o))
+      );
+      setSelectedOrder((prev) =>
+        prev?.id === detailOrder.id ? { ...prev, customer } : prev
+      );
+      const f = customerFormFromCustomer(customer);
+      setCustomerForm(f);
+      try {
+        shopify.toast?.show?.(i18n.translate("customer_saved"));
+      } catch (_) {}
+    } catch (e) {
+      setCustomerError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(null);
+    }
+  }, [customerForm, detailOrder, i18n]);
+
+  const handleResetCustomer = useCallback(() => {
+    const o = rawOrders.find((x) => x.id === selectedOrder?.id) || selectedOrder;
+    setCustomerForm(customerFormFromCustomer(o?.customer));
+    setCustomerError(null);
+  }, [rawOrders, selectedOrder]);
+
   if (selectedOrder) {
     const order = rawOrders.find((o) => o.id === selectedOrder.id) || selectedOrder;
     const noteValue =
@@ -1175,6 +1458,7 @@ function Extension() {
                     setSelectedOrder(null);
                     setLocalNote("");
                     setFulfillmentError(null);
+                    setCustomerError(null);
                   }}
                 >
                   ← {i18n.translate("back")}
@@ -1194,23 +1478,201 @@ function Extension() {
                 <s-banner tone="critical" heading={fulfillmentError} />
               )}
 
-              {/* Customer, Contact Status, Overall Order Status, Payment Status */}
-              <s-stack gap="10px" blockSize="auto">
-              {!isTablet ? (
-                /* iPhone: Customer info and status cards stacked with dividers */
-                <s-stack gap="10px" blockSize="auto">
+              {customerError && (
+                <s-banner tone="critical" heading={customerError} />
+              )}
+
+              <s-stack gap="small" blockSize="auto">
+                {order.customer?.id && customerForm ? (
                   <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
                     <s-stack gap="small">
                       <s-text type="strong">{i18n.translate("customer_information")}</s-text>
-                      <s-heading>{order.customer?.displayName || "No customer"}</s-heading>
-                      {order.customer?.email && (
-                        <s-text color="subdued" type="small">{order.customer.email}</s-text>
-                      )}
-                      {order.customer?.phone && (
-                        <s-text type="strong">{formatUsPhone(order.customer.phone)}</s-text>
-                      )}
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: "10px",
+                          alignItems: "flex-end",
+                          width: "100%",
+                        }}
+                      >
+                        <div style={{ flex: "1 1 120px", minWidth: "120px" }}>
+                          <s-text-field
+                            label={i18n.translate("first_name")}
+                            value={customerForm.firstName}
+                            onInput={(e) =>
+                              setCustomerForm((f) =>
+                                f
+                                  ? { ...f, firstName: e.currentTarget.value }
+                                  : f
+                              )
+                            }
+                            disabled={!!saving}
+                          />
+                        </div>
+                        <div style={{ flex: "1 1 120px", minWidth: "120px" }}>
+                          <s-text-field
+                            label={i18n.translate("last_name")}
+                            value={customerForm.lastName}
+                            onInput={(e) =>
+                              setCustomerForm((f) =>
+                                f
+                                  ? { ...f, lastName: e.currentTarget.value }
+                                  : f
+                              )
+                            }
+                            disabled={!!saving}
+                          />
+                        </div>
+                        <div style={{ flex: "1 1 140px", minWidth: "140px" }}>
+                          <s-text-field
+                            label={i18n.translate("email_label")}
+                            value={customerForm.email}
+                            onInput={(e) =>
+                              setCustomerForm((f) =>
+                                f ? { ...f, email: e.currentTarget.value } : f
+                              )
+                            }
+                            disabled={!!saving}
+                          />
+                        </div>
+                        <div style={{ flex: "1 1 120px", minWidth: "120px" }}>
+                          <s-text-field
+                            label={i18n.translate("phone_label")}
+                            value={customerForm.phone}
+                            onInput={(e) =>
+                              setCustomerForm((f) =>
+                                f ? { ...f, phone: e.currentTarget.value } : f
+                              )
+                            }
+                            disabled={!!saving}
+                          />
+                        </div>
+                        <div style={{ flex: "1 1 120px", minWidth: "120px" }}>
+                          <s-text-field
+                            label={i18n.translate("company")}
+                            value={customerForm.company}
+                            onInput={(e) =>
+                              setCustomerForm((f) =>
+                                f
+                                  ? { ...f, company: e.currentTarget.value }
+                                  : f
+                              )
+                            }
+                            disabled={!!saving}
+                          />
+                        </div>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexWrap: "wrap",
+                          gap: "10px",
+                          alignItems: "flex-end",
+                          width: "100%",
+                        }}
+                      >
+                        <div style={{ flex: "2 1 200px", minWidth: "160px" }}>
+                          <s-text-field
+                            label={i18n.translate("address_line_1")}
+                            value={customerForm.address1}
+                            onInput={(e) =>
+                              setCustomerForm((f) =>
+                                f
+                                  ? { ...f, address1: e.currentTarget.value }
+                                  : f
+                              )
+                            }
+                            disabled={!!saving}
+                          />
+                        </div>
+                        <div style={{ flex: "1 1 100px", minWidth: "90px" }}>
+                          <s-text-field
+                            label={i18n.translate("city")}
+                            value={customerForm.city}
+                            onInput={(e) =>
+                              setCustomerForm((f) =>
+                                f ? { ...f, city: e.currentTarget.value } : f
+                              )
+                            }
+                            disabled={!!saving}
+                          />
+                        </div>
+                        <div style={{ flex: "0 1 72px", minWidth: "64px" }}>
+                          <s-text-field
+                            label={i18n.translate("state")}
+                            value={customerForm.provinceCode}
+                            onInput={(e) =>
+                              setCustomerForm((f) =>
+                                f
+                                  ? {
+                                      ...f,
+                                      provinceCode: e.currentTarget.value
+                                        .toUpperCase()
+                                        .replace(/[^A-Za-z]/g, "")
+                                        .slice(0, 2),
+                                    }
+                                  : f
+                              )
+                            }
+                            disabled={!!saving}
+                          />
+                        </div>
+                        <div style={{ flex: "1 1 100px", minWidth: "90px" }}>
+                          <s-text-field
+                            label={i18n.translate("zip_postal")}
+                            value={customerForm.zip}
+                            onInput={(e) =>
+                              setCustomerForm((f) =>
+                                f ? { ...f, zip: e.currentTarget.value } : f
+                              )
+                            }
+                            disabled={!!saving}
+                          />
+                        </div>
+                        <div style={{ flex: "0 1 72px", minWidth: "64px" }}>
+                          <s-text-field
+                            label={i18n.translate("country")}
+                            value={customerForm.countryCode}
+                            onInput={(e) => {
+                              const v = e.currentTarget.value
+                                .toUpperCase()
+                                .replace(/[^A-Z]/g, "")
+                                .slice(0, 2);
+                              setCustomerForm((f) =>
+                                f ? { ...f, countryCode: v || "US" } : f
+                              );
+                            }}
+                            disabled={!!saving}
+                          />
+                        </div>
+                        <s-stack direction="inline" gap="small" alignItems="end">
+                          <s-button
+                            variant="primary"
+                            onClick={handleSaveCustomer}
+                            disabled={!!saving}
+                          >
+                            {i18n.translate("save_customer")}
+                          </s-button>
+                          <s-button
+                            variant="secondary"
+                            onClick={handleResetCustomer}
+                            disabled={!!saving}
+                          >
+                            {i18n.translate("reset_customer")}
+                          </s-button>
+                        </s-stack>
+                      </div>
                     </s-stack>
                   </s-box>
+                ) : (
+                  <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
+                    <s-text color="subdued">{i18n.translate("no_customer_on_order")}</s-text>
+                  </s-box>
+                )}
+
+                {!isTablet ? (
+                <s-stack gap="10px" blockSize="auto">
                   <s-divider />
                 <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
@@ -1321,20 +1783,8 @@ function Extension() {
                 </s-box>
                 </s-stack>
               ) : (
-                /* iPad: side by side layout - dividers between cards */
-              <s-stack direction="inline" gap="50px" blockSize="auto">
-                <s-box padding="base" inlineSize="300px" background="subdued" border="base" borderRadius="base">
-                  <s-stack gap="small">
-                    <s-text type="strong">{i18n.translate("customer_information")}</s-text>
-                    <s-heading>{order.customer?.displayName || "No customer"}</s-heading>
-                    {order.customer?.email && (
-                      <s-text color="subdued" type="small">{order.customer.email}</s-text>
-                    )}
-                    {order.customer?.phone && (
-                      <s-text type="strong">{formatUsPhone(order.customer.phone)}</s-text>
-                    )}
-                  </s-stack>
-                </s-box>
+                /* iPad: status cards in one row below customer */
+              <>
                 <s-divider />
                 <s-stack direction="inline" gap="100px" blockSize="auto">
                 <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
@@ -1450,7 +1900,7 @@ function Extension() {
                   </s-stack>
                 </s-box>
                 </s-stack>
-              </s-stack>
+              </>
               )}
               </s-stack>
 
