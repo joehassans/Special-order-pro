@@ -1513,6 +1513,12 @@ function Extension() {
               <s-stack gap="small" blockSize="auto">
                 {order.customer?.id && customerForm ? (
                   <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
+                    <span
+                      style={{
+                        display: "block",
+                        fontSize: "calc(1em - 1pt)",
+                      }}
+                    >
                     <s-stack gap="small">
                       {/* Row 1: POS ignores raw div flex — use s-stack inline + s-box like TabletOrderDetailAttributeCell */}
                       <s-stack
@@ -1670,6 +1676,7 @@ function Extension() {
                         </s-box>
                       </s-stack>
                     </s-stack>
+                    </span>
                   </s-box>
                 ) : (
                   <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
