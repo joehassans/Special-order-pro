@@ -23,7 +23,7 @@ const ALWAYS_PRESENT_ATTRIBUTES = ["Brand", "Type", "Style #", "Size", "Color", 
 const TABLET_ORDER_DETAIL_ROW1_KEYS = ["Brand", "Type", "Style #", "Size"];
 const TABLET_ORDER_DETAIL_ROW2_KEYS = ["Color", "Date Ordered", "Order Confirmation Number"];
 /** iPad order detail: notes column width in the status row (after payment card). */
-const TABLET_ORDER_NOTE_WIDTH = "380px";
+const TABLET_ORDER_NOTE_WIDTH = "340px";
 const HIDDEN_ATTRIBUTES = new Set([
   "_shopify_item_type",
   "Order Status",
