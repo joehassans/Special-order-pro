@@ -1478,7 +1478,7 @@ function Extension() {
         <s-scroll-box>
           <s-box padding="base">
             <s-stack gap="small">
-              <s-heading>{order.name}</s-heading>
+              {isTablet === true ? null : <s-heading>{order.name}</s-heading>}
               <s-stack
                 direction="inline"
                 gap="small"
@@ -1507,6 +1507,9 @@ function Extension() {
                   >
                     {i18n.translate("print_order_summary")}
                   </s-button>
+                  {isTablet === true ? (
+                    <s-text type="strong">{order.name}</s-text>
+                  ) : null}
                 </s-stack>
                 {order.createdAt ||
                 (order.customer?.id && customerForm) ? (
