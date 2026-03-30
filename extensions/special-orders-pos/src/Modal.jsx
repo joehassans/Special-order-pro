@@ -1473,6 +1473,27 @@ function Extension() {
     const customerFieldWidth =
       isTablet === true ? CUSTOMER_FIELD_WIDTH_IPAD : CUSTOMER_FIELD_WIDTH;
 
+    const orderNoteSection = (
+      <s-box
+        padding={isTablet ? "small-500" : "base"}
+        borderRadius="base"
+        background="subdued"
+      >
+        <s-stack gap={isTablet ? "small-500" : "small"}>
+          <s-text type="strong">{i18n.translate("note")}</s-text>
+          <s-text-area
+            value={noteValue || ""}
+            rows={getNoteRows(noteValue)}
+            onInput={(e) => setLocalNote(e.currentTarget.value)}
+            onBlur={(e) =>
+              handleUpdateNote(order.id, e.currentTarget.value)
+            }
+            disabled={!!saving}
+          />
+        </s-stack>
+      </s-box>
+    );
+
     return (
       <s-page inlineSize={isTablet ? "large" : "base"}>
         <s-scroll-box>
@@ -1776,6 +1797,8 @@ function Extension() {
                   </s-box>
                 )}
 
+                {isTablet === true ? orderNoteSection : null}
+
                 {!isTablet ? (
                 <s-stack gap="10px" blockSize="auto">
                   <s-divider />
@@ -2004,25 +2027,7 @@ function Extension() {
               )}
               </s-stack>
 
-              {/* Note */}
-              <s-box
-                padding={isTablet ? "small-500" : "base"}
-                borderRadius="base"
-                background="subdued"
-              >
-                <s-stack gap={isTablet ? "small-500" : "small"}>
-                  <s-text type="strong">{i18n.translate("note")}</s-text>
-                  <s-text-area
-                    value={noteValue || ""}
-                    rows={getNoteRows(noteValue)}
-                    onInput={(e) => setLocalNote(e.currentTarget.value)}
-                    onBlur={(e) =>
-                      handleUpdateNote(order.id, e.currentTarget.value)
-                    }
-                    disabled={!!saving}
-                  />
-                </s-stack>
-              </s-box>
+              {isTablet !== true ? orderNoteSection : null}
 
               {lineItems.map((item, idx) => (
                 <Fragment key={item.id}>
