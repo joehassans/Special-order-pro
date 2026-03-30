@@ -1641,14 +1641,6 @@ export default function OrderDetails() {
           width: 100%;
           min-width: 0;
         }
-        .order-status-second-row-actions {
-          margin-left: auto;
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          flex-wrap: wrap;
-          flex-shrink: 0;
-        }
         .item-detail-field {
           box-sizing: border-box;
         }
@@ -2362,6 +2354,42 @@ export default function OrderDetails() {
                           marginLeft: "auto",
                         }}
                       >
+                        <s-button
+                          variant="secondary"
+                          onClick={(event) => {
+                            const el = eventTargetElement(event);
+                            const container =
+                              el?.closest?.("[data-line-index]");
+                            if (!container) return;
+                            const textFields = Array.from(
+                              container.querySelectorAll("s-text-field")
+                            );
+                            const dateFields = Array.from(
+                              container.querySelectorAll("s-date-field")
+                            );
+                            const fields = [...textFields, ...dateFields];
+                            const updatedAttrs = fields
+                              .map((field) => {
+                                const key = field.getAttribute("data-attr-key");
+                                const value = field.value || "";
+                                if (!key) return null;
+                                return { key, value };
+                              })
+                              .filter(Boolean);
+
+                            submit(
+                              {
+                                intent: "updateAttributes",
+                                orderId: order.id,
+                                lineItemIndex: String(idx),
+                                attributes: JSON.stringify(updatedAttrs),
+                              },
+                              { method: "post" }
+                            );
+                          }}
+                        >
+                          Save Item Details
+                        </s-button>
                         <s-text type="strong" style={{ whiteSpace: "nowrap" }}>
                           QTY {item.quantity}
                         </s-text>
@@ -2629,55 +2657,6 @@ export default function OrderDetails() {
                                         }
                                       />
                                     </s-stack>
-                                  </div>
-                                  <div className="order-status-second-row-actions">
-                                    <s-button
-                                      variant="secondary"
-                                      onClick={(event) => {
-                                        const el = eventTargetElement(event);
-                                        const container =
-                                          el?.closest?.("[data-line-index]");
-                                        if (!container) return;
-                                        const textFields = Array.from(
-                                          container.querySelectorAll(
-                                            "s-text-field"
-                                          )
-                                        );
-                                        const dateFields = Array.from(
-                                          container.querySelectorAll(
-                                            "s-date-field"
-                                          )
-                                        );
-                                        const fields = [
-                                          ...textFields,
-                                          ...dateFields,
-                                        ];
-                                        const updatedAttrs = fields
-                                          .map((field) => {
-                                            const key =
-                                              field.getAttribute(
-                                                "data-attr-key"
-                                              );
-                                            const value = field.value || "";
-                                            if (!key) return null;
-                                            return { key, value };
-                                          })
-                                          .filter(Boolean);
-
-                                        submit(
-                                          {
-                                            intent: "updateAttributes",
-                                            orderId: order.id,
-                                            lineItemIndex: String(idx),
-                                            attributes:
-                                              JSON.stringify(updatedAttrs),
-                                          },
-                                          { method: "post" }
-                                        );
-                                      }}
-                                    >
-                                      Save Item Details
-                                    </s-button>
                                   </div>
                                 </div>
                               </div>
