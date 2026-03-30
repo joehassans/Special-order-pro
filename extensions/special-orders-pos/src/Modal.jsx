@@ -22,6 +22,8 @@ const ALWAYS_PRESENT_ATTRIBUTES = ["Brand", "Type", "Style #", "Size", "Color", 
 /** iPad order detail: two rows so Color / Item Order Date / Order Confirmation share one line (even columns). */
 const TABLET_ORDER_DETAIL_ROW1_KEYS = ["Brand", "Type", "Style #", "Size"];
 const TABLET_ORDER_DETAIL_ROW2_KEYS = ["Color", "Date Ordered", "Order Confirmation Number"];
+/** iPad order detail: notes column width in the status row (after payment card). */
+const TABLET_ORDER_NOTE_WIDTH = "380px";
 const HIDDEN_ATTRIBUTES = new Set([
   "_shopify_item_type",
   "Order Status",
@@ -1928,7 +1930,6 @@ function Extension() {
                   blockSize="auto"
                   inlineSize="100%"
                   alignItems="stretch"
-                  justifyContent="start"
                 >
                 <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
@@ -2039,18 +2040,14 @@ function Extension() {
                 </s-box>
                 <s-box
                   padding="base"
-                  inlineSize="fill"
-                  minInlineSize="0"
-                  blockSize="100%"
+                  inlineSize={TABLET_ORDER_NOTE_WIDTH}
+                  minInlineSize={TABLET_ORDER_NOTE_WIDTH}
+                  maxInlineSize={TABLET_ORDER_NOTE_WIDTH}
                   background="subdued"
                   border="base"
                   borderRadius="base"
                 >
-                  <s-stack
-                    gap="small-500"
-                    blockSize="100%"
-                    inlineSize="100%"
-                  >
+                  <s-stack gap="small-500" inlineSize="100%">
                     <s-text type="strong">{i18n.translate("note")}</s-text>
                     <s-box inlineSize="100%">
                       <s-text-area
