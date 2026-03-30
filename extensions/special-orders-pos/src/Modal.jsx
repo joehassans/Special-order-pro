@@ -1541,7 +1541,16 @@ function Extension() {
                     {i18n.translate("print_order_summary")}
                   </s-button>
                   {isTablet === true ? (
-                    <s-text type="strong">{order.name}</s-text>
+                    <s-text type="strong">
+                      <span
+                        style={{
+                          fontSize: "2em",
+                          fontWeight: "700",
+                        }}
+                      >
+                        {order.name}
+                      </span>
+                    </s-text>
                   ) : null}
                 </s-stack>
                 {order.createdAt ||
@@ -2171,15 +2180,19 @@ function Extension() {
                                 tone={getTone(item.orderStatus, "order") === "subdued" ? "auto" : getTone(item.orderStatus, "order")}
                                 heading={ORDER_STATUS_OPTIONS.includes(item.orderStatus) ? item.orderStatus : "Not Ordered"}
                               />
-                              <s-stack
-                                direction="inline"
-                                inlineSize="100%"
-                                justifyContent="end"
-                              >
-                                <s-text type="strong">
-                                  {i18n.translate("cart_line_item_details_heading")}
-                                </s-text>
-                              </s-stack>
+                              {isTablet === true ? null : (
+                                <s-stack
+                                  direction="inline"
+                                  inlineSize="100%"
+                                  justifyContent="end"
+                                >
+                                  <s-text type="strong">
+                                    {i18n.translate(
+                                      "cart_line_item_details_heading"
+                                    )}
+                                  </s-text>
+                                </s-stack>
+                              )}
                             </s-stack>
                           </s-stack>
                         </s-box>
