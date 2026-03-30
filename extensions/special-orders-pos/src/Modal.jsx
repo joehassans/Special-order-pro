@@ -1451,7 +1451,7 @@ function Extension() {
         <s-scroll-box>
           <s-box padding="base">
             <s-stack gap="small">
-              <s-stack direction="inline" gap="small">
+              <s-stack direction="inline" gap="small" alignItems="center">
                 <s-button
                   variant="secondary"
                   onClick={() => {
@@ -1472,6 +1472,34 @@ function Extension() {
                 >
                   {i18n.translate("print_order_summary")}
                 </s-button>
+                {order.createdAt ? (
+                  <s-text color="subdued" type="small">
+                    {i18n.translate("date_created")}:{" "}
+                    {new Date(order.createdAt).toLocaleDateString("en-US", {
+                      month: "2-digit",
+                      day: "2-digit",
+                      year: "2-digit",
+                    })}
+                  </s-text>
+                ) : null}
+                {order.customer?.id && customerForm ? (
+                  <>
+                    <s-button
+                      variant="primary"
+                      onClick={handleSaveCustomer}
+                      disabled={!!saving}
+                    >
+                      {i18n.translate("save_customer")}
+                    </s-button>
+                    <s-button
+                      variant="secondary"
+                      onClick={handleResetCustomer}
+                      disabled={!!saving}
+                    >
+                      {i18n.translate("reset_customer")}
+                    </s-button>
+                  </>
+                ) : null}
               </s-stack>
 
               {fulfillmentError && !order.id?.includes("DraftOrder") && (
@@ -1486,7 +1514,6 @@ function Extension() {
                 {order.customer?.id && customerForm ? (
                   <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
                     <s-stack gap="small">
-                      <s-text type="strong">{i18n.translate("customer_information")}</s-text>
                       {/* Row 1: POS ignores raw div flex — use s-stack inline + s-box like TabletOrderDetailAttributeCell */}
                       <s-stack
                         direction="inline"
@@ -1640,24 +1667,6 @@ function Extension() {
                             }}
                             disabled={!!saving}
                           />
-                        </s-box>
-                        <s-box minInlineSize="140px" inlineSize="auto">
-                          <s-stack direction="inline" gap="small" alignItems="end">
-                            <s-button
-                              variant="primary"
-                              onClick={handleSaveCustomer}
-                              disabled={!!saving}
-                            >
-                              {i18n.translate("save_customer")}
-                            </s-button>
-                            <s-button
-                              variant="secondary"
-                              onClick={handleResetCustomer}
-                              disabled={!!saving}
-                            >
-                              {i18n.translate("reset_customer")}
-                            </s-button>
-                          </s-stack>
                         </s-box>
                       </s-stack>
                     </s-stack>
@@ -1847,11 +1856,6 @@ function Extension() {
                       tone={getTone(overallOrderStatus, "overall") === "subdued" || getTone(overallOrderStatus, "overall") === "neutral" ? "auto" : getTone(overallOrderStatus, "overall")}
                       heading={OVERALL_ORDER_STATUS_OPTIONS.includes(overallOrderStatus) ? overallOrderStatus : "Order Pending"}
                     />
-                    {order.createdAt && (
-                      <s-text color="subdued" type="small">
-                        {i18n.translate("date_created")}: {new Date(order.createdAt).toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" })}
-                      </s-text>
-                    )}
                   </s-stack>
                 </s-box>
                 <s-divider />
