@@ -240,6 +240,19 @@ function itemDetailFieldClassName(key) {
   return "item-detail-field item-detail-field--w200";
 }
 
+function lineItemAttrByKey(customAttributes, key) {
+  const a = (customAttributes || []).find((x) => x.key === key);
+  return a ?? { key, value: "" };
+}
+
+const LINE_ITEM_ATTR_KEYS_IN_STATUS_BOX = [
+  "Brand",
+  "Type",
+  "Style #",
+  "Size",
+  "Color",
+];
+
 const ALWAYS_PRESENT_ATTRIBUTES = ["Brand", "Type", "Style #", "Size", "Color", "Date Ordered", "Order Confirmation Number"];
 const HIDDEN_ATTRIBUTES = new Set([
   "_shopify_item_type",
@@ -1579,10 +1592,51 @@ export default function OrderDetails() {
         .order-status-dropdown-wrapper {
           border-radius: 8px;
           padding: 12px 16px;
-          display: inline-flex;
-          align-items: center;
-          gap: 12px;
           border: 2px solid;
+          width: 100%;
+          box-sizing: border-box;
+        }
+        .order-status-dropdown-inner {
+          display: flex;
+          flex-direction: column;
+          gap: 12px;
+          width: 100%;
+        }
+        .order-status-select-row {
+          width: 400px;
+          max-width: 100%;
+          flex-shrink: 0;
+        }
+        .order-status-select-row s-select {
+          width: 100%;
+          min-width: 0;
+        }
+        .order-status-attr-fields {
+          display: flex;
+          flex-wrap: wrap;
+          gap: 12px;
+          align-items: flex-start;
+        }
+        .item-line-item-details-row {
+          display: flex;
+          flex-wrap: wrap;
+          align-items: flex-end;
+          gap: 12px;
+          width: 100%;
+        }
+        .item-detail-field--date-clear-row {
+          min-width: 280px;
+          flex: 1 1 280px;
+          max-width: 100%;
+          box-sizing: border-box;
+        }
+        .item-line-item-details-row-actions {
+          margin-left: auto;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          flex-wrap: wrap;
+          flex-shrink: 0;
         }
         .item-detail-field {
           box-sizing: border-box;
@@ -2246,9 +2300,6 @@ export default function OrderDetails() {
                             {item.pricePerItem}
                           </s-text>
                         ) : null}
-                        <s-badge tone={getOrderStatusTone(item.orderStatus)}>
-                          {item.orderStatus || "Not set"}
-                        </s-badge>
                       </div>
                     </div>
                     {order.type === "order" && (
@@ -2303,176 +2354,138 @@ export default function OrderDetails() {
                           </s-text>
                         )}
 
-                        <s-stack gap="small" style={{ paddingTop: "0.25rem" }}>
-                          {(() => {
-                            const colors = getOrderStatusWrapperColors(
-                              item.orderStatus
-                            );
-                            return (
-                              <div
-                                className="order-status-dropdown-wrapper"
-                                style={{
-                                  backgroundColor: colors.background,
-                                  borderColor: colors.border,
-                                }}
-                              >
-                                <s-select
-                              value={item.orderStatus || "Not Ordered"}
-                              onChange={(event) => {
-                                submit(
-                                  {
-                                    orderId: order.id,
-                                    lineItemId: item.id,
-                                    orderStatus: webComponentFieldValue(event),
-                                  },
-                                  { method: "post" }
-                                );
+                        {(() => {
+                          const colors = getOrderStatusWrapperColors(
+                            item.orderStatus
+                          );
+                          const attrs = item.customAttributes || [];
+                          return (
+                            <div
+                              className="order-status-dropdown-wrapper"
+                              style={{
+                                backgroundColor: colors.background,
+                                borderColor: colors.border,
                               }}
                             >
-                              <s-option value="Not Ordered">Not Ordered</s-option>
-                              <s-option value="Ordered">Ordered</s-option>
-                              <s-option value="Back Ordered">
-                                Back Ordered
-                              </s-option>
-                              <s-option value="Drop Ship - Ordered">
-                                Drop Ship - Ordered
-                              </s-option>
-                              <s-option value="Drop Ship - Delivered">
-                                Drop Ship - Delivered
-                              </s-option>
-                              <s-option value="Received">Received</s-option>
-                              <s-option value="Canceled">Canceled</s-option>
-                                </s-select>
-                                <s-badge tone={getOrderStatusTone(item.orderStatus)}>
-                                  {item.orderStatus || "Not set"}
-                                </s-badge>
-                              </div>
-                            );
-                          })()}
-                        </s-stack>
-
-                        {/* Editable attributes (metafield-backed); Brand, Type, Style #, Size, Color on one row */}
-                        <s-stack gap="small-300">
-                          <div
-                            style={{
-                              display: "flex",
-                              flexWrap: "wrap",
-                              gap: "12px",
-                              alignItems: "flex-start",
-                            }}
-                          >
-                            {(item.customAttributes || [])
-                              .filter((a) =>
-                                ["Brand", "Type", "Style #", "Size", "Color", "Date Ordered", "Order Confirmation Number"].includes(a.key)
-                              )
-                              .map((attr) => (
-                                <div
-                                  key={attr.key}
-                                  className={itemDetailFieldClassName(attr.key)}
-                                >
-                                  <s-stack gap="small-300">
-                                    <span className="field-label" style={{ fontWeight: 700 }}>{attr.key}</span>
-                                    {attr.key === "Date Ordered" ? (
-                                      <s-stack direction="inline" gap="small" alignItems="end">
-                                        <s-box inlineSize="100%">
-                                          <s-date-field
-                                            data-attr-key={attr.key}
-                                            label=""
-                                            labelAccessibilityVisibility="hidden"
-                                            value={attr.value || ""}
-                                            placeholder="Select date"
-                                          />
-                                        </s-box>
-                                        <s-button
-                                          variant="secondary"
-                                          disabled={
-                                            !(attr.value && String(attr.value).trim())
-                                          }
-                                          onClick={(e) => {
-                                            const el = eventTargetElement(e);
-                                            const container =
-                                              el?.closest?.("[data-line-index]");
-                                            if (!container) return;
-                                            const wrap = el?.closest?.(
-                                              ".item-detail-field"
-                                            );
-                                            const df = wrap?.querySelector(
-                                              's-date-field[data-attr-key="Date Ordered"]'
-                                            );
-                                            if (df) /** @type {any} */ (df).value = "";
-                                            const textFields = Array.from(
-                                              container.querySelectorAll("s-text-field")
-                                            );
-                                            const dateFields = Array.from(
-                                              container.querySelectorAll("s-date-field")
-                                            );
-                                            const fields = [...textFields, ...dateFields];
-                                            const updatedAttrs = fields
-                                              .map((field) => {
-                                                const key =
-                                                  field.getAttribute("data-attr-key");
-                                                const value = field.value || "";
-                                                if (!key) return null;
-                                                return { key, value };
-                                              })
-                                              .filter(Boolean);
-                                            submit(
-                                              {
-                                                intent: "updateAttributes",
-                                                orderId: order.id,
-                                                lineItemIndex: String(idx),
-                                                attributes: JSON.stringify(
-                                                  updatedAttrs
-                                                ),
-                                              },
-                                              { method: "post" }
-                                            );
-                                          }}
-                                        >
-                                          Clear date
-                                        </s-button>
-                                      </s-stack>
-                                    ) : (
-                                      <s-text-field
-                                        data-attr-key={attr.key}
-                                        label=""
-                                        labelAccessibilityVisibility="hidden"
-                                        value={attr.value || ""}
-                                      />
-                                    )}
-                                  </s-stack>
+                              <div className="order-status-dropdown-inner">
+                                <div className="order-status-select-row">
+                                  <s-select
+                                    value={item.orderStatus || "Not Ordered"}
+                                    onChange={(event) => {
+                                      submit(
+                                        {
+                                          orderId: order.id,
+                                          lineItemId: item.id,
+                                          orderStatus:
+                                            webComponentFieldValue(event),
+                                        },
+                                        { method: "post" }
+                                      );
+                                    }}
+                                  >
+                                    <s-option value="Not Ordered">
+                                      Not Ordered
+                                    </s-option>
+                                    <s-option value="Ordered">Ordered</s-option>
+                                    <s-option value="Back Ordered">
+                                      Back Ordered
+                                    </s-option>
+                                    <s-option value="Drop Ship - Ordered">
+                                      Drop Ship - Ordered
+                                    </s-option>
+                                    <s-option value="Drop Ship - Delivered">
+                                      Drop Ship - Delivered
+                                    </s-option>
+                                    <s-option value="Received">Received</s-option>
+                                    <s-option value="Canceled">Canceled</s-option>
+                                  </s-select>
                                 </div>
-                              ))}
-                          </div>
-                          {(item.customAttributes || [])
-                            .filter(
-                              (a) =>
-                                !["Brand", "Type", "Style #", "Size", "Color", "Date Ordered", "Order Confirmation Number"].includes(a.key)
-                            )
-                            .map((attr) => (
-                              <div
-                                key={attr.key}
-                                className={itemDetailFieldClassName(attr.key)}
+                                <div className="order-status-attr-fields">
+                                  {LINE_ITEM_ATTR_KEYS_IN_STATUS_BOX.map(
+                                    (key) => {
+                                      const attr = lineItemAttrByKey(
+                                        attrs,
+                                        key
+                                      );
+                                      return (
+                                        <div
+                                          key={key}
+                                          className={itemDetailFieldClassName(
+                                            key
+                                          )}
+                                        >
+                                          <s-stack gap="small-300">
+                                            <span
+                                              className="field-label"
+                                              style={{ fontWeight: 700 }}
+                                            >
+                                              {key}
+                                            </span>
+                                            <s-text-field
+                                              data-attr-key={key}
+                                              label=""
+                                              labelAccessibilityVisibility="hidden"
+                                              value={attr.value || ""}
+                                            />
+                                          </s-stack>
+                                        </div>
+                                      );
+                                    }
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                        <div className="item-line-item-details-row">
+                          <div className="item-detail-field item-detail-field--date-clear-row">
+                            <s-stack gap="small-300">
+                              <span
+                                className="field-label"
+                                style={{ fontWeight: 700 }}
                               >
-                                <s-stack gap="small-300">
-                                  <span className="field-label" style={{ fontWeight: 700 }}>{attr.key}</span>
-                                  <s-text-field
-                                    data-attr-key={attr.key}
+                                Date Ordered
+                              </span>
+                              <s-stack
+                                direction="inline"
+                                gap="small"
+                                alignItems="end"
+                              >
+                                <s-box inlineSize="100%" minInlineSize="0">
+                                  <s-date-field
+                                    data-attr-key="Date Ordered"
                                     label=""
                                     labelAccessibilityVisibility="hidden"
-                                    value={attr.value || ""}
+                                    value={
+                                      lineItemAttrByKey(
+                                        item.customAttributes,
+                                        "Date Ordered"
+                                      ).value || ""
+                                    }
+                                    placeholder="Select date"
                                   />
-                                </s-stack>
-                              </div>
-                            ))}
-                              <s-stack direction="inline" justifyContent="end">
+                                </s-box>
                                 <s-button
                                   variant="secondary"
-                                  onClick={(event) => {
-                                    const el = eventTargetElement(event);
+                                  disabled={
+                                    !(
+                                      lineItemAttrByKey(
+                                        item.customAttributes,
+                                        "Date Ordered"
+                                      ).value || ""
+                                    ).trim()
+                                  }
+                                  onClick={(e) => {
+                                    const el = eventTargetElement(e);
                                     const container =
                                       el?.closest?.("[data-line-index]");
                                     if (!container) return;
+                                    const df = container.querySelector(
+                                      's-date-field[data-attr-key="Date Ordered"]'
+                                    );
+                                    if (df)
+                                      /** @type {any} */ (df).value = "";
                                     const textFields = Array.from(
                                       container.querySelectorAll("s-text-field")
                                     );
@@ -2489,7 +2502,6 @@ export default function OrderDetails() {
                                         return { key, value };
                                       })
                                       .filter(Boolean);
-
                                     submit(
                                       {
                                         intent: "updateAttributes",
@@ -2503,10 +2515,110 @@ export default function OrderDetails() {
                                     );
                                   }}
                                 >
-                                  Save Item Details
+                                  Clear date
                                 </s-button>
                               </s-stack>
-                        </s-stack>
+                            </s-stack>
+                          </div>
+                          <div className="item-detail-field item-detail-field--w200">
+                            <s-stack gap="small-300">
+                              <span
+                                className="field-label"
+                                style={{ fontWeight: 700 }}
+                              >
+                                Order Confirmation Number
+                              </span>
+                              <s-text-field
+                                data-attr-key="Order Confirmation Number"
+                                label=""
+                                labelAccessibilityVisibility="hidden"
+                                value={
+                                  lineItemAttrByKey(
+                                    item.customAttributes,
+                                    "Order Confirmation Number"
+                                  ).value || ""
+                                }
+                              />
+                            </s-stack>
+                          </div>
+                          <div className="item-line-item-details-row-actions">
+                            <s-badge tone={getOrderStatusTone(item.orderStatus)}>
+                              {item.orderStatus || "Not set"}
+                            </s-badge>
+                            <s-button
+                              variant="secondary"
+                              onClick={(event) => {
+                                const el = eventTargetElement(event);
+                                const container =
+                                  el?.closest?.("[data-line-index]");
+                                if (!container) return;
+                                const textFields = Array.from(
+                                  container.querySelectorAll("s-text-field")
+                                );
+                                const dateFields = Array.from(
+                                  container.querySelectorAll("s-date-field")
+                                );
+                                const fields = [...textFields, ...dateFields];
+                                const updatedAttrs = fields
+                                  .map((field) => {
+                                    const key =
+                                      field.getAttribute("data-attr-key");
+                                    const value = field.value || "";
+                                    if (!key) return null;
+                                    return { key, value };
+                                  })
+                                  .filter(Boolean);
+
+                                submit(
+                                  {
+                                    intent: "updateAttributes",
+                                    orderId: order.id,
+                                    lineItemIndex: String(idx),
+                                    attributes: JSON.stringify(updatedAttrs),
+                                  },
+                                  { method: "post" }
+                                );
+                              }}
+                            >
+                              Save Item Details
+                            </s-button>
+                          </div>
+                        </div>
+
+                        {(item.customAttributes || [])
+                          .filter(
+                            (a) =>
+                              ![
+                                "Brand",
+                                "Type",
+                                "Style #",
+                                "Size",
+                                "Color",
+                                "Date Ordered",
+                                "Order Confirmation Number",
+                              ].includes(a.key)
+                          )
+                          .map((attr) => (
+                            <div
+                              key={attr.key}
+                              className={itemDetailFieldClassName(attr.key)}
+                            >
+                              <s-stack gap="small-300">
+                                <span
+                                  className="field-label"
+                                  style={{ fontWeight: 700 }}
+                                >
+                                  {attr.key}
+                                </span>
+                                <s-text-field
+                                  data-attr-key={attr.key}
+                                  label=""
+                                  labelAccessibilityVisibility="hidden"
+                                  value={attr.value || ""}
+                                />
+                              </s-stack>
+                            </div>
+                          ))}
                     </s-stack>
                   </s-stack>
                 </s-box>
