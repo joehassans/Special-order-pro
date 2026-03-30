@@ -1516,7 +1516,7 @@ function Extension() {
                     <span
                       style={{
                         display: "block",
-                        fontSize: "calc(1em - 1pt)",
+                        fontSize: "calc(1em - 3pt)",
                       }}
                     >
                     <s-stack gap="small">
