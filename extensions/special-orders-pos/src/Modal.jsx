@@ -92,7 +92,7 @@ const CUSTOMER_FIELD_WIDTH_IPAD = {
   lastName: "200px",
   email: "400px",
   phone: "180px",
-  address1: "500px",
+  address1: "450px",
 };
 
 // Same names as admin; Picked Up and Order Canceled at bottom
@@ -1478,39 +1478,47 @@ function Extension() {
         <s-scroll-box>
           <s-box padding="base">
             <s-stack gap="small">
-              <s-stack direction="inline" gap="small" alignItems="center">
-                <s-button
-                  variant="secondary"
-                  onClick={() => {
-                    setSelectedOrder(null);
-                    setLocalNote("");
-                    setFulfillmentError(null);
-                    setCustomerError(null);
-                  }}
-                >
-                  ← {i18n.translate("back")}
-                </s-button>
-                <s-button
-                  variant="primary"
-                  onClick={() => {
-                    const path = `/print?id=${encodeURIComponent(order.id)}`;
-                    shopify.print.print(path);
-                  }}
-                >
-                  {i18n.translate("print_order_summary")}
-                </s-button>
-                {order.createdAt ? (
-                  <s-text color="subdued" type="small">
-                    {i18n.translate("date_created")}:{" "}
-                    {new Date(order.createdAt).toLocaleDateString("en-US", {
-                      month: "2-digit",
-                      day: "2-digit",
-                      year: "2-digit",
-                    })}
-                  </s-text>
-                ) : null}
+              <s-stack
+                direction="inline"
+                gap="small"
+                alignItems="center"
+                inlineSize="100%"
+                justifyContent="space-between"
+              >
+                <s-stack direction="inline" gap="small" alignItems="center">
+                  <s-button
+                    variant="secondary"
+                    onClick={() => {
+                      setSelectedOrder(null);
+                      setLocalNote("");
+                      setFulfillmentError(null);
+                      setCustomerError(null);
+                    }}
+                  >
+                    ← {i18n.translate("back")}
+                  </s-button>
+                  <s-button
+                    variant="primary"
+                    onClick={() => {
+                      const path = `/print?id=${encodeURIComponent(order.id)}`;
+                      shopify.print.print(path);
+                    }}
+                  >
+                    {i18n.translate("print_order_summary")}
+                  </s-button>
+                  {order.createdAt ? (
+                    <s-text color="subdued" type="small">
+                      {i18n.translate("date_created")}:{" "}
+                      {new Date(order.createdAt).toLocaleDateString("en-US", {
+                        month: "2-digit",
+                        day: "2-digit",
+                        year: "2-digit",
+                      })}
+                    </s-text>
+                  ) : null}
+                </s-stack>
                 {order.customer?.id && customerForm ? (
-                  <>
+                  <s-stack direction="inline" gap="small" alignItems="center">
                     <s-button
                       variant="primary"
                       onClick={handleSaveCustomer}
@@ -1525,7 +1533,7 @@ function Extension() {
                     >
                       {i18n.translate("reset_customer")}
                     </s-button>
-                  </>
+                  </s-stack>
                 ) : null}
               </s-stack>
 
@@ -1713,7 +1721,11 @@ function Extension() {
                           maxInlineSize={customerFieldWidth.zip}
                         >
                           <s-text-field
-                            label={i18n.translate("zip_postal")}
+                            label={
+                              isTablet === true
+                                ? "Zip Code"
+                                : i18n.translate("zip_postal")
+                            }
                             value={customerForm.zip}
                             onInput={(e) =>
                               setCustomerForm((f) =>
