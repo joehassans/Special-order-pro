@@ -287,7 +287,7 @@ function CartLineItemAction() {
 
             <s-section>
               <s-heading>{i18n.translate("cart_line_item_order_status_heading")}</s-heading>
-              <s-box paddingBlockStart="small">
+              <s-box paddingBlockStart="small" inlineSize="100%">
                 <s-choice-list
                   values={[orderStatus]}
                   onChange={(event) => {
@@ -307,11 +307,13 @@ function CartLineItemAction() {
             </s-section>
 
             <s-section>
-              <s-button onClick={handleSave} disabled={saving}>
-                {saving
-                  ? i18n.translate("cart_line_item_saving")
-                  : i18n.translate("cart_line_item_save")}
-              </s-button>
+              <s-stack direction="inline" inlineSize="100%" justifyContent="end">
+                <s-button onClick={handleSave} disabled={saving}>
+                  {saving
+                    ? i18n.translate("cart_line_item_saving")
+                    : i18n.translate("cart_line_item_save")}
+                </s-button>
+              </s-stack>
             </s-section>
           </s-stack>
         </s-box>

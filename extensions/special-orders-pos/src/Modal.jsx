@@ -1571,24 +1571,20 @@ function Extension() {
                                 ))}
                               </s-stack>
                             </s-modal>
-                            <s-stack
-                              direction="inline"
-                              gap="small"
-                              inlineSize="100%"
-                              justifyContent="space-between"
-                              alignItems="start"
-                            >
-                              <s-box inlineSize="fill" minInlineSize="0">
-                                <s-banner
-                                  tone={getTone(item.orderStatus, "order") === "subdued" ? "auto" : getTone(item.orderStatus, "order")}
-                                  heading={ORDER_STATUS_OPTIONS.includes(item.orderStatus) ? item.orderStatus : "Not Ordered"}
-                                />
-                              </s-box>
-                              <s-box inlineSize="auto">
+                            <s-stack gap="small" inlineSize="100%">
+                              <s-banner
+                                tone={getTone(item.orderStatus, "order") === "subdued" ? "auto" : getTone(item.orderStatus, "order")}
+                                heading={ORDER_STATUS_OPTIONS.includes(item.orderStatus) ? item.orderStatus : "Not Ordered"}
+                              />
+                              <s-stack
+                                direction="inline"
+                                inlineSize="100%"
+                                justifyContent="end"
+                              >
                                 <s-text type="strong">
                                   {i18n.translate("cart_line_item_details_heading")}
                                 </s-text>
-                              </s-box>
+                              </s-stack>
                             </s-stack>
                           </s-stack>
                         </s-box>
