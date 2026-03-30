@@ -1487,19 +1487,14 @@ function Extension() {
                   <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
                     <s-stack gap="small">
                       <s-text type="strong">{i18n.translate("customer_information")}</s-text>
-                      {/* Row 1: first name, last name, email, phone, company only */}
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "row",
-                          flexWrap: "nowrap",
-                          gap: "10px",
-                          alignItems: "flex-end",
-                          width: "100%",
-                          minWidth: 0,
-                        }}
+                      {/* Row 1: POS ignores raw div flex — use s-stack inline + s-box like TabletOrderDetailAttributeCell */}
+                      <s-stack
+                        direction="inline"
+                        gap="small-300"
+                        alignItems="end"
+                        inlineSize="100%"
                       >
-                        <div style={{ flex: "1 1 0", minWidth: 0 }}>
+                        <s-box minInlineSize="17%" inlineSize="auto">
                           <s-text-field
                             label={i18n.translate("first_name")}
                             value={customerForm.firstName}
@@ -1512,8 +1507,8 @@ function Extension() {
                             }
                             disabled={!!saving}
                           />
-                        </div>
-                        <div style={{ flex: "1 1 0", minWidth: 0 }}>
+                        </s-box>
+                        <s-box minInlineSize="17%" inlineSize="auto">
                           <s-text-field
                             label={i18n.translate("last_name")}
                             value={customerForm.lastName}
@@ -1526,8 +1521,8 @@ function Extension() {
                             }
                             disabled={!!saving}
                           />
-                        </div>
-                        <div style={{ flex: "1 1 0", minWidth: 0 }}>
+                        </s-box>
+                        <s-box minInlineSize="17%" inlineSize="auto">
                           <s-text-field
                             label={i18n.translate("email_label")}
                             value={customerForm.email}
@@ -1538,8 +1533,8 @@ function Extension() {
                             }
                             disabled={!!saving}
                           />
-                        </div>
-                        <div style={{ flex: "1 1 0", minWidth: 0 }}>
+                        </s-box>
+                        <s-box minInlineSize="17%" inlineSize="auto">
                           <s-text-field
                             label={i18n.translate("phone_label")}
                             value={customerForm.phone}
@@ -1550,8 +1545,8 @@ function Extension() {
                             }
                             disabled={!!saving}
                           />
-                        </div>
-                        <div style={{ flex: "1 1 0", minWidth: 0 }}>
+                        </s-box>
+                        <s-box minInlineSize="17%" inlineSize="auto">
                           <s-text-field
                             label={i18n.translate("company")}
                             value={customerForm.company}
@@ -1564,22 +1559,15 @@ function Extension() {
                             }
                             disabled={!!saving}
                           />
-                        </div>
-                      </div>
-                      {/* Row 2: address + city/state/zip/country + Save / Reset on same row */}
-                      <div
-                        style={{
-                          display: "flex",
-                          flexDirection: "row",
-                          flexWrap: "nowrap",
-                          gap: "10px",
-                          alignItems: "flex-end",
-                          width: "100%",
-                          minWidth: 0,
-                          overflowX: "auto",
-                        }}
+                        </s-box>
+                      </s-stack>
+                      <s-stack
+                        direction="inline"
+                        gap="small-300"
+                        alignItems="end"
+                        inlineSize="100%"
                       >
-                        <div style={{ flex: "2 1 140px", minWidth: "120px" }}>
+                        <s-box minInlineSize="22%" inlineSize="auto">
                           <s-text-field
                             label={i18n.translate("address_line_1")}
                             value={customerForm.address1}
@@ -1592,8 +1580,8 @@ function Extension() {
                             }
                             disabled={!!saving}
                           />
-                        </div>
-                        <div style={{ flex: "1 1 80px", minWidth: "72px" }}>
+                        </s-box>
+                        <s-box minInlineSize="12%" inlineSize="auto">
                           <s-text-field
                             label={i18n.translate("city")}
                             value={customerForm.city}
@@ -1604,8 +1592,8 @@ function Extension() {
                             }
                             disabled={!!saving}
                           />
-                        </div>
-                        <div style={{ flex: "0 0 64px", minWidth: "56px" }}>
+                        </s-box>
+                        <s-box minInlineSize="48px" inlineSize="auto">
                           <s-text-field
                             label={i18n.translate("state")}
                             value={customerForm.provinceCode}
@@ -1624,8 +1612,8 @@ function Extension() {
                             }
                             disabled={!!saving}
                           />
-                        </div>
-                        <div style={{ flex: "1 1 80px", minWidth: "72px" }}>
+                        </s-box>
+                        <s-box minInlineSize="12%" inlineSize="auto">
                           <s-text-field
                             label={i18n.translate("zip_postal")}
                             value={customerForm.zip}
@@ -1636,8 +1624,8 @@ function Extension() {
                             }
                             disabled={!!saving}
                           />
-                        </div>
-                        <div style={{ flex: "0 0 64px", minWidth: "56px" }}>
+                        </s-box>
+                        <s-box minInlineSize="48px" inlineSize="auto">
                           <s-text-field
                             label={i18n.translate("country")}
                             value={customerForm.countryCode}
@@ -1652,33 +1640,26 @@ function Extension() {
                             }}
                             disabled={!!saving}
                           />
-                        </div>
-                        <div
-                          style={{
-                            display: "flex",
-                            flexDirection: "row",
-                            flexShrink: 0,
-                            gap: "8px",
-                            alignItems: "flex-end",
-                            paddingBottom: "2px",
-                          }}
-                        >
-                          <s-button
-                            variant="primary"
-                            onClick={handleSaveCustomer}
-                            disabled={!!saving}
-                          >
-                            {i18n.translate("save_customer")}
-                          </s-button>
-                          <s-button
-                            variant="secondary"
-                            onClick={handleResetCustomer}
-                            disabled={!!saving}
-                          >
-                            {i18n.translate("reset_customer")}
-                          </s-button>
-                        </div>
-                      </div>
+                        </s-box>
+                        <s-box minInlineSize="140px" inlineSize="auto">
+                          <s-stack direction="inline" gap="small" alignItems="end">
+                            <s-button
+                              variant="primary"
+                              onClick={handleSaveCustomer}
+                              disabled={!!saving}
+                            >
+                              {i18n.translate("save_customer")}
+                            </s-button>
+                            <s-button
+                              variant="secondary"
+                              onClick={handleResetCustomer}
+                              disabled={!!saving}
+                            >
+                              {i18n.translate("reset_customer")}
+                            </s-button>
+                          </s-stack>
+                        </s-box>
+                      </s-stack>
                     </s-stack>
                   </s-box>
                 ) : (
