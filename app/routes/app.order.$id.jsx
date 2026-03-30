@@ -2130,9 +2130,6 @@ export default function OrderDetails() {
       {/* Line items */}
       <s-section>
         <s-stack gap="base">
-          <s-heading size="large" style={{ fontSize: "1.6rem" }}>
-            ITEMS
-          </s-heading>
           {order.lineItems.length === 0 ? (
             <s-text color="subdued">No line items</s-text>
           ) : (
@@ -2147,8 +2144,25 @@ export default function OrderDetails() {
                   data-line-index={idx}
                 >
                   <s-stack gap="small-300">
-                    <s-stack direction="inline" gap="small" alignItems="center" justifyContent="space-between">
-                      <s-stack direction="inline" gap="small" alignItems="center">
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "12px",
+                        width: "100%",
+                        minWidth: 0,
+                      }}
+                    >
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "8px",
+                          flex: "1 1 auto",
+                          minWidth: 0,
+                          flexWrap: "wrap",
+                        }}
+                      >
                         <s-badge
                           tone="info"
                           color="strong"
@@ -2157,11 +2171,19 @@ export default function OrderDetails() {
                             fontSize: "1.25rem",
                             minWidth: "2.2rem",
                             textAlign: "center",
+                            flexShrink: 0,
                           }}
                         >
                           {idx + 1}
                         </s-badge>
-                        <s-heading size="large" style={{ fontSize: "1.5rem" }}>
+                        <s-heading
+                          size="large"
+                          style={{
+                            fontSize: "1.5rem",
+                            margin: 0,
+                            minWidth: 0,
+                          }}
+                        >
                           {String(item.title || "").toUpperCase()}
                         </s-heading>
                         {item.lineItemRefunded && (
@@ -2177,17 +2199,29 @@ export default function OrderDetails() {
                             ) : null}
                           </s-stack>
                         )}
-                      </s-stack>
-                      <s-badge tone={getOrderStatusTone(item.orderStatus)}>
-                        {item.orderStatus || "Not set"}
-                      </s-badge>
-                    </s-stack>
-                    <s-stack direction="inline" gap="small">
-                      <s-text>Qty: {item.quantity}</s-text>
-                      {item.pricePerItem && (
-                        <s-text>{item.pricePerItem}</s-text>
-                      )}
-                    </s-stack>
+                      </div>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "10px",
+                          flexShrink: 0,
+                          marginLeft: "auto",
+                        }}
+                      >
+                        <s-text type="strong" style={{ whiteSpace: "nowrap" }}>
+                          QTY {item.quantity}
+                        </s-text>
+                        {item.pricePerItem ? (
+                          <s-text type="strong" style={{ whiteSpace: "nowrap" }}>
+                            {item.pricePerItem}
+                          </s-text>
+                        ) : null}
+                        <s-badge tone={getOrderStatusTone(item.orderStatus)}>
+                          {item.orderStatus || "Not set"}
+                        </s-badge>
+                      </div>
+                    </div>
                     {order.type === "order" && (
                       <s-stack direction="inline" gap="small" alignItems="center">
                         {item.fulfillmentCanFulfill && (
@@ -2240,11 +2274,7 @@ export default function OrderDetails() {
                           </s-text>
                         )}
 
-                        {/* ITEM ORDER STATUS - right under title */}
-                        <s-stack gap="small" style={{ paddingTop: "1rem" }}>
-                          <s-heading size="large" style={{ fontSize: "1.5rem" }}>
-                            ITEM ORDER STATUS
-                          </s-heading>
+                        <s-stack gap="small" style={{ paddingTop: "0.25rem" }}>
                           {(() => {
                             const colors = getOrderStatusWrapperColors(
                               item.orderStatus
