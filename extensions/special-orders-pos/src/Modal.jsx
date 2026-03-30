@@ -1474,10 +1474,11 @@ function Extension() {
       isTablet === true ? CUSTOMER_FIELD_WIDTH_IPAD : CUSTOMER_FIELD_WIDTH;
 
     return (
-      <s-page heading={order.name} inlineSize={isTablet ? "large" : "base"}>
+      <s-page inlineSize={isTablet ? "large" : "base"}>
         <s-scroll-box>
           <s-box padding="base">
             <s-stack gap="small">
+              <s-heading>{order.name}</s-heading>
               <s-stack
                 direction="inline"
                 gap="small"
@@ -1506,33 +1507,38 @@ function Extension() {
                   >
                     {i18n.translate("print_order_summary")}
                   </s-button>
-                  {order.createdAt ? (
-                    <s-text color="subdued" type="small">
-                      {i18n.translate("date_created")}:{" "}
-                      {new Date(order.createdAt).toLocaleDateString("en-US", {
-                        month: "2-digit",
-                        day: "2-digit",
-                        year: "2-digit",
-                      })}
-                    </s-text>
-                  ) : null}
                 </s-stack>
-                {order.customer?.id && customerForm ? (
+                {order.createdAt ||
+                (order.customer?.id && customerForm) ? (
                   <s-stack direction="inline" gap="small" alignItems="center">
-                    <s-button
-                      variant="primary"
-                      onClick={handleSaveCustomer}
-                      disabled={!!saving}
-                    >
-                      {i18n.translate("save_customer")}
-                    </s-button>
-                    <s-button
-                      variant="secondary"
-                      onClick={handleResetCustomer}
-                      disabled={!!saving}
-                    >
-                      {i18n.translate("reset_customer")}
-                    </s-button>
+                    {order.createdAt ? (
+                      <s-text type="strong">
+                        {i18n.translate("date_created")}:{" "}
+                        {new Date(order.createdAt).toLocaleDateString("en-US", {
+                          month: "2-digit",
+                          day: "2-digit",
+                          year: "2-digit",
+                        })}
+                      </s-text>
+                    ) : null}
+                    {order.customer?.id && customerForm ? (
+                      <>
+                        <s-button
+                          variant="primary"
+                          onClick={handleSaveCustomer}
+                          disabled={!!saving}
+                        >
+                          {i18n.translate("save_customer")}
+                        </s-button>
+                        <s-button
+                          variant="secondary"
+                          onClick={handleResetCustomer}
+                          disabled={!!saving}
+                        >
+                          {i18n.translate("reset_customer")}
+                        </s-button>
+                      </>
+                    ) : null}
                   </s-stack>
                 ) : null}
               </s-stack>
