@@ -226,6 +226,20 @@ function isCompletedContactStatus(status) {
   return normalized.includes("pickedupsalecomplete");
 }
 
+/** Width classes for editable line-item attribute fields (see `.item-detail-field--w*` in page styles). */
+function itemDetailFieldClassName(key) {
+  if (key === "Brand" || key === "Type") {
+    return "item-detail-field item-detail-field--w200";
+  }
+  if (key === "Style #" || key === "Size" || key === "Color") {
+    return "item-detail-field item-detail-field--w100";
+  }
+  if (key === "Date Ordered" || key === "Order Confirmation Number") {
+    return "item-detail-field item-detail-field--w200";
+  }
+  return "item-detail-field item-detail-field--w200";
+}
+
 const ALWAYS_PRESENT_ATTRIBUTES = ["Brand", "Type", "Style #", "Size", "Color", "Date Ordered", "Order Confirmation Number"];
 const HIDDEN_ATTRIBUTES = new Set([
   "_shopify_item_type",
@@ -1571,14 +1585,29 @@ export default function OrderDetails() {
           border: 2px solid;
         }
         .item-detail-field {
-          min-width: 280px;
-          width: 280px;
-          flex: 0 0 280px;
+          box-sizing: border-box;
+        }
+        .item-detail-field--w100 {
+          min-width: 100px;
+          width: 100px;
+          flex: 0 0 100px;
+        }
+        .item-detail-field--w200 {
+          min-width: 200px;
+          width: 200px;
+          flex: 0 0 200px;
         }
         .item-detail-field s-text-field {
           display: block;
           width: 100%;
-          min-width: 100%;
+          min-width: 0;
+          max-width: 100%;
+        }
+        .item-detail-field s-date-field {
+          display: block;
+          width: 100%;
+          min-width: 0;
+          max-width: 100%;
         }
         .item-detail-field .field-label {
           font-weight: 700 !important;
@@ -2337,7 +2366,10 @@ export default function OrderDetails() {
                                 ["Brand", "Type", "Style #", "Size", "Color", "Date Ordered", "Order Confirmation Number"].includes(a.key)
                               )
                               .map((attr) => (
-                                <div key={attr.key} className="item-detail-field">
+                                <div
+                                  key={attr.key}
+                                  className={itemDetailFieldClassName(attr.key)}
+                                >
                                   <s-stack gap="small-300">
                                     <span className="field-label" style={{ fontWeight: 700 }}>{attr.key}</span>
                                     {attr.key === "Date Ordered" ? (
@@ -2418,7 +2450,10 @@ export default function OrderDetails() {
                                 !["Brand", "Type", "Style #", "Size", "Color", "Date Ordered", "Order Confirmation Number"].includes(a.key)
                             )
                             .map((attr) => (
-                              <div key={attr.key} className="item-detail-field">
+                              <div
+                                key={attr.key}
+                                className={itemDetailFieldClassName(attr.key)}
+                              >
                                 <s-stack gap="small-300">
                                   <span className="field-label" style={{ fontWeight: 700 }}>{attr.key}</span>
                                   <s-text-field
