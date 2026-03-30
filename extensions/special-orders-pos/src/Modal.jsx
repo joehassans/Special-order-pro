@@ -1487,16 +1487,19 @@ function Extension() {
                   <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
                     <s-stack gap="small">
                       <s-text type="strong">{i18n.translate("customer_information")}</s-text>
+                      {/* Row 1: first name, last name, email, phone, company only */}
                       <div
                         style={{
                           display: "flex",
-                          flexWrap: "wrap",
+                          flexDirection: "row",
+                          flexWrap: "nowrap",
                           gap: "10px",
                           alignItems: "flex-end",
                           width: "100%",
+                          minWidth: 0,
                         }}
                       >
-                        <div style={{ flex: "1 1 120px", minWidth: "120px" }}>
+                        <div style={{ flex: "1 1 0", minWidth: 0 }}>
                           <s-text-field
                             label={i18n.translate("first_name")}
                             value={customerForm.firstName}
@@ -1510,7 +1513,7 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </div>
-                        <div style={{ flex: "1 1 120px", minWidth: "120px" }}>
+                        <div style={{ flex: "1 1 0", minWidth: 0 }}>
                           <s-text-field
                             label={i18n.translate("last_name")}
                             value={customerForm.lastName}
@@ -1524,7 +1527,7 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </div>
-                        <div style={{ flex: "1 1 140px", minWidth: "140px" }}>
+                        <div style={{ flex: "1 1 0", minWidth: 0 }}>
                           <s-text-field
                             label={i18n.translate("email_label")}
                             value={customerForm.email}
@@ -1536,7 +1539,7 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </div>
-                        <div style={{ flex: "1 1 120px", minWidth: "120px" }}>
+                        <div style={{ flex: "1 1 0", minWidth: 0 }}>
                           <s-text-field
                             label={i18n.translate("phone_label")}
                             value={customerForm.phone}
@@ -1548,7 +1551,7 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </div>
-                        <div style={{ flex: "1 1 120px", minWidth: "120px" }}>
+                        <div style={{ flex: "1 1 0", minWidth: 0 }}>
                           <s-text-field
                             label={i18n.translate("company")}
                             value={customerForm.company}
@@ -1563,16 +1566,20 @@ function Extension() {
                           />
                         </div>
                       </div>
+                      {/* Row 2: address + city/state/zip/country + Save / Reset on same row */}
                       <div
                         style={{
                           display: "flex",
-                          flexWrap: "wrap",
+                          flexDirection: "row",
+                          flexWrap: "nowrap",
                           gap: "10px",
                           alignItems: "flex-end",
                           width: "100%",
+                          minWidth: 0,
+                          overflowX: "auto",
                         }}
                       >
-                        <div style={{ flex: "2 1 200px", minWidth: "160px" }}>
+                        <div style={{ flex: "2 1 140px", minWidth: "120px" }}>
                           <s-text-field
                             label={i18n.translate("address_line_1")}
                             value={customerForm.address1}
@@ -1586,7 +1593,7 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </div>
-                        <div style={{ flex: "1 1 100px", minWidth: "90px" }}>
+                        <div style={{ flex: "1 1 80px", minWidth: "72px" }}>
                           <s-text-field
                             label={i18n.translate("city")}
                             value={customerForm.city}
@@ -1598,7 +1605,7 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </div>
-                        <div style={{ flex: "0 1 72px", minWidth: "64px" }}>
+                        <div style={{ flex: "0 0 64px", minWidth: "56px" }}>
                           <s-text-field
                             label={i18n.translate("state")}
                             value={customerForm.provinceCode}
@@ -1618,7 +1625,7 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </div>
-                        <div style={{ flex: "1 1 100px", minWidth: "90px" }}>
+                        <div style={{ flex: "1 1 80px", minWidth: "72px" }}>
                           <s-text-field
                             label={i18n.translate("zip_postal")}
                             value={customerForm.zip}
@@ -1630,7 +1637,7 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </div>
-                        <div style={{ flex: "0 1 72px", minWidth: "64px" }}>
+                        <div style={{ flex: "0 0 64px", minWidth: "56px" }}>
                           <s-text-field
                             label={i18n.translate("country")}
                             value={customerForm.countryCode}
@@ -1646,7 +1653,16 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </div>
-                        <s-stack direction="inline" gap="small" alignItems="end">
+                        <div
+                          style={{
+                            display: "flex",
+                            flexDirection: "row",
+                            flexShrink: 0,
+                            gap: "8px",
+                            alignItems: "flex-end",
+                            paddingBottom: "2px",
+                          }}
+                        >
                           <s-button
                             variant="primary"
                             onClick={handleSaveCustomer}
@@ -1661,7 +1677,7 @@ function Extension() {
                           >
                             {i18n.translate("reset_customer")}
                           </s-button>
-                        </s-stack>
+                        </div>
                       </div>
                     </s-stack>
                   </s-box>
