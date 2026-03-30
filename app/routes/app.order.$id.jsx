@@ -231,8 +231,14 @@ function itemDetailFieldClassName(key) {
   if (key === "Brand" || key === "Type") {
     return "item-detail-field item-detail-field--w200";
   }
-  if (key === "Style #" || key === "Size" || key === "Color") {
+  if (key === "Style #") {
+    return "item-detail-field item-detail-field--w150";
+  }
+  if (key === "Size") {
     return "item-detail-field item-detail-field--w100";
+  }
+  if (key === "Color") {
+    return "item-detail-field item-detail-field--w180";
   }
   if (key === "Date Ordered") {
     return "item-detail-field item-detail-field--w150";
@@ -1653,6 +1659,11 @@ export default function OrderDetails() {
           min-width: 150px;
           width: 150px;
           flex: 0 0 150px;
+        }
+        .item-detail-field--w180 {
+          min-width: 180px;
+          width: 180px;
+          flex: 0 0 180px;
         }
         .item-detail-field--date-clear-row.item-detail-field--w150 {
           min-width: 260px;
