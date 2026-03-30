@@ -1473,24 +1473,28 @@ function Extension() {
     const customerFieldWidth =
       isTablet === true ? CUSTOMER_FIELD_WIDTH_IPAD : CUSTOMER_FIELD_WIDTH;
 
+    const orderNoteStack = (
+      <s-stack gap={isTablet ? "small-500" : "small"}>
+        <s-text type="strong">{i18n.translate("note")}</s-text>
+        <s-text-area
+          value={noteValue || ""}
+          rows={getNoteRows(noteValue)}
+          onInput={(e) => setLocalNote(e.currentTarget.value)}
+          onBlur={(e) =>
+            handleUpdateNote(order.id, e.currentTarget.value)
+          }
+          disabled={!!saving}
+        />
+      </s-stack>
+    );
+
     const orderNoteSection = (
       <s-box
         padding={isTablet ? "small-500" : "base"}
         borderRadius="base"
         background="subdued"
       >
-        <s-stack gap={isTablet ? "small-500" : "small"}>
-          <s-text type="strong">{i18n.translate("note")}</s-text>
-          <s-text-area
-            value={noteValue || ""}
-            rows={getNoteRows(noteValue)}
-            onInput={(e) => setLocalNote(e.currentTarget.value)}
-            onBlur={(e) =>
-              handleUpdateNote(order.id, e.currentTarget.value)
-            }
-            disabled={!!saving}
-          />
-        </s-stack>
+        {orderNoteStack}
       </s-box>
     );
 
@@ -1797,8 +1801,6 @@ function Extension() {
                   </s-box>
                 )}
 
-                {isTablet === true ? orderNoteSection : null}
-
                 {!isTablet ? (
                 <s-stack gap="10px" blockSize="auto">
                   <s-divider />
@@ -1914,7 +1916,13 @@ function Extension() {
                 /* iPad: status cards in one row below customer */
               <>
                 <s-divider />
-                <s-stack direction="inline" gap="100px" blockSize="auto">
+                <s-stack
+                  direction="inline"
+                  gap="small-500"
+                  blockSize="auto"
+                  inlineSize="100%"
+                  alignItems="stretch"
+                >
                 <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
                     <s-text type="strong">{i18n.translate("contact_status")}</s-text>
@@ -2021,6 +2029,16 @@ function Extension() {
                       );
                     })()}
                   </s-stack>
+                </s-box>
+                <s-box
+                  padding="base"
+                  inlineSize="fill"
+                  minInlineSize="0"
+                  background="subdued"
+                  border="base"
+                  borderRadius="base"
+                >
+                  {orderNoteStack}
                 </s-box>
                 </s-stack>
               </>
