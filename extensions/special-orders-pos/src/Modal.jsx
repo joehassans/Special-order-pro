@@ -1571,10 +1571,25 @@ function Extension() {
                                 ))}
                               </s-stack>
                             </s-modal>
-                            <s-banner
-                              tone={getTone(item.orderStatus, "order") === "subdued" ? "auto" : getTone(item.orderStatus, "order")}
-                              heading={ORDER_STATUS_OPTIONS.includes(item.orderStatus) ? item.orderStatus : "Not Ordered"}
-                            />
+                            <s-stack
+                              direction="inline"
+                              gap="small"
+                              inlineSize="100%"
+                              justifyContent="space-between"
+                              alignItems="start"
+                            >
+                              <s-box inlineSize="fill" minInlineSize="0">
+                                <s-banner
+                                  tone={getTone(item.orderStatus, "order") === "subdued" ? "auto" : getTone(item.orderStatus, "order")}
+                                  heading={ORDER_STATUS_OPTIONS.includes(item.orderStatus) ? item.orderStatus : "Not Ordered"}
+                                />
+                              </s-box>
+                              <s-box inlineSize="auto">
+                                <s-text type="strong">
+                                  {i18n.translate("cart_line_item_details_heading")}
+                                </s-text>
+                              </s-box>
+                            </s-stack>
                           </s-stack>
                         </s-box>
                       </s-stack>
@@ -1848,7 +1863,32 @@ function Extension() {
                     <Fragment key={order.id}>
                       <s-box padding="base" borderRadius="base" background="subdued">
                         <s-stack gap="base">
-                          <s-banner tone={orderBadgeTone} heading={order.name} />
+                          <s-stack
+                            direction="inline"
+                            gap="small"
+                            inlineSize="100%"
+                            justifyContent="space-between"
+                            alignItems="start"
+                          >
+                            <s-box inlineSize="fill" minInlineSize="0">
+                              <s-banner tone={orderBadgeTone} heading={order.name} />
+                            </s-box>
+                            <s-box inlineSize="auto">
+                              <s-button
+                                variant="secondary"
+                                onClick={() => {
+                                  setSelectedOrder(order);
+                                  setLocalNote(
+                                    order.id?.includes("DraftOrder")
+                                      ? order.note2 || ""
+                                      : order.note || ""
+                                  );
+                                }}
+                              >
+                                {i18n.translate("view_details")}
+                              </s-button>
+                            </s-box>
+                          </s-stack>
                           <s-heading>{order.customerName}</s-heading>
                           <s-stack direction="inline" gap="small">
                             <s-text type="strong">{i18n.translate("column_order_status")}</s-text>
@@ -1877,19 +1917,6 @@ function Extension() {
                               {order.contactStatus || "Not Contacted"}
                             </s-badge>
                           </s-stack>
-                          <s-button
-                            variant="secondary"
-                            onClick={() => {
-                              setSelectedOrder(order);
-                              setLocalNote(
-                                order.id?.includes("DraftOrder")
-                                  ? order.note2 || ""
-                                  : order.note || ""
-                              );
-                            }}
-                          >
-                            {i18n.translate("view_details")}
-                          </s-button>
                           <s-stack direction="inline" gap="small">
                             <s-text type="strong">{i18n.translate("date_created")}</s-text>
                             <s-text color="subdued" type="small">{order.createdDateLabel || ""}</s-text>
