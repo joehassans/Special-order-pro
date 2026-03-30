@@ -234,8 +234,11 @@ function itemDetailFieldClassName(key) {
   if (key === "Style #" || key === "Size" || key === "Color") {
     return "item-detail-field item-detail-field--w100";
   }
-  if (key === "Date Ordered" || key === "Order Confirmation Number") {
+  if (key === "Date Ordered") {
     return "item-detail-field item-detail-field--w150";
+  }
+  if (key === "Order Confirmation Number") {
+    return "item-detail-field item-detail-field--w200";
   }
   return "item-detail-field item-detail-field--w200";
 }
@@ -1595,12 +1598,25 @@ export default function OrderDetails() {
           border: 2px solid;
           width: 100%;
           box-sizing: border-box;
+          position: relative;
+        }
+        .order-status-dropdown-badge-corner {
+          position: absolute;
+          top: 12px;
+          right: 16px;
+          z-index: 2;
+          pointer-events: none;
+        }
+        .order-status-dropdown-badge-corner s-badge {
+          pointer-events: auto;
         }
         .order-status-dropdown-inner {
           display: flex;
           flex-direction: column;
           gap: 12px;
           width: 100%;
+          padding-right: 132px;
+          box-sizing: border-box;
         }
         .order-status-attr-fields {
           display: flex;
@@ -1613,7 +1629,7 @@ export default function OrderDetails() {
           display: flex;
           flex-wrap: wrap;
           align-items: flex-end;
-          gap: 12px;
+          gap: 24px;
           width: 100%;
         }
         .order-status-select-row {
@@ -1646,6 +1662,12 @@ export default function OrderDetails() {
           width: 150px;
           flex: 0 0 150px;
         }
+        .item-detail-field--date-clear-row.item-detail-field--w150 {
+          min-width: 260px;
+          width: auto;
+          flex: 0 0 auto;
+          max-width: 100%;
+        }
         .item-detail-field--w200 {
           min-width: 200px;
           width: 200px;
@@ -1655,13 +1677,18 @@ export default function OrderDetails() {
           display: flex;
           flex-direction: row;
           align-items: flex-end;
-          gap: 8px;
+          justify-content: flex-start;
+          gap: 12px;
           width: 100%;
           min-width: 0;
         }
         .item-detail-field--date-clear-row .date-clear-inline s-box {
-          flex: 1 1 0;
-          min-width: 0;
+          flex: 1 1 auto;
+          min-width: 148px;
+          max-width: 100%;
+        }
+        .item-detail-field--date-clear-row .date-clear-inline s-button {
+          flex-shrink: 0;
         }
         .item-detail-field s-text-field {
           display: block;
@@ -1742,6 +1769,16 @@ export default function OrderDetails() {
           display: block;
           width: 100%;
         }
+        .customer-info-row .customer-info-field--phone {
+          flex: 0 0 140px;
+          width: 140px;
+          min-width: 140px;
+          max-width: 140px;
+        }
+        .customer-info-row .customer-info-field--email {
+          flex: 2 1 0;
+          min-width: 160px;
+        }
         /* Address row: address lines share space; city is half the width of each line */
         .customer-info-row--address .customer-info-field--address-line {
           flex: 5 1 0;
@@ -1815,10 +1852,20 @@ export default function OrderDetails() {
           min-height: 0;
         }
       `}</style>
-      {/* Top bar: back link + order meta */}
+      {/* Top bar: back, print, dates, admin link, type badge, tags */}
       <s-section>
-        <s-stack direction="inline" alignItems="center" justifyContent="space-between">
-          <s-stack direction="inline" gap="small" alignItems="center">
+        <s-stack
+          direction="inline"
+          alignItems="center"
+          justifyContent="space-between"
+          gap="small"
+        >
+          <s-stack
+            direction="inline"
+            gap="small"
+            alignItems="center"
+            style={{ flexWrap: "wrap" }}
+          >
             <s-button
               variant="secondary"
               href="/app"
@@ -1835,8 +1882,22 @@ export default function OrderDetails() {
             >
               Print Order Summary
             </s-button>
+            <s-text color="subdued" style={{ whiteSpace: "nowrap" }}>
+              Created: {createdLabel}
+            </s-text>
+            <s-text color="subdued" style={{ whiteSpace: "nowrap" }}>
+              Updated: {updatedLabel}
+            </s-text>
           </s-stack>
           <s-stack direction="inline" gap="small" alignItems="center">
+            <s-button
+              variant="secondary"
+              href={adminHref}
+              size="large"
+              style={{ fontWeight: 600 }}
+            >
+              Go to Order in Admin
+            </s-button>
             <s-badge tone={order.type === "draft" ? "warning" : "success"}>
               {order.type === "draft" ? "Draft order" : "Order"}
             </s-badge>
@@ -1863,9 +1924,6 @@ export default function OrderDetails() {
           inlineSize="100%"
         >
           <s-stack gap="base">
-            <s-heading size="large" style={{ fontSize: "1.6rem" }}>
-              👤 CUSTOMER INFORMATION
-            </s-heading>
             {order.customer && customerForm ? (
               <s-stack gap="base" alignItems="stretch">
                 <div className="customer-info-row">
@@ -1895,7 +1953,7 @@ export default function OrderDetails() {
                       }
                     />
                   </div>
-                  <div className="customer-info-field">
+                  <div className="customer-info-field customer-info-field--email">
                     <s-text-field
                       label="Email"
                       type="email"
@@ -1908,7 +1966,7 @@ export default function OrderDetails() {
                       }
                     />
                   </div>
-                  <div className="customer-info-field">
+                  <div className="customer-info-field customer-info-field--phone">
                     <s-text-field
                       label="Phone"
                       type="tel"
@@ -2379,6 +2437,13 @@ export default function OrderDetails() {
                                 borderColor: colors.border,
                               }}
                             >
+                              <div className="order-status-dropdown-badge-corner">
+                                <s-badge
+                                  tone={getOrderStatusTone(item.orderStatus)}
+                                >
+                                  {item.orderStatus || "Not set"}
+                                </s-badge>
+                              </div>
                               <div className="order-status-dropdown-inner">
                                 <div className="order-status-attr-fields">
                                   {LINE_ITEM_ATTR_KEYS_IN_STATUS_BOX.map(
@@ -2566,13 +2631,6 @@ export default function OrderDetails() {
                                     </s-stack>
                                   </div>
                                   <div className="order-status-second-row-actions">
-                                    <s-badge
-                                      tone={getOrderStatusTone(
-                                        item.orderStatus
-                                      )}
-                                    >
-                                      {item.orderStatus || "Not set"}
-                                    </s-badge>
                                     <s-button
                                       variant="secondary"
                                       onClick={(event) => {
@@ -2668,38 +2726,6 @@ export default function OrderDetails() {
             </s-stack>
           )}
         </s-stack>
-      </s-section>
-
-      {/* Order summary + Go to Order in Admin */}
-      <s-section>
-        <s-box
-          padding="base"
-          borderRadius="base"
-          borderWidth="base"
-          background="subdued"
-        >
-          <s-stack
-            direction="inline"
-            alignItems="center"
-            justifyContent="space-between"
-          >
-            <s-stack gap="small">
-              <s-heading size="large" style={{ fontSize: "1.6rem" }}>
-                ORDER SUMMARY
-              </s-heading>
-              <s-text color="subdued">Created: {createdLabel}</s-text>
-              <s-text color="subdued">Updated: {updatedLabel}</s-text>
-            </s-stack>
-            <s-button
-              variant="secondary"
-              href={adminHref}
-              size="large"
-              style={{ fontWeight: 600 }}
-            >
-              Go to Order in Admin
-            </s-button>
-          </s-stack>
-        </s-box>
       </s-section>
 
       {printModalOpen && (
