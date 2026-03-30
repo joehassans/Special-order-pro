@@ -157,6 +157,8 @@ function CartLineItemAction() {
     }
   }
 
+  const lineQty = shopify.cartLineItem?.quantity ?? 0;
+
   return (
     <s-page heading={i18n.translate("cart_line_item_page_heading")}>
       <s-scroll-box>
@@ -167,6 +169,19 @@ function CartLineItemAction() {
                 <s-text tone="critical">{error}</s-text>
               </s-section>
             )}
+
+            <s-section>
+              <s-stack direction="inline" gap="base" alignItems="center">
+                <s-button onClick={handleSave} disabled={saving}>
+                  {saving
+                    ? i18n.translate("cart_line_item_saving")
+                    : i18n.translate("cart_line_item_save")}
+                </s-button>
+                <s-heading>
+                  {i18n.translate("quantity")}: {lineQty}
+                </s-heading>
+              </s-stack>
+            </s-section>
 
             <s-section>
               <s-heading>{i18n.translate("cart_line_item_special_order_heading")}</s-heading>
@@ -304,16 +319,6 @@ function CartLineItemAction() {
                   ))}
                 </s-choice-list>
               </s-box>
-            </s-section>
-
-            <s-section>
-              <s-stack direction="inline" inlineSize="100%" justifyContent="end">
-                <s-button onClick={handleSave} disabled={saving}>
-                  {saving
-                    ? i18n.translate("cart_line_item_saving")
-                    : i18n.translate("cart_line_item_save")}
-                </s-button>
-              </s-stack>
             </s-section>
           </s-stack>
         </s-box>
