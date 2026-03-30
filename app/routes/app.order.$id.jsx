@@ -235,7 +235,7 @@ function itemDetailFieldClassName(key) {
     return "item-detail-field item-detail-field--w100";
   }
   if (key === "Date Ordered" || key === "Order Confirmation Number") {
-    return "item-detail-field item-detail-field--w200";
+    return "item-detail-field item-detail-field--w150";
   }
   return "item-detail-field item-detail-field--w200";
 }
@@ -1602,35 +1602,30 @@ export default function OrderDetails() {
           gap: 12px;
           width: 100%;
         }
-        .order-status-select-row {
-          width: 400px;
-          max-width: 100%;
-          flex-shrink: 0;
-        }
-        .order-status-select-row s-select {
-          width: 100%;
-          min-width: 0;
-        }
         .order-status-attr-fields {
           display: flex;
           flex-wrap: wrap;
           gap: 12px;
-          align-items: flex-start;
+          align-items: flex-end;
+          width: 100%;
         }
-        .item-line-item-details-row {
+        .order-status-second-row {
           display: flex;
           flex-wrap: wrap;
           align-items: flex-end;
           gap: 12px;
           width: 100%;
         }
-        .item-detail-field--date-clear-row {
-          min-width: 280px;
-          flex: 1 1 280px;
+        .order-status-select-row {
+          width: 400px;
           max-width: 100%;
-          box-sizing: border-box;
+          flex: 0 0 auto;
         }
-        .item-line-item-details-row-actions {
+        .order-status-select-row s-select {
+          width: 100%;
+          min-width: 0;
+        }
+        .order-status-second-row-actions {
           margin-left: auto;
           display: flex;
           align-items: center;
@@ -1646,10 +1641,27 @@ export default function OrderDetails() {
           width: 100px;
           flex: 0 0 100px;
         }
+        .item-detail-field--w150 {
+          min-width: 150px;
+          width: 150px;
+          flex: 0 0 150px;
+        }
         .item-detail-field--w200 {
           min-width: 200px;
           width: 200px;
           flex: 0 0 200px;
+        }
+        .item-detail-field--date-clear-row .date-clear-inline {
+          display: flex;
+          flex-direction: row;
+          align-items: flex-end;
+          gap: 8px;
+          width: 100%;
+          min-width: 0;
+        }
+        .item-detail-field--date-clear-row .date-clear-inline s-box {
+          flex: 1 1 0;
+          min-width: 0;
         }
         .item-detail-field s-text-field {
           display: block;
@@ -2368,38 +2380,6 @@ export default function OrderDetails() {
                               }}
                             >
                               <div className="order-status-dropdown-inner">
-                                <div className="order-status-select-row">
-                                  <s-select
-                                    value={item.orderStatus || "Not Ordered"}
-                                    onChange={(event) => {
-                                      submit(
-                                        {
-                                          orderId: order.id,
-                                          lineItemId: item.id,
-                                          orderStatus:
-                                            webComponentFieldValue(event),
-                                        },
-                                        { method: "post" }
-                                      );
-                                    }}
-                                  >
-                                    <s-option value="Not Ordered">
-                                      Not Ordered
-                                    </s-option>
-                                    <s-option value="Ordered">Ordered</s-option>
-                                    <s-option value="Back Ordered">
-                                      Back Ordered
-                                    </s-option>
-                                    <s-option value="Drop Ship - Ordered">
-                                      Drop Ship - Ordered
-                                    </s-option>
-                                    <s-option value="Drop Ship - Delivered">
-                                      Drop Ship - Delivered
-                                    </s-option>
-                                    <s-option value="Received">Received</s-option>
-                                    <s-option value="Canceled">Canceled</s-option>
-                                  </s-select>
-                                </div>
                                 <div className="order-status-attr-fields">
                                   {LINE_ITEM_ATTR_KEYS_IN_STATUS_BOX.map(
                                     (key) => {
@@ -2433,157 +2413,219 @@ export default function OrderDetails() {
                                     }
                                   )}
                                 </div>
+                                <div className="order-status-second-row">
+                                  <div className="order-status-select-row">
+                                    <s-select
+                                      value={item.orderStatus || "Not Ordered"}
+                                      onChange={(event) => {
+                                        submit(
+                                          {
+                                            orderId: order.id,
+                                            lineItemId: item.id,
+                                            orderStatus:
+                                              webComponentFieldValue(event),
+                                          },
+                                          { method: "post" }
+                                        );
+                                      }}
+                                    >
+                                      <s-option value="Not Ordered">
+                                        Not Ordered
+                                      </s-option>
+                                      <s-option value="Ordered">Ordered</s-option>
+                                      <s-option value="Back Ordered">
+                                        Back Ordered
+                                      </s-option>
+                                      <s-option value="Drop Ship - Ordered">
+                                        Drop Ship - Ordered
+                                      </s-option>
+                                      <s-option value="Drop Ship - Delivered">
+                                        Drop Ship - Delivered
+                                      </s-option>
+                                      <s-option value="Received">Received</s-option>
+                                      <s-option value="Canceled">Canceled</s-option>
+                                    </s-select>
+                                  </div>
+                                  <div
+                                    className={`${itemDetailFieldClassName("Date Ordered")} item-detail-field--date-clear-row`}
+                                  >
+                                    <s-stack gap="small-300">
+                                      <span
+                                        className="field-label"
+                                        style={{ fontWeight: 700 }}
+                                      >
+                                        Date Ordered
+                                      </span>
+                                      <div className="date-clear-inline">
+                                        <s-box
+                                          inlineSize="100%"
+                                          minInlineSize="0"
+                                        >
+                                          <s-date-field
+                                            data-attr-key="Date Ordered"
+                                            label=""
+                                            labelAccessibilityVisibility="hidden"
+                                            value={
+                                              lineItemAttrByKey(
+                                                item.customAttributes,
+                                                "Date Ordered"
+                                              ).value || ""
+                                            }
+                                            placeholder="Select date"
+                                          />
+                                        </s-box>
+                                        <s-button
+                                          variant="secondary"
+                                          disabled={
+                                            !(
+                                              lineItemAttrByKey(
+                                                item.customAttributes,
+                                                "Date Ordered"
+                                              ).value || ""
+                                            ).trim()
+                                          }
+                                          onClick={(e) => {
+                                            const el = eventTargetElement(e);
+                                            const container =
+                                              el?.closest?.(
+                                                "[data-line-index]"
+                                              );
+                                            if (!container) return;
+                                            const df = container.querySelector(
+                                              's-date-field[data-attr-key="Date Ordered"]'
+                                            );
+                                            if (df)
+                                              /** @type {any} */ (df).value =
+                                                "";
+                                            const textFields = Array.from(
+                                              container.querySelectorAll(
+                                                "s-text-field"
+                                              )
+                                            );
+                                            const dateFields = Array.from(
+                                              container.querySelectorAll(
+                                                "s-date-field"
+                                              )
+                                            );
+                                            const fields = [
+                                              ...textFields,
+                                              ...dateFields,
+                                            ];
+                                            const updatedAttrs = fields
+                                              .map((field) => {
+                                                const key =
+                                                  field.getAttribute(
+                                                    "data-attr-key"
+                                                  );
+                                                const value = field.value || "";
+                                                if (!key) return null;
+                                                return { key, value };
+                                              })
+                                              .filter(Boolean);
+                                            submit(
+                                              {
+                                                intent: "updateAttributes",
+                                                orderId: order.id,
+                                                lineItemIndex: String(idx),
+                                                attributes: JSON.stringify(
+                                                  updatedAttrs
+                                                ),
+                                              },
+                                              { method: "post" }
+                                            );
+                                          }}
+                                        >
+                                          Clear date
+                                        </s-button>
+                                      </div>
+                                    </s-stack>
+                                  </div>
+                                  <div
+                                    className={itemDetailFieldClassName(
+                                      "Order Confirmation Number"
+                                    )}
+                                  >
+                                    <s-stack gap="small-300">
+                                      <span
+                                        className="field-label"
+                                        style={{ fontWeight: 700 }}
+                                      >
+                                        Order Confirmation Number
+                                      </span>
+                                      <s-text-field
+                                        data-attr-key="Order Confirmation Number"
+                                        label=""
+                                        labelAccessibilityVisibility="hidden"
+                                        value={
+                                          lineItemAttrByKey(
+                                            item.customAttributes,
+                                            "Order Confirmation Number"
+                                          ).value || ""
+                                        }
+                                      />
+                                    </s-stack>
+                                  </div>
+                                  <div className="order-status-second-row-actions">
+                                    <s-badge
+                                      tone={getOrderStatusTone(
+                                        item.orderStatus
+                                      )}
+                                    >
+                                      {item.orderStatus || "Not set"}
+                                    </s-badge>
+                                    <s-button
+                                      variant="secondary"
+                                      onClick={(event) => {
+                                        const el = eventTargetElement(event);
+                                        const container =
+                                          el?.closest?.("[data-line-index]");
+                                        if (!container) return;
+                                        const textFields = Array.from(
+                                          container.querySelectorAll(
+                                            "s-text-field"
+                                          )
+                                        );
+                                        const dateFields = Array.from(
+                                          container.querySelectorAll(
+                                            "s-date-field"
+                                          )
+                                        );
+                                        const fields = [
+                                          ...textFields,
+                                          ...dateFields,
+                                        ];
+                                        const updatedAttrs = fields
+                                          .map((field) => {
+                                            const key =
+                                              field.getAttribute(
+                                                "data-attr-key"
+                                              );
+                                            const value = field.value || "";
+                                            if (!key) return null;
+                                            return { key, value };
+                                          })
+                                          .filter(Boolean);
+
+                                        submit(
+                                          {
+                                            intent: "updateAttributes",
+                                            orderId: order.id,
+                                            lineItemIndex: String(idx),
+                                            attributes:
+                                              JSON.stringify(updatedAttrs),
+                                          },
+                                          { method: "post" }
+                                        );
+                                      }}
+                                    >
+                                      Save Item Details
+                                    </s-button>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           );
                         })()}
-
-                        <div className="item-line-item-details-row">
-                          <div className="item-detail-field item-detail-field--date-clear-row">
-                            <s-stack gap="small-300">
-                              <span
-                                className="field-label"
-                                style={{ fontWeight: 700 }}
-                              >
-                                Date Ordered
-                              </span>
-                              <s-stack
-                                direction="inline"
-                                gap="small"
-                                alignItems="end"
-                              >
-                                <s-box inlineSize="100%" minInlineSize="0">
-                                  <s-date-field
-                                    data-attr-key="Date Ordered"
-                                    label=""
-                                    labelAccessibilityVisibility="hidden"
-                                    value={
-                                      lineItemAttrByKey(
-                                        item.customAttributes,
-                                        "Date Ordered"
-                                      ).value || ""
-                                    }
-                                    placeholder="Select date"
-                                  />
-                                </s-box>
-                                <s-button
-                                  variant="secondary"
-                                  disabled={
-                                    !(
-                                      lineItemAttrByKey(
-                                        item.customAttributes,
-                                        "Date Ordered"
-                                      ).value || ""
-                                    ).trim()
-                                  }
-                                  onClick={(e) => {
-                                    const el = eventTargetElement(e);
-                                    const container =
-                                      el?.closest?.("[data-line-index]");
-                                    if (!container) return;
-                                    const df = container.querySelector(
-                                      's-date-field[data-attr-key="Date Ordered"]'
-                                    );
-                                    if (df)
-                                      /** @type {any} */ (df).value = "";
-                                    const textFields = Array.from(
-                                      container.querySelectorAll("s-text-field")
-                                    );
-                                    const dateFields = Array.from(
-                                      container.querySelectorAll("s-date-field")
-                                    );
-                                    const fields = [...textFields, ...dateFields];
-                                    const updatedAttrs = fields
-                                      .map((field) => {
-                                        const key =
-                                          field.getAttribute("data-attr-key");
-                                        const value = field.value || "";
-                                        if (!key) return null;
-                                        return { key, value };
-                                      })
-                                      .filter(Boolean);
-                                    submit(
-                                      {
-                                        intent: "updateAttributes",
-                                        orderId: order.id,
-                                        lineItemIndex: String(idx),
-                                        attributes: JSON.stringify(
-                                          updatedAttrs
-                                        ),
-                                      },
-                                      { method: "post" }
-                                    );
-                                  }}
-                                >
-                                  Clear date
-                                </s-button>
-                              </s-stack>
-                            </s-stack>
-                          </div>
-                          <div className="item-detail-field item-detail-field--w200">
-                            <s-stack gap="small-300">
-                              <span
-                                className="field-label"
-                                style={{ fontWeight: 700 }}
-                              >
-                                Order Confirmation Number
-                              </span>
-                              <s-text-field
-                                data-attr-key="Order Confirmation Number"
-                                label=""
-                                labelAccessibilityVisibility="hidden"
-                                value={
-                                  lineItemAttrByKey(
-                                    item.customAttributes,
-                                    "Order Confirmation Number"
-                                  ).value || ""
-                                }
-                              />
-                            </s-stack>
-                          </div>
-                          <div className="item-line-item-details-row-actions">
-                            <s-badge tone={getOrderStatusTone(item.orderStatus)}>
-                              {item.orderStatus || "Not set"}
-                            </s-badge>
-                            <s-button
-                              variant="secondary"
-                              onClick={(event) => {
-                                const el = eventTargetElement(event);
-                                const container =
-                                  el?.closest?.("[data-line-index]");
-                                if (!container) return;
-                                const textFields = Array.from(
-                                  container.querySelectorAll("s-text-field")
-                                );
-                                const dateFields = Array.from(
-                                  container.querySelectorAll("s-date-field")
-                                );
-                                const fields = [...textFields, ...dateFields];
-                                const updatedAttrs = fields
-                                  .map((field) => {
-                                    const key =
-                                      field.getAttribute("data-attr-key");
-                                    const value = field.value || "";
-                                    if (!key) return null;
-                                    return { key, value };
-                                  })
-                                  .filter(Boolean);
-
-                                submit(
-                                  {
-                                    intent: "updateAttributes",
-                                    orderId: order.id,
-                                    lineItemIndex: String(idx),
-                                    attributes: JSON.stringify(updatedAttrs),
-                                  },
-                                  { method: "post" }
-                                );
-                              }}
-                            >
-                              Save Item Details
-                            </s-button>
-                          </div>
-                        </div>
 
                         {(item.customAttributes || [])
                           .filter(
