@@ -71,18 +71,18 @@ const COL_IPAD = {
 const MIN_TABLE_MOBILE = "755px";
 const MIN_TABLE_IPAD = "955px";
 
-/** Fixed column widths (px) for order-detail customer fields on POS. */
+/** Fixed column widths (px) for order-detail customer fields on POS (tuned for iPad modal). */
 const CUSTOMER_FIELD_WIDTH = {
-  firstName: "110px",
-  lastName: "110px",
-  email: "180px",
-  phone: "130px",
-  company: "120px",
-  address1: "220px",
-  city: "100px",
-  state: "48px",
-  zip: "96px",
-  country: "52px",
+  firstName: "220px",
+  lastName: "220px",
+  email: "320px",
+  phone: "200px",
+  company: "250px",
+  address1: "350px",
+  city: "220px",
+  state: "150px",
+  zip: "150px",
+  country: "150px",
 };
 
 // Same names as admin; Picked Up and Order Canceled at bottom
