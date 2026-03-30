@@ -47,6 +47,7 @@ function CartLineItemAction() {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [lineQty, setLineQty] = useState(0);
 
   /** Show 4 standard choices; if saved status is legacy (removed from modal), keep it selectable */
   const orderStatusChoices = useMemo(() => {
@@ -59,6 +60,30 @@ function CartLineItemAction() {
     }
     return base;
   }, [orderStatus]);
+
+  /** Cart line item API can lag; sync qty from reactive cart + line uuid */
+  useEffect(() => {
+    function syncLineQty() {
+      try {
+        const uuid = shopify.cartLineItem?.uuid;
+        const cart = shopify.cart?.current?.value;
+        const fromCart =
+          uuid && cart?.lineItems?.length
+            ? cart.lineItems.find((l) => l.uuid === uuid)
+            : undefined;
+        const q =
+          fromCart?.quantity ?? shopify.cartLineItem?.quantity ?? 0;
+        setLineQty(Number(q) || 0);
+      } catch {
+        setLineQty(Number(shopify.cartLineItem?.quantity) || 0);
+      }
+    }
+    syncLineQty();
+    const unsub = shopify.cart?.current?.subscribe?.(syncLineQty);
+    return () => {
+      if (typeof unsub === "function") unsub();
+    };
+  }, []);
 
   useEffect(() => {
     try {
@@ -157,8 +182,6 @@ function CartLineItemAction() {
     }
   }
 
-  const lineQty = shopify.cartLineItem?.quantity ?? 0;
-
   return (
     <s-page heading={i18n.translate("cart_line_item_page_heading")}>
       <s-scroll-box>
@@ -170,18 +193,24 @@ function CartLineItemAction() {
               </s-section>
             )}
 
-            <s-section>
-              <s-stack direction="inline" gap="base" alignItems="center">
+            <s-box paddingBlockEnd="small">
+              <s-stack
+                direction="inline"
+                gap="base"
+                inlineSize="100%"
+                justifyContent="space-between"
+                alignItems="center"
+              >
                 <s-button onClick={handleSave} disabled={saving}>
                   {saving
                     ? i18n.translate("cart_line_item_saving")
                     : i18n.translate("cart_line_item_save")}
                 </s-button>
-                <s-heading>
+                <s-text type="strong">
                   {i18n.translate("quantity")}: {lineQty}
-                </s-heading>
+                </s-text>
               </s-stack>
-            </s-section>
+            </s-box>
 
             <s-section>
               <s-heading>{i18n.translate("cart_line_item_special_order_heading")}</s-heading>
