@@ -71,6 +71,20 @@ const COL_IPAD = {
 const MIN_TABLE_MOBILE = "755px";
 const MIN_TABLE_IPAD = "955px";
 
+/** Fixed column widths (px) for order-detail customer fields on POS. */
+const CUSTOMER_FIELD_WIDTH = {
+  firstName: "110px",
+  lastName: "110px",
+  email: "180px",
+  phone: "130px",
+  company: "120px",
+  address1: "220px",
+  city: "100px",
+  state: "48px",
+  zip: "96px",
+  country: "52px",
+};
+
 // Same names as admin; Picked Up and Order Canceled at bottom
 const FILTER_OPTIONS = [
   { value: "", labelKey: "all_statuses" },
@@ -1527,7 +1541,11 @@ function Extension() {
                         alignItems="end"
                         inlineSize="100%"
                       >
-                        <s-box minInlineSize="17%" inlineSize="auto">
+                        <s-box
+                          inlineSize={CUSTOMER_FIELD_WIDTH.firstName}
+                          minInlineSize={CUSTOMER_FIELD_WIDTH.firstName}
+                          maxInlineSize={CUSTOMER_FIELD_WIDTH.firstName}
+                        >
                           <s-text-field
                             label={i18n.translate("first_name")}
                             value={customerForm.firstName}
@@ -1541,7 +1559,11 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </s-box>
-                        <s-box minInlineSize="17%" inlineSize="auto">
+                        <s-box
+                          inlineSize={CUSTOMER_FIELD_WIDTH.lastName}
+                          minInlineSize={CUSTOMER_FIELD_WIDTH.lastName}
+                          maxInlineSize={CUSTOMER_FIELD_WIDTH.lastName}
+                        >
                           <s-text-field
                             label={i18n.translate("last_name")}
                             value={customerForm.lastName}
@@ -1555,7 +1577,11 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </s-box>
-                        <s-box minInlineSize="17%" inlineSize="auto">
+                        <s-box
+                          inlineSize={CUSTOMER_FIELD_WIDTH.email}
+                          minInlineSize={CUSTOMER_FIELD_WIDTH.email}
+                          maxInlineSize={CUSTOMER_FIELD_WIDTH.email}
+                        >
                           <s-text-field
                             label={i18n.translate("email_label")}
                             value={customerForm.email}
@@ -1567,7 +1593,11 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </s-box>
-                        <s-box minInlineSize="17%" inlineSize="auto">
+                        <s-box
+                          inlineSize={CUSTOMER_FIELD_WIDTH.phone}
+                          minInlineSize={CUSTOMER_FIELD_WIDTH.phone}
+                          maxInlineSize={CUSTOMER_FIELD_WIDTH.phone}
+                        >
                           <s-text-field
                             label={i18n.translate("phone_label")}
                             value={customerForm.phone}
@@ -1579,7 +1609,11 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </s-box>
-                        <s-box minInlineSize="17%" inlineSize="auto">
+                        <s-box
+                          inlineSize={CUSTOMER_FIELD_WIDTH.company}
+                          minInlineSize={CUSTOMER_FIELD_WIDTH.company}
+                          maxInlineSize={CUSTOMER_FIELD_WIDTH.company}
+                        >
                           <s-text-field
                             label={i18n.translate("company")}
                             value={customerForm.company}
@@ -1600,7 +1634,11 @@ function Extension() {
                         alignItems="end"
                         inlineSize="100%"
                       >
-                        <s-box minInlineSize="22%" inlineSize="auto">
+                        <s-box
+                          inlineSize={CUSTOMER_FIELD_WIDTH.address1}
+                          minInlineSize={CUSTOMER_FIELD_WIDTH.address1}
+                          maxInlineSize={CUSTOMER_FIELD_WIDTH.address1}
+                        >
                           <s-text-field
                             label={i18n.translate("address_line_1")}
                             value={customerForm.address1}
@@ -1614,7 +1652,11 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </s-box>
-                        <s-box minInlineSize="12%" inlineSize="auto">
+                        <s-box
+                          inlineSize={CUSTOMER_FIELD_WIDTH.city}
+                          minInlineSize={CUSTOMER_FIELD_WIDTH.city}
+                          maxInlineSize={CUSTOMER_FIELD_WIDTH.city}
+                        >
                           <s-text-field
                             label={i18n.translate("city")}
                             value={customerForm.city}
@@ -1626,7 +1668,11 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </s-box>
-                        <s-box minInlineSize="48px" inlineSize="auto">
+                        <s-box
+                          inlineSize={CUSTOMER_FIELD_WIDTH.state}
+                          minInlineSize={CUSTOMER_FIELD_WIDTH.state}
+                          maxInlineSize={CUSTOMER_FIELD_WIDTH.state}
+                        >
                           <s-text-field
                             label={i18n.translate("state")}
                             value={customerForm.provinceCode}
@@ -1646,7 +1692,11 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </s-box>
-                        <s-box minInlineSize="12%" inlineSize="auto">
+                        <s-box
+                          inlineSize={CUSTOMER_FIELD_WIDTH.zip}
+                          minInlineSize={CUSTOMER_FIELD_WIDTH.zip}
+                          maxInlineSize={CUSTOMER_FIELD_WIDTH.zip}
+                        >
                           <s-text-field
                             label={i18n.translate("zip_postal")}
                             value={customerForm.zip}
@@ -1658,7 +1708,11 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </s-box>
-                        <s-box minInlineSize="48px" inlineSize="auto">
+                        <s-box
+                          inlineSize={CUSTOMER_FIELD_WIDTH.country}
+                          minInlineSize={CUSTOMER_FIELD_WIDTH.country}
+                          maxInlineSize={CUSTOMER_FIELD_WIDTH.country}
+                        >
                           <s-text-field
                             label={i18n.translate("country")}
                             value={customerForm.countryCode}
