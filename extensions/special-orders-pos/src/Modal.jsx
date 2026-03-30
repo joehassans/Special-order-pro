@@ -1488,6 +1488,12 @@ function Extension() {
       </s-stack>
     );
 
+    /** iPad status row: tall enough to match payment card; width uses remaining row space */
+    const tabletOrderNoteRows = Math.min(
+      24,
+      Math.max(14, getNoteRows(noteValue))
+    );
+
     const orderNoteSection = (
       <s-box
         padding={isTablet ? "small-500" : "base"}
@@ -1922,6 +1928,7 @@ function Extension() {
                   blockSize="auto"
                   inlineSize="100%"
                   alignItems="stretch"
+                  justifyContent="start"
                 >
                 <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
@@ -2034,11 +2041,29 @@ function Extension() {
                   padding="base"
                   inlineSize="fill"
                   minInlineSize="0"
+                  blockSize="100%"
                   background="subdued"
                   border="base"
                   borderRadius="base"
                 >
-                  {orderNoteStack}
+                  <s-stack
+                    gap="small-500"
+                    blockSize="100%"
+                    inlineSize="100%"
+                  >
+                    <s-text type="strong">{i18n.translate("note")}</s-text>
+                    <s-box inlineSize="100%">
+                      <s-text-area
+                        value={noteValue || ""}
+                        rows={tabletOrderNoteRows}
+                        onInput={(e) => setLocalNote(e.currentTarget.value)}
+                        onBlur={(e) =>
+                          handleUpdateNote(order.id, e.currentTarget.value)
+                        }
+                        disabled={!!saving}
+                      />
+                    </s-box>
+                  </s-stack>
                 </s-box>
                 </s-stack>
               </>
