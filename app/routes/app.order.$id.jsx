@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   redirect,
   useLoaderData,
+  useRevalidator,
   useSearchParams,
   useSubmit,
 } from "react-router";
@@ -132,6 +133,7 @@ const VALID_CONTACT_STATUSES = [
   "No Answer",
   "Left Message",
   "Spoke to Customer",
+  "Notified — Ready for Pickup.",
 ];
 
 function extractContactStatusFromMetafields(metafields) {
@@ -144,6 +146,19 @@ function extractContactStatusFromMetafields(metafields) {
     return value;
   }
   return "Not Contacted";
+}
+
+function extractPickupNotificationLog(metafields) {
+  const entry = metafields?.edges?.find(
+    (edge) => edge.node.key === "pickup_notification_log"
+  );
+  if (!entry?.node?.value) return [];
+  try {
+    const arr = JSON.parse(entry.node.value);
+    return Array.isArray(arr) ? arr : [];
+  } catch {
+    return [];
+  }
 }
 
 function extractOverallOrderStatusFromMetafields(metafields) {
@@ -206,6 +221,7 @@ function getContactStatusTone(status) {
   if (s.includes("no answer")) return "critical";
   if (s.includes("left message")) return "warning";
   if (s.includes("spoke to customer")) return "success";
+  if (s.includes("notified") && s.includes("pickup")) return "success";
   if (s.includes("picked up") || s.includes("sale complete")) return "success";
   return "critical";
 }
@@ -484,6 +500,7 @@ export const loader = async ({ request, params }) => {
 
     const contactStatus = extractContactStatusFromMetafields(metafields);
     const overallOrderStatus = extractOverallOrderStatusFromMetafields(metafields);
+    const pickupNotificationLog = extractPickupNotificationLog(metafields);
 
     const draftLineItems =
       draftOrder.lineItems?.edges?.map((edge, index) => {
@@ -535,6 +552,7 @@ export const loader = async ({ request, params }) => {
       note: draftOrder.note2 || "",
       contactStatus,
       overallOrderStatus,
+      pickupNotificationLog,
       paymentStatus: calculatePaymentStatus(draftOrder),
       subtotal: formatMoneySet(draftOrder.subtotalPriceSet),
       tax: formatMoneySet(draftOrder.totalTaxSet),
@@ -726,6 +744,7 @@ export const loader = async ({ request, params }) => {
 
     const contactStatus = extractContactStatusFromMetafields(metafields);
     const overallOrderStatus = extractOverallOrderStatusFromMetafields(metafields);
+    const pickupNotificationLog = extractPickupNotificationLog(metafields);
 
     let paid = null;
     if (
@@ -816,6 +835,7 @@ export const loader = async ({ request, params }) => {
       note: order.note || "",
       contactStatus,
       overallOrderStatus,
+      pickupNotificationLog,
       paymentStatus: calculatePaymentStatus(order),
       subtotal: formatMoneySet(order.subtotalPriceSet),
       tax: formatMoneySet(order.totalTaxSet),
@@ -1536,6 +1556,29 @@ export default function OrderDetails() {
   const [printError, setPrintError] = useState(null);
   const printIframeRef = useRef(null);
 
+  const revalidator = useRevalidator();
+  const [notifyModalOpen, setNotifyModalOpen] = useState(false);
+  const [notifyEmployeeNote, setNotifyEmployeeNote] = useState("");
+  const [notifyLoading, setNotifyLoading] = useState(false);
+  const [notifyError, setNotifyError] = useState(null);
+  const [notifyResendConfirm, setNotifyResendConfirm] = useState(false);
+  const [notifySuccess, setNotifySuccess] = useState(null);
+  /** True when a prior notification exists (from order data or 409 response). */
+  const [notifyResendGate, setNotifyResendGate] = useState(false);
+  /** Extra metadata when 409 returns a previous entry (race / stale client). */
+  const [notifyDuplicatePrev, setNotifyDuplicatePrev] = useState(null);
+
+  const customerEmail = order.customer?.email?.trim() || "";
+  const pickupLog = order.pickupNotificationLog || [];
+  const lastPickup =
+    pickupLog.length > 0 ? pickupLog[pickupLog.length - 1] : null;
+  const needsResendAck = notifyResendGate;
+  const lastSentLabel = lastPickup?.sentAt
+    ? new Date(lastPickup.sentAt).toLocaleString()
+    : notifyDuplicatePrev?.sentAt
+      ? new Date(notifyDuplicatePrev.sentAt).toLocaleString()
+      : null;
+
   const closePrintModal = useCallback(() => {
     setPrintModalOpen(false);
     setPrintHtml(null);
@@ -1581,6 +1624,92 @@ export default function OrderDetails() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [printModalOpen, closePrintModal]);
+
+  const openNotifyModal = useCallback(() => {
+    setNotifyModalOpen(true);
+    setNotifyEmployeeNote("");
+    setNotifyError(null);
+    setNotifySuccess(null);
+    setNotifyResendConfirm(false);
+    setNotifyDuplicatePrev(null);
+    setNotifyResendGate((order.pickupNotificationLog || []).length > 0);
+  }, [order.pickupNotificationLog]);
+
+  const closeNotifyModal = useCallback(() => {
+    setNotifyModalOpen(false);
+    setNotifyLoading(false);
+    setNotifyEmployeeNote("");
+    setNotifyError(null);
+    setNotifySuccess(null);
+    setNotifyResendConfirm(false);
+    setNotifyResendGate(false);
+    setNotifyDuplicatePrev(null);
+  }, []);
+
+  useEffect(() => {
+    if (!notifyModalOpen) return;
+    const onKey = (e) => {
+      if (e.key === "Escape") closeNotifyModal();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [notifyModalOpen, closeNotifyModal]);
+
+  const sendPickupNotification = useCallback(async () => {
+    if (!customerEmail) return;
+    if (notifyResendGate && !notifyResendConfirm) {
+      setNotifyError(
+        "Please confirm that you want to send another notification."
+      );
+      return;
+    }
+    setNotifyLoading(true);
+    setNotifyError(null);
+    try {
+      const res = await fetch("/app/api/notify-customer-ready", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "same-origin",
+        body: JSON.stringify({
+          orderId: order.id,
+          employeeNote: notifyEmployeeNote,
+          confirmResend: notifyResendGate && notifyResendConfirm,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.status === 409 && data.code === "ALREADY_SENT") {
+        setNotifyResendGate(true);
+        setNotifyResendConfirm(false);
+        setNotifyDuplicatePrev(data.previous ?? null);
+        setNotifyError(
+          "A notification was already sent. Check the box below to send again."
+        );
+        return;
+      }
+      if (!res.ok) {
+        throw new Error(data.error || "Could not send notification.");
+      }
+      setNotifySuccess({
+        sentAt: data.sentAt,
+        recipientEmail: data.recipientEmail,
+      });
+      setNotifyResendGate(false);
+      revalidator.revalidate();
+    } catch (e) {
+      setNotifyError(
+        e instanceof Error ? e.message : "Could not send notification."
+      );
+    } finally {
+      setNotifyLoading(false);
+    }
+  }, [
+    customerEmail,
+    notifyEmployeeNote,
+    notifyResendConfirm,
+    notifyResendGate,
+    order.id,
+    revalidator,
+  ]);
 
   return (
     <s-page
@@ -1885,6 +2014,14 @@ export default function OrderDetails() {
             >
               Print Order Summary
             </s-button>
+            <s-button
+              variant="secondary"
+              size="large"
+              style={{ fontWeight: 600 }}
+              onClick={openNotifyModal}
+            >
+              Notify Customer
+            </s-button>
             <s-text color="subdued" style={{ whiteSpace: "nowrap" }}>
               Created: {createdLabel}
             </s-text>
@@ -2137,9 +2274,13 @@ export default function OrderDetails() {
               </s-heading>
               <s-select
                 value={
-                  ["Not Contacted", "No Answer", "Left Message", "Spoke to Customer"].includes(
-                    order.contactStatus || ""
-                  )
+                  [
+                    "Not Contacted",
+                    "No Answer",
+                    "Left Message",
+                    "Spoke to Customer",
+                    "Notified — Ready for Pickup.",
+                  ].includes(order.contactStatus || "")
                     ? order.contactStatus || "Not Contacted"
                     : "Not Contacted"
                 }
@@ -2158,11 +2299,18 @@ export default function OrderDetails() {
                 <s-option value="No Answer">No Answer</s-option>
                 <s-option value="Left Message">Left Message</s-option>
                 <s-option value="Spoke to Customer">Spoke to Customer</s-option>
+                <s-option value="Notified — Ready for Pickup.">
+                  Notified — Ready for Pickup
+                </s-option>
               </s-select>
               <s-badge tone={getContactStatusTone(order.contactStatus)}>
-                {["Not Contacted", "No Answer", "Left Message", "Spoke to Customer"].includes(
-                  order.contactStatus || ""
-                )
+                {[
+                  "Not Contacted",
+                  "No Answer",
+                  "Left Message",
+                  "Spoke to Customer",
+                  "Notified — Ready for Pickup.",
+                ].includes(order.contactStatus || "")
                   ? order.contactStatus || "Not Contacted"
                   : "Not Contacted"}
               </s-badge>
@@ -2767,6 +2915,169 @@ export default function OrderDetails() {
                   title="Order summary print preview"
                   srcDoc={printHtml}
                 />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {notifyModalOpen && (
+        <div
+          className="print-modal-overlay"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="notify-modal-title"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeNotifyModal();
+          }}
+        >
+          <div
+            className="print-modal-panel"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: "520px" }}
+          >
+            <div className="print-modal-toolbar">
+              <s-heading id="notify-modal-title" size="large">
+                Notify customer
+              </s-heading>
+              <s-button
+                variant="secondary"
+                onClick={closeNotifyModal}
+                disabled={notifyLoading}
+              >
+                Close
+              </s-button>
+            </div>
+            <div className="print-modal-body">
+              {notifySuccess ? (
+                <s-stack gap="base">
+                  <s-banner
+                    tone="success"
+                    heading={`Notification sent to ${notifySuccess.recipientEmail}`}
+                  />
+                  <s-text color="subdued">
+                    Sent at{" "}
+                    {new Date(notifySuccess.sentAt).toLocaleString()}
+                  </s-text>
+                  <s-button variant="primary" onClick={closeNotifyModal}>
+                    Done
+                  </s-button>
+                </s-stack>
+              ) : (
+                <s-stack gap="base">
+                  <s-text type="strong">
+                    {order.customer?.displayName || "Customer"} · {order.name}
+                  </s-text>
+                  <s-box
+                    padding="base"
+                    borderRadius="base"
+                    borderWidth="base"
+                    background="subdued"
+                  >
+                    <s-stack gap="small-300">
+                      <s-text color="subdued" type="small">
+                        Order summary
+                      </s-text>
+                      <s-text>
+                        {order.lineItems.length} line item
+                        {order.lineItems.length === 1 ? "" : "s"}
+                        {order.total ? ` · ${order.total}` : ""}
+                      </s-text>
+                    </s-stack>
+                  </s-box>
+                  {!customerEmail ? (
+                    <s-banner
+                      tone="warning"
+                      heading="No email on file"
+                    >
+                      Add a customer email in Shopify or in the fields above
+                      before sending a notification.
+                    </s-banner>
+                  ) : null}
+                  {needsResendAck ? (
+                    <s-banner
+                      tone="warning"
+                      heading="Notification already sent"
+                    >
+                      {lastSentLabel
+                        ? `Previous email: ${lastSentLabel}.`
+                        : "A notification was already sent for this order."}{" "}
+                      Check the box below to send again.
+                    </s-banner>
+                  ) : null}
+                  {notifyError ? (
+                    <s-banner tone="critical" heading={notifyError} />
+                  ) : null}
+                  <s-text-area
+                    label="Note to customer (optional)"
+                    placeholder="Add a note to the customer (optional)"
+                    value={notifyEmployeeNote}
+                    onInput={(e) =>
+                      setNotifyEmployeeNote(webComponentFieldValue(e))
+                    }
+                    rows={3}
+                    disabled={notifyLoading || !customerEmail}
+                  />
+                  <s-text type="strong">Delivery method</s-text>
+                  <s-stack direction="inline" gap="small" alignItems="center">
+                    <s-button variant="primary" disabled>
+                      Email
+                    </s-button>
+                    <s-button variant="secondary" disabled>
+                      Text
+                    </s-button>
+                    <s-badge tone="subdued">Coming soon</s-badge>
+                  </s-stack>
+                  {customerEmail ? (
+                    <s-text color="subdued">
+                      Sending to: {customerEmail}
+                    </s-text>
+                  ) : null}
+                  {needsResendAck && customerEmail ? (
+                    <label
+                      style={{
+                        display: "flex",
+                        gap: "10px",
+                        alignItems: "flex-start",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={notifyResendConfirm}
+                        onChange={(e) =>
+                          setNotifyResendConfirm(e.target.checked)
+                        }
+                        disabled={notifyLoading}
+                        style={{ marginTop: "4px" }}
+                      />
+                      <span style={{ fontSize: "14px", lineHeight: 1.4 }}>
+                        I understand this sends another notification to the
+                        customer.
+                      </span>
+                    </label>
+                  ) : null}
+                  <s-stack direction="inline" gap="small" justifyContent="end">
+                    <s-button
+                      variant="secondary"
+                      onClick={closeNotifyModal}
+                      disabled={notifyLoading}
+                    >
+                      Cancel
+                    </s-button>
+                    <s-button
+                      variant="primary"
+                      onClick={sendPickupNotification}
+                      disabled={
+                        notifyLoading ||
+                        !customerEmail ||
+                        (needsResendAck && !notifyResendConfirm)
+                      }
+                    >
+                      {notifyLoading ? "Sending…" : "Send notification"}
+                    </s-button>
+                  </s-stack>
+                </s-stack>
               )}
             </div>
           </div>

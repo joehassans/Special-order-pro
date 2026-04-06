@@ -46,6 +46,7 @@ const CONTACT_STATUS_OPTIONS = [
   "No Answer",
   "Left Message",
   "Spoke to Customer",
+  "Notified — Ready for Pickup.",
 ];
 
 const OVERALL_ORDER_STATUS_OPTIONS = [
@@ -555,6 +556,7 @@ function getTone(status, type) {
     if (s.includes("order pending")) return "neutral";
     if (s.includes("no answer")) return "critical";
     if (s.includes("left message")) return "warning";
+    if (s.includes("notified") && s.includes("pickup")) return "success";
     if (s.includes("spoke") || s.includes("picked up")) return "success";
     return "critical";
   }

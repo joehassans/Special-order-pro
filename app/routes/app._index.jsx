@@ -95,6 +95,7 @@ const VALID_CONTACT_STATUSES = [
   "No Answer",
   "Left Message",
   "Spoke to Customer",
+  "Notified — Ready for Pickup.",
 ];
 
 function extractContactStatusFromMetafields(metafields) {
@@ -133,6 +134,7 @@ function getContactStatusTone(status) {
   if (s.includes("no answer")) return "critical";
   if (s.includes("left message")) return "warning";
   if (s.includes("spoke to customer")) return "success";
+  if (s.includes("notified") && s.includes("pickup")) return "success";
   return "critical";
 }
 

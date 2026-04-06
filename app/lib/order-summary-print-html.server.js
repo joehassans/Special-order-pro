@@ -5,14 +5,14 @@ import {
   buildOrderSummaryHtml,
 } from "./print-order-summary.server";
 
-function getPaymentStatusFromOrder(order) {
+export function getPaymentStatusFromOrder(order) {
   const status = order.displayFinancialStatus;
   if (status === "PAID") return "Paid in Full";
   if (status === "PARTIALLY_PAID") return "Partially Paid";
   return "Not Paid";
 }
 
-function buildPaymentDetailsRows(transactions, formatMoney) {
+export function buildPaymentDetailsRows(transactions, formatMoney) {
   const rows = [];
   const edges = transactions?.edges ?? [];
   const paymentKinds = new Set(["SALE", "CAPTURE"]);
@@ -45,7 +45,7 @@ function buildPaymentDetailsRows(transactions, formatMoney) {
   return rows;
 }
 
-function buildLineItems(rawItems, attrsByIndex, getVariantTitle, formatMoney) {
+export function buildLineItems(rawItems, attrsByIndex, getVariantTitle, formatMoney) {
   return rawItems.map((li, idx) => {
     const overrides = attrsByIndex[idx];
     const attrs = getAttributesForDisplay(overrides || li.customAttributes || []);
