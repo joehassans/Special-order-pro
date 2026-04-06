@@ -13,6 +13,26 @@ export const CONTACT_STATUS_NOTIFIED_READY =
   "Notified — Ready for Pickup.";
 export const NOTIFICATION_TYPE_EMAIL_READY = "email_ready_pickup";
 
+/**
+ * @param {unknown} e
+ */
+function smtpFailureMessage(e) {
+  const msg = e instanceof Error ? e.message : "Failed to send email.";
+  const code = /** @type {{ code?: string }} */ (e)?.code;
+  if (
+    code === "ETIMEDOUT" ||
+    code === "ESOCKETTIMEDOUT" ||
+    code === "ECONNRESET" ||
+    /timeout/i.test(msg)
+  ) {
+    return `${msg} Try setting GMAIL_SMTP_PORT=465 on the server, confirm the Gmail App Password, and check Railway logs.`;
+  }
+  if (code === "EAUTH" || /Invalid login|535|authentication/i.test(msg)) {
+    return `${msg} Use a Gmail App Password (not your normal password) for GMAIL_APP_PASSWORD.`;
+  }
+  return msg;
+}
+
 const METAFIELDS_SET = `#graphql
   mutation MetafieldsSet($metafields: [MetafieldsSetInput!]!) {
     metafieldsSet(metafields: $metafields) {
@@ -263,9 +283,7 @@ export async function sendPickupReadyNotification({
         html,
       });
     } catch (e) {
-      const err = new Error(
-        e instanceof Error ? e.message : "Failed to send email."
-      );
+      const err = new Error(smtpFailureMessage(e));
       err.status = 502;
       err.code = "SEND_FAILED";
       throw err;
@@ -431,9 +449,7 @@ export async function sendPickupReadyNotification({
       html,
     });
   } catch (e) {
-    const err = new Error(
-      e instanceof Error ? e.message : "Failed to send email."
-    );
+    const err = new Error(smtpFailureMessage(e));
     err.status = 502;
     err.code = "SEND_FAILED";
     throw err;
