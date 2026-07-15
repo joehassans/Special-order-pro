@@ -151,6 +151,98 @@ export async function syncSpecialOrder(shop, node, kind, extra = {}) {
   });
 }
 
+const ORDER_FOR_SYNC = `#graphql
+  query OrderForDbSync($id: ID!) {
+    order(id: $id) {
+      id
+      name
+      createdAt
+      note
+      displayFinancialStatus
+      totalPriceSet { shopMoney { amount currencyCode } }
+      totalRefundedSet { shopMoney { amount currencyCode } }
+      totalOutstandingSet { shopMoney { amount currencyCode } }
+      customer {
+        id
+        displayName
+        email
+        phone
+      }
+      metafields(first: 250, namespace: "custom") {
+        edges { node { key value } }
+      }
+      lineItems(first: 50) {
+        edges {
+          node {
+            id
+            title
+            quantity
+            variantTitle
+            customAttributes { key value }
+          }
+        }
+      }
+    }
+  }
+`;
+
+const DRAFT_FOR_SYNC = `#graphql
+  query DraftOrderForDbSync($id: ID!) {
+    draftOrder(id: $id) {
+      id
+      name
+      status
+      createdAt
+      note2
+      customer {
+        id
+        displayName
+        email
+        phone
+      }
+      metafields(first: 250, namespace: "custom") {
+        edges { node { key value } }
+      }
+      lineItems(first: 50) {
+        edges {
+          node {
+            id
+            title
+            quantity
+            variant { title }
+            customAttributes { key value }
+          }
+        }
+      }
+    }
+  }
+`;
+
+/**
+ * Fetch one Order/DraftOrder from Shopify by GID and mirror it into the DB.
+ * Used by the orders/create webhook and the POS sync-ping endpoint.
+ *
+ * @param {Function} graphql admin GraphQL client
+ * @param {string} shop myshopify domain
+ * @param {string} gid Order or DraftOrder GID
+ * @param {{ convertedFromDraftId?: string }} [extra]
+ */
+export async function fetchAndSyncSpecialOrderById(graphql, shop, gid, extra) {
+  const isDraft = String(gid).includes("DraftOrder");
+  const res = await graphql(isDraft ? DRAFT_FOR_SYNC : ORDER_FOR_SYNC, {
+    variables: { id: gid },
+  });
+  const json = await res.json();
+  const node = isDraft ? json.data?.draftOrder : json.data?.order;
+  if (!node) return null;
+  return syncSpecialOrder(
+    shop,
+    node,
+    isDraft ? "DRAFT_ORDER" : "ORDER",
+    extra
+  );
+}
+
 /**
  * Fire-and-forget wrapper: page loads must never fail or slow down
  * because the shadow sync had a problem.

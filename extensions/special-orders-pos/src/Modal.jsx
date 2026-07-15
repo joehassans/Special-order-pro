@@ -182,6 +182,25 @@ function graphql(query, variables = {}) {
   }).then((r) => r.json());
 }
 
+/**
+ * Fire-and-forget ping to the app backend after a successful write so the
+ * app database mirror updates immediately (admin sees POS changes without
+ * waiting for its background refresh). POS attaches the session token to
+ * app-domain fetches automatically; errors are ignored — the backend's
+ * periodic refresh self-heals.
+ */
+function syncOrderToBackend(orderId) {
+  try {
+    fetch("/pos/api/sync-order", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderId }),
+    }).catch(() => {});
+  } catch {
+    /* ignore */
+  }
+}
+
 function applyLineItemAttributeValue(
   item,
   attrKey,
@@ -1047,6 +1066,7 @@ function Extension() {
             contactStatus: value,
           }));
         }
+        syncOrderToBackend(orderId);
       } finally {
         setSaving(null);
       }
@@ -1101,6 +1121,7 @@ function Extension() {
             overallOrderStatus: value,
           }));
         }
+        syncOrderToBackend(orderId);
       } finally {
         setSaving(null);
       }
@@ -1154,6 +1175,7 @@ function Extension() {
             };
           })
         );
+        syncOrderToBackend(orderId);
       } finally {
         setSaving(null);
       }
@@ -1192,6 +1214,7 @@ function Extension() {
               : o
           )
         );
+        syncOrderToBackend(orderId);
       } finally {
         setSaving(null);
       }
@@ -1241,6 +1264,7 @@ function Extension() {
             };
           })
         );
+        syncOrderToBackend(orderId);
       } finally {
         setSaving(null);
       }
@@ -1358,6 +1382,7 @@ function Extension() {
       );
       const f = customerFormFromCustomer(customer);
       setCustomerForm(f);
+      syncOrderToBackend(detailOrder.id);
       try {
         shopify.toast?.show?.(i18n.translate("customer_saved"));
       } catch (_) {}
