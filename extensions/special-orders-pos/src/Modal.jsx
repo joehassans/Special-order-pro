@@ -183,6 +183,25 @@ function graphql(query, variables = {}) {
 }
 
 /**
+ * Phase 2: special-order state writes go through the app backend, which
+ * resolves line items by stable GID (immune to stale positions on this
+ * device), updates the app database, and mirrors metafields. POS attaches
+ * the session token to app-domain fetches automatically.
+ */
+async function posApiUpdate(payload) {
+  const res = await fetch("/pos/api/update-order", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok || data?.ok === false) {
+    throw new Error(data?.error || "Update failed. Please try again.");
+  }
+  return data;
+}
+
+/**
  * Fire-and-forget ping to the app backend after a successful write so the
  * app database mirror updates immediately (admin sees POS changes without
  * waiting for its background refresh). POS attaches the session token to
@@ -1023,26 +1042,11 @@ function Extension() {
     async (orderId, value) => {
       setSaving("contact");
       try {
-        const res = await graphql(
-          `mutation SetMetafield($metafields: [MetafieldsSetInput!]!) {
-            metafieldsSet(metafields: $metafields) {
-              userErrors { field message }
-            }
-          }`,
-          {
-            metafields: [
-              {
-                ownerId: orderId,
-                namespace: "custom",
-                key: "contact_status",
-                value: String(value),
-                type: "single_line_text_field",
-              },
-            ],
-          }
-        );
-        const errs = res?.data?.metafieldsSet?.userErrors ?? [];
-        if (errs.length) throw new Error(errs.map((e) => e.message).join(", "));
+        await posApiUpdate({
+          orderId,
+          intent: "contactStatus",
+          value: String(value),
+        });
         setRawOrders((prev) =>
           prev.map((o) =>
             o.id === orderId
@@ -1066,7 +1070,6 @@ function Extension() {
             contactStatus: value,
           }));
         }
-        syncOrderToBackend(orderId);
       } finally {
         setSaving(null);
       }
@@ -1078,26 +1081,11 @@ function Extension() {
     async (orderId, value) => {
       setSaving("overall");
       try {
-        const res = await graphql(
-          `mutation SetMetafield($metafields: [MetafieldsSetInput!]!) {
-            metafieldsSet(metafields: $metafields) {
-              userErrors { field message }
-            }
-          }`,
-          {
-            metafields: [
-              {
-                ownerId: orderId,
-                namespace: "custom",
-                key: "overall_order_status",
-                value: String(value),
-                type: "single_line_text_field",
-              },
-            ],
-          }
-        );
-        const errs = res?.data?.metafieldsSet?.userErrors ?? [];
-        if (errs.length) throw new Error(errs.map((e) => e.message).join(", "));
+        await posApiUpdate({
+          orderId,
+          intent: "overallStatus",
+          value: String(value),
+        });
         setRawOrders((prev) =>
           prev.map((o) =>
             o.id === orderId
@@ -1121,7 +1109,6 @@ function Extension() {
             overallOrderStatus: value,
           }));
         }
-        syncOrderToBackend(orderId);
       } finally {
         setSaving(null);
       }
@@ -1138,27 +1125,15 @@ function Extension() {
         const edges = order.lineItems?.edges || [];
         const idx = edges.findIndex((e) => e.node.id === lineItemId);
         if (idx < 0) return;
-        const metafieldKey = `product_${idx + 1}_order_status`;
-        const res = await graphql(
-          `mutation SetMetafield($metafields: [MetafieldsSetInput!]!) {
-            metafieldsSet(metafields: $metafields) {
-              userErrors { field message }
-            }
-          }`,
-          {
-            metafields: [
-              {
-                ownerId: orderId,
-                namespace: "custom",
-                key: metafieldKey,
-                value: String(newStatus),
-                type: "single_line_text_field",
-              },
-            ],
-          }
-        );
-        const errs = res?.data?.metafieldsSet?.userErrors ?? [];
-        if (errs.length) throw new Error(errs.map((e) => e.message).join(", "));
+        // Backend resolves the item's current position by GID; use that for
+        // the local metafield cache in case this device's view was stale.
+        const result = await posApiUpdate({
+          orderId,
+          intent: "itemStatus",
+          lineItemId,
+          value: String(newStatus),
+        });
+        const metafieldKey = `product_${result.position ?? idx + 1}_order_status`;
         setRawOrders((prev) =>
           prev.map((o) => {
             if (o.id !== orderId) return o;
@@ -1175,7 +1150,6 @@ function Extension() {
             };
           })
         );
-        syncOrderToBackend(orderId);
       } finally {
         setSaving(null);
       }
@@ -1188,25 +1162,11 @@ function Extension() {
       setSaving("note");
       try {
         const isDraft = orderId.includes("DraftOrder");
-        if (isDraft) {
-          await graphql(
-            `mutation UpdateDraft($id: ID!, $input: DraftOrderInput!) {
-              draftOrderUpdate(id: $id, input: $input) {
-                userErrors { message }
-              }
-            }`,
-            { id: orderId, input: { note: String(note) } }
-          );
-        } else {
-          await graphql(
-            `mutation UpdateOrder($input: OrderInput!) {
-              orderUpdate(input: $input) {
-                userErrors { message }
-              }
-            }`,
-            { input: { id: orderId, note: String(note) } }
-          );
-        }
+        await posApiUpdate({
+          orderId,
+          intent: "note",
+          value: String(note),
+        });
         setRawOrders((prev) =>
           prev.map((o) =>
             o.id === orderId
@@ -1214,7 +1174,6 @@ function Extension() {
               : o
           )
         );
-        syncOrderToBackend(orderId);
       } finally {
         setSaving(null);
       }
@@ -1226,28 +1185,20 @@ function Extension() {
     async (orderId, lineItemIndex, attributes) => {
       setSaving("attributes");
       try {
-        const key = `lineitem_${lineItemIndex + 1}_attributes`;
+        const order = rawOrders.find((o) => o.id === orderId);
+        const lineItemId =
+          order?.lineItems?.edges?.[lineItemIndex]?.node?.id ?? null;
+        if (!lineItemId) return;
         const normalized = normalizeAttributesArrayForSave(attributes);
-        const res = await graphql(
-          `mutation SetMetafield($metafields: [MetafieldsSetInput!]!) {
-            metafieldsSet(metafields: $metafields) {
-              userErrors { field message }
-            }
-          }`,
-          {
-            metafields: [
-              {
-                ownerId: orderId,
-                namespace: "custom",
-                key,
-                value: JSON.stringify(normalized),
-                type: "json",
-              },
-            ],
-          }
-        );
-        const errs = res?.data?.metafieldsSet?.userErrors ?? [];
-        if (errs.length) throw new Error(errs.map((e) => e.message).join(", "));
+        // Backend resolves the item's current position by GID; use that for
+        // the local metafield cache in case this device's view was stale.
+        const result = await posApiUpdate({
+          orderId,
+          intent: "itemAttributes",
+          lineItemId,
+          attributes: normalized,
+        });
+        const key = `lineitem_${result.position ?? lineItemIndex + 1}_attributes`;
         setRawOrders((prev) =>
           prev.map((o) => {
             if (o.id !== orderId) return o;
@@ -1264,12 +1215,11 @@ function Extension() {
             };
           })
         );
-        syncOrderToBackend(orderId);
       } finally {
         setSaving(null);
       }
     },
-    []
+    [rawOrders]
   );
 
   const handleFulfillLineItem = useCallback(async (orderId, lineItemId) => {
