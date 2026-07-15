@@ -14,10 +14,15 @@ export function getPaymentStatusFromOrder(order) {
 
 export function buildPaymentDetailsRows(transactions, formatMoney) {
   const rows = [];
-  const edges = transactions?.edges ?? [];
+  // Order.transactions is a plain list on current API versions; accept a
+  // legacy connection shape too in case a caller still passes one.
+  const list = Array.isArray(transactions)
+    ? transactions
+    : (transactions?.edges ?? []).map((e) => e.node);
   const paymentKinds = new Set(["SALE", "CAPTURE"]);
 
-  for (const { node: tx } of edges) {
+  for (const tx of list) {
+    if (!tx) continue;
     if (tx.status !== "SUCCESS") continue;
     if (!paymentKinds.has(tx.kind)) continue;
 
@@ -206,6 +211,15 @@ export async function buildOrderSummaryPrintHtml({ admin, requestUrl, id: rawId 
         totalTaxSet { shopMoney { amount currencyCode } }
         totalPriceSet { shopMoney { amount currencyCode } }
         totalOutstandingSet { shopMoney { amount currencyCode } }
+        transactions(first: 50) {
+          status
+          kind
+          gateway
+          formattedGateway
+          accountNumber
+          manualPaymentGateway
+          amountSet { shopMoney { amount currencyCode } }
+        }
         metafields(first: 250, namespace: "custom") { edges { node { key value } } }
         customer {
           displayName email phone

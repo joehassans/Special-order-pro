@@ -55,17 +55,13 @@ const GET_ORDER = `#graphql
       totalPriceSet { shopMoney { amount currencyCode } }
       totalOutstandingSet { shopMoney { amount currencyCode } }
       transactions(first: 50) {
-        edges {
-          node {
-            status
-            kind
-            gateway
-            formattedGateway
-            accountNumber
-            manualPaymentGateway
-            amountSet { shopMoney { amount currencyCode } }
-          }
-        }
+        status
+        kind
+        gateway
+        formattedGateway
+        accountNumber
+        manualPaymentGateway
+        amountSet { shopMoney { amount currencyCode } }
       }
       metafields(first: 250, namespace: "custom") {
         edges { node { key value } }

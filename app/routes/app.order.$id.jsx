@@ -970,6 +970,18 @@ const CUSTOMER_ADDRESS_CREATE = `#graphql
   }
 `;
 
+/**
+ * Embedded apps must redirect with a relative URL (pathname + search).
+ * An absolute redirect (request.url) can drop the embedded session context
+ * and bounce the user to /auth/login. Also clears stale error banners.
+ */
+function redirectSamePage(request) {
+  const url = new URL(request.url);
+  url.searchParams.delete("fulfillmentError");
+  url.searchParams.delete("customerError");
+  return redirect(url.pathname + url.search);
+}
+
 function redirectWithFulfillmentError(request, message) {
   const url = new URL(request.url);
   const short =
@@ -1004,7 +1016,7 @@ export const action = async ({ request }) => {
   const orderId = formData.get("orderId");
 
   if (!orderId) {
-    return redirect(request.url);
+    return redirectSamePage(request);
   }
 
   const { admin } = await authenticate.admin(request);
@@ -1053,13 +1065,13 @@ export const action = async ({ request }) => {
       }
     }
 
-    return redirect(request.url);
+    return redirectSamePage(request);
   }
 
   if (intent === "updateCustomer") {
     const customerId = formData.get("customerId");
     if (!customerId) {
-      return redirect(request.url);
+      return redirectSamePage(request);
     }
 
     const firstName = String(formData.get("firstName") ?? "").trim();
@@ -1205,7 +1217,7 @@ export const action = async ({ request }) => {
       );
     }
 
-    return redirect(request.url);
+    return redirectSamePage(request);
   }
 
   if (intent === "updateOverallOrderStatus") {
@@ -1235,7 +1247,7 @@ export const action = async ({ request }) => {
       );
     }
 
-    return redirect(request.url);
+    return redirectSamePage(request);
   }
 
   if (intent === "fulfillLineItem") {
@@ -1272,21 +1284,21 @@ export const action = async ({ request }) => {
     const rawIndex = formData.get("lineItemIndex");
     const attributesJson = formData.get("attributes");
     if (!rawIndex || attributesJson == null) {
-      return redirect(request.url);
+      return redirectSamePage(request);
     }
     const index = Number(rawIndex);
     if (Number.isNaN(index)) {
-      return redirect(request.url);
+      return redirectSamePage(request);
     }
 
     let parsedAttributes;
     try {
       parsedAttributes = JSON.parse(String(attributesJson));
     } catch {
-      return redirect(request.url);
+      return redirectSamePage(request);
     }
     if (!Array.isArray(parsedAttributes)) {
-      return redirect(request.url);
+      return redirectSamePage(request);
     }
     const normalizedJson = JSON.stringify(
       normalizeAttributesArrayForSave(parsedAttributes)
@@ -1317,14 +1329,14 @@ export const action = async ({ request }) => {
       );
     }
 
-    return redirect(request.url);
+    return redirectSamePage(request);
   }
 
   const lineItemId = formData.get("lineItemId");
   const newStatus = formData.get("orderStatus");
 
   if (!lineItemId) {
-    return redirect(request.url);
+    return redirectSamePage(request);
   }
 
   const isDraftOrder = String(orderId).includes("DraftOrder");
@@ -1355,7 +1367,7 @@ export const action = async ({ request }) => {
     const order = detailsJson.data?.order;
 
     if (!order) {
-      return redirect(request.url);
+      return redirectSamePage(request);
     }
 
     const index = order.lineItems?.edges?.findIndex(
@@ -1363,7 +1375,7 @@ export const action = async ({ request }) => {
     );
 
     if (index == null || index === -1) {
-      return redirect(request.url);
+      return redirectSamePage(request);
     }
 
     const metafieldKey = `product_${index + 1}_order_status`;
@@ -1417,7 +1429,7 @@ export const action = async ({ request }) => {
     const draftOrder = detailsJson.data?.draftOrder;
 
     if (!draftOrder) {
-      return redirect(request.url);
+      return redirectSamePage(request);
     }
 
     const index = draftOrder.lineItems?.edges?.findIndex(
@@ -1425,7 +1437,7 @@ export const action = async ({ request }) => {
     );
 
     if (index == null || index === -1) {
-      return redirect(request.url);
+      return redirectSamePage(request);
     }
 
     const metafieldKey = `product_${index + 1}_order_status`;
@@ -1455,7 +1467,7 @@ export const action = async ({ request }) => {
     }
   }
 
-  return redirect(request.url);
+  return redirectSamePage(request);
 };
 
 function OrderAdjustmentsCard({ orderAdjustments }) {

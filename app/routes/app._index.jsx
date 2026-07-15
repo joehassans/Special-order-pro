@@ -145,16 +145,37 @@ function isCompletedOverallOrderStatus(status) {
   return s === "Picked Up - Sale Complete";
 }
 
+// Pages of 50 keep per-query GraphQL cost identical to the original single
+// query; loop pages so stores with >50 special orders don't silently lose
+// the oldest ones from the list.
+const LIST_PAGE_SIZE = 50;
+const LIST_MAX_PAGES = 5;
+
 export const loader = async ({ request }) => {
   const { admin } = await authenticate.admin(request);
 
   // For now, use a fixed query filter for special orders only.
   const queryFilter = `tag:${SPECIAL_ORDER_TAG}`;
 
-  const response = await admin.graphql(
-    `#graphql
-    query GetSpecialOrdersAndDrafts($query: String) {
-      orders(first: 50, query: $query, sortKey: CREATED_AT, reverse: true) {
+  const LIST_QUERY = `#graphql
+    query GetSpecialOrdersAndDrafts(
+      $query: String
+      $ordersFirst: Int!
+      $ordersAfter: String
+      $draftsFirst: Int!
+      $draftsAfter: String
+    ) {
+      orders(
+        first: $ordersFirst
+        after: $ordersAfter
+        query: $query
+        sortKey: CREATED_AT
+        reverse: true
+      ) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
         edges {
           node {
             id
@@ -210,7 +231,17 @@ export const loader = async ({ request }) => {
           }
         }
       }
-      draftOrders(first: 50, query: $query, sortKey: ID, reverse: true) {
+      draftOrders(
+        first: $draftsFirst
+        after: $draftsAfter
+        query: $query
+        sortKey: ID
+        reverse: true
+      ) {
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
         edges {
           node {
             id
@@ -251,20 +282,46 @@ export const loader = async ({ request }) => {
         }
       }
     }
-    `,
-    {
+    `;
+
+  const fetchedOrders = [];
+  let fetchedDraftOrders = [];
+  let ordersCursor = null;
+  let draftsCursor = null;
+  let ordersDone = false;
+  let draftsDone = false;
+
+  for (let page = 0; page < LIST_MAX_PAGES; page++) {
+    if (ordersDone && draftsDone) break;
+
+    const response = await admin.graphql(LIST_QUERY, {
       variables: {
         query: queryFilter,
+        // Request 1 (not 0) for an exhausted connection: `first` must be
+        // positive. The extra row is already in our list, so skip its edges.
+        ordersFirst: ordersDone ? 1 : LIST_PAGE_SIZE,
+        ordersAfter: ordersCursor,
+        draftsFirst: draftsDone ? 1 : LIST_PAGE_SIZE,
+        draftsAfter: draftsCursor,
       },
+    });
+    const json = await response.json();
+
+    if (!ordersDone) {
+      const conn = json.data?.orders;
+      fetchedOrders.push(...(conn?.edges?.map((edge) => edge.node) ?? []));
+      ordersCursor = conn?.pageInfo?.endCursor ?? null;
+      ordersDone = !conn?.pageInfo?.hasNextPage;
     }
-  );
-
-  const json = await response.json();
-
-  const fetchedOrders =
-    json.data?.orders?.edges?.map((edge) => edge.node) ?? [];
-  let fetchedDraftOrders =
-    json.data?.draftOrders?.edges?.map((edge) => edge.node) ?? [];
+    if (!draftsDone) {
+      const conn = json.data?.draftOrders;
+      fetchedDraftOrders.push(
+        ...(conn?.edges?.map((edge) => edge.node) ?? [])
+      );
+      draftsCursor = conn?.pageInfo?.endCursor ?? null;
+      draftsDone = !conn?.pageInfo?.hasNextPage;
+    }
+  }
 
   // Hide draft orders that have been converted to real orders (e.g. paid → Order #1003).
   // When a draft is paid/completed, Shopify sets its status to COMPLETED; the resulting

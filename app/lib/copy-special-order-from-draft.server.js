@@ -79,6 +79,11 @@ function metafieldTypeForKey(key) {
   if (key.startsWith("lineitem_") && key.endsWith("_attributes")) {
     return "json";
   }
+  // Written as json by notify-customer-ready; wrong type here fails the whole
+  // metafieldsSet batch during draft -> order copy.
+  if (key === "pickup_notification_log") {
+    return "json";
+  }
   if (
     key === "order_adjustments_additional_payment" ||
     key === "order_adjustments_refund_total"
