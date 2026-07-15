@@ -1,0 +1,36 @@
+{% comment %}
+  Shopify POS → Receipt customization → Code editor → paste into footer (or main template)
+  next to your other centered lines.
+
+  Line item properties usually appear as line_item.properties with .first / .last (key / value).
+  Some receipt builds use custom_attributes with .key / .value — both are checked below.
+
+  Expected property: key "Special Order", value "Yes" (case-insensitive on value).
+{% endcomment %}
+{% assign is_special_order_receipt = false %}
+{% for line_item in order.line_items %}
+  {% for property in line_item.properties %}
+    {% assign prop_key = property.first | strip %}
+    {% assign prop_val = property.last | strip | downcase %}
+    {% if prop_key == 'Special Order' and prop_val == 'yes' %}
+      {% assign is_special_order_receipt = true %}
+    {% endif %}
+  {% endfor %}
+  {% unless is_special_order_receipt %}
+    {% for attr in line_item.custom_attributes %}
+      {% assign ak = attr.key | strip %}
+      {% assign av = attr.value | strip | downcase %}
+      {% if ak == 'Special Order' and av == 'yes' %}
+        {% assign is_special_order_receipt = true %}
+      {% endif %}
+    {% endfor %}
+  {% endunless %}
+  {% if is_special_order_receipt %}
+    {% break %}
+  {% endif %}
+{% endfor %}
+{% if is_special_order_receipt %}
+  <p style="text-align: center; margin-top: 0.25rem; font-weight: bold;">
+    SPECIAL ORDER
+  </p>
+{% endif %}
