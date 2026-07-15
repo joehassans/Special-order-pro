@@ -7,6 +7,7 @@ import {
 import { STORE_CONFIG } from "./print-order-summary.server";
 import { buildReadyPickupEmailHtml } from "./ready-pickup-email-html.server";
 import { sendTransactionalEmail } from "./send-transactional-email.server";
+import { dbAppendNotification } from "./special-order-db-write.server";
 
 export const PICKUP_NOTIFICATION_LOG_KEY = "pickup_notification_log";
 export const CONTACT_STATUS_NOTIFIED_READY =
@@ -144,6 +145,7 @@ const GET_DRAFT = `#graphql
  * @param {string} requestOrigin - e.g. https://xxx.ngrok.io for absolute logo URL
  * @param {string} [employeeNote]
  * @param {boolean} [confirmResend]
+ * @param {string} [shop] myshopify domain, for the app-DB write-through
  */
 export async function sendPickupReadyNotification({
   graphql,
@@ -151,6 +153,7 @@ export async function sendPickupReadyNotification({
   requestOrigin,
   employeeNote = "",
   confirmResend = false,
+  shop = null,
 }) {
   const id = normalizePrintOrderId(rawOrderId);
   if (!id) {
@@ -301,6 +304,16 @@ export async function sendPickupReadyNotification({
       );
       err.status = 500;
       throw err;
+    }
+
+    if (shop) {
+      await dbAppendNotification(shop, id, {
+        type: NOTIFICATION_TYPE_EMAIL_READY,
+        recipientEmail: email,
+        employeeNote: String(employeeNote).trim(),
+        sentAt,
+        contactStatus: CONTACT_STATUS_NOTIFIED_READY,
+      });
     }
 
     return {
@@ -462,6 +475,16 @@ export async function sendPickupReadyNotification({
     );
     err.status = 500;
     throw err;
+  }
+
+  if (shop) {
+    await dbAppendNotification(shop, id, {
+      type: NOTIFICATION_TYPE_EMAIL_READY,
+      recipientEmail: email,
+      employeeNote: String(employeeNote).trim(),
+      sentAt,
+      contactStatus: CONTACT_STATUS_NOTIFIED_READY,
+    });
   }
 
   return {

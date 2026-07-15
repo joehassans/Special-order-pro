@@ -10,7 +10,7 @@ export async function action({ request }) {
     return Response.json({ error: "Method not allowed" }, { status: 405 });
   }
 
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
 
   let body;
   try {
@@ -35,6 +35,7 @@ export async function action({ request }) {
       requestOrigin: new URL(request.url).origin,
       employeeNote,
       confirmResend,
+      shop: session.shop,
     });
 
     if (!result.ok && result.code === "ALREADY_SENT") {

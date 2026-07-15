@@ -27,6 +27,14 @@ import {
   normalizeSpecialOrderAttributeValue,
 } from "../lib/special-order-line-item-attributes";
 import { syncInBackground } from "../lib/special-order-db-sync.server";
+import {
+  dbUpdateContactStatus,
+  dbUpdateOverallStatus,
+  dbUpdateNote,
+  dbUpdateCustomer,
+  dbUpdateItemStatus,
+  dbUpdateItemAttributes,
+} from "../lib/special-order-db-write.server";
 
 function formatMoneySet(moneySet) {
   if (!moneySet || !moneySet.shopMoney) return null;
@@ -1026,7 +1034,7 @@ export const action = async ({ request }) => {
     return redirectSamePage(request);
   }
 
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
 
   if (intent === "updateNote") {
     const note = formData.get("note") ?? "";
@@ -1072,6 +1080,7 @@ export const action = async ({ request }) => {
       }
     }
 
+    await dbUpdateNote(session.shop, String(orderId), String(note));
     return redirectSamePage(request);
   }
 
@@ -1194,6 +1203,11 @@ export const action = async ({ request }) => {
       }
     }
 
+    await dbUpdateCustomer(session.shop, String(customerId), {
+      customerName: [firstName, lastName].filter(Boolean).join(" ") || null,
+      customerEmail: email || null,
+      customerPhone: phone || null,
+    });
     return redirectClearCustomerError(request);
   }
 
@@ -1224,6 +1238,11 @@ export const action = async ({ request }) => {
       );
     }
 
+    await dbUpdateContactStatus(
+      session.shop,
+      String(orderId),
+      String(contactStatus)
+    );
     return redirectSamePage(request);
   }
 
@@ -1254,6 +1273,11 @@ export const action = async ({ request }) => {
       );
     }
 
+    await dbUpdateOverallStatus(
+      session.shop,
+      String(orderId),
+      String(overallOrderStatus)
+    );
     return redirectSamePage(request);
   }
 
@@ -1336,6 +1360,12 @@ export const action = async ({ request }) => {
       );
     }
 
+    await dbUpdateItemAttributes(
+      session.shop,
+      String(orderId),
+      index + 1,
+      normalizeAttributesArrayForSave(parsedAttributes)
+    );
     return redirectSamePage(request);
   }
 
@@ -1410,6 +1440,13 @@ export const action = async ({ request }) => {
           "Failed to update order status metafield."
       );
     }
+
+    await dbUpdateItemStatus(
+      session.shop,
+      String(orderId),
+      { lineItemId: String(lineItemId), position: index + 1 },
+      String(newStatus || "")
+    );
   } else {
     // Draft orders: use draftOrder(id)
     const detailsResponse = await admin.graphql(
@@ -1472,6 +1509,13 @@ export const action = async ({ request }) => {
           "Failed to update order status metafield."
       );
     }
+
+    await dbUpdateItemStatus(
+      session.shop,
+      String(orderId),
+      { lineItemId: String(lineItemId), position: index + 1 },
+      String(newStatus || "")
+    );
   }
 
   return redirectSamePage(request);
