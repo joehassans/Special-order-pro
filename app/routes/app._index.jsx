@@ -6,6 +6,7 @@ import {
   calculatePaymentStatus,
   normalizeOverallOrderStatus,
 } from "../lib/order-status-helpers";
+import { syncManyInBackground } from "../lib/special-order-db-sync.server";
 
 const SPECIAL_ORDER_TAG = "special-order";
 
@@ -152,7 +153,7 @@ const LIST_PAGE_SIZE = 50;
 const LIST_MAX_PAGES = 5;
 
 export const loader = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
 
   // For now, use a fixed query filter for special orders only.
   const queryFilter = `tag:${SPECIAL_ORDER_TAG}`;
@@ -215,19 +216,20 @@ export const loader = async ({ request }) => {
                 }
               }
             }
-            lineItems(first: 50) {
-              edges {
-                node {
-                  id
-                  title
-                  variantTitle
-                  customAttributes {
-                    key
-                    value
-                  }
-                }
+        lineItems(first: 50) {
+          edges {
+            node {
+              id
+              title
+              quantity
+              variantTitle
+              customAttributes {
+                key
+                value
               }
             }
+          }
+        }
           }
         }
       }
@@ -263,21 +265,22 @@ export const loader = async ({ request }) => {
                 }
               }
             }
-            lineItems(first: 50) {
-              edges {
-                node {
-                  id
-                  title
-                  variant {
-                    title
-                  }
-                  customAttributes {
-                    key
-                    value
-                  }
-                }
+        lineItems(first: 50) {
+          edges {
+            node {
+              id
+              title
+              quantity
+              variant {
+                title
+              }
+              customAttributes {
+                key
+                value
               }
             }
+          }
+        }
           }
         }
       }
@@ -330,6 +333,11 @@ export const loader = async ({ request }) => {
   fetchedDraftOrders = fetchedDraftOrders.filter(
     (draft) => draft.status !== DRAFT_STATUS_COMPLETED
   );
+
+  // Phase 1 shadow sync: mirror special-order state into the app DB
+  // (fire-and-forget; metafields remain the source of truth).
+  syncManyInBackground(session.shop, fetchedOrders, "ORDER");
+  syncManyInBackground(session.shop, fetchedDraftOrders, "DRAFT_ORDER");
 
   // Normalize both into a common shape for the table
   const normalizedOrders = [...fetchedOrders, ...fetchedDraftOrders]

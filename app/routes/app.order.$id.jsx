@@ -26,6 +26,7 @@ import {
   normalizeAttributesArrayForSave,
   normalizeSpecialOrderAttributeValue,
 } from "../lib/special-order-line-item-attributes";
+import { syncInBackground } from "../lib/special-order-db-sync.server";
 
 function formatMoneySet(moneySet) {
   if (!moneySet || !moneySet.shopMoney) return null;
@@ -374,7 +375,7 @@ function extractItemStatusFromMetafields(metafields, index, customAttributes) {
 }
 
 export const loader = async ({ request, params }) => {
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const id = params.id;
 
   if (!id) {
@@ -574,6 +575,9 @@ export const loader = async ({ request, params }) => {
     };
 
     normalized.orderAdjustments = deriveOrderAdjustments(normalized);
+
+    // Phase 1 shadow sync (fire-and-forget; metafields stay authoritative).
+    syncInBackground(session.shop, draftOrder, "DRAFT_ORDER");
 
     return { order: normalized };
   } else {
@@ -857,6 +861,9 @@ export const loader = async ({ request, params }) => {
     };
 
     normalized.orderAdjustments = deriveOrderAdjustments(normalized);
+
+    // Phase 1 shadow sync (fire-and-forget; metafields stay authoritative).
+    syncInBackground(session.shop, order, "ORDER");
 
     return { order: normalized };
   }

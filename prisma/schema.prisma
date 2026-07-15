@@ -34,3 +34,85 @@ model Session {
   refreshToken        String?
   refreshTokenExpires DateTime?
 }
+
+// --- Special order shadow store (Phase 1 of the v2 data model) ---
+//
+// Mirrors the special-order state currently kept in position-keyed Shopify
+// metafields (namespace "custom"). Rows are upserted whenever the app loads
+// an order, so the database fills organically. Metafields remain the source
+// of truth until reads are flipped over in a later phase.
+
+model SpecialOrder {
+  id        String @id @default(cuid())
+  shop      String
+  // GID of the Shopify Order or DraftOrder this row mirrors.
+  shopifyId String
+  // "ORDER" | "DRAFT_ORDER"
+  kind      String
+  name      String
+
+  contactStatus String?
+  overallStatus String?
+  note          String?
+
+  customerShopifyId String?
+  customerName      String?
+  customerEmail     String?
+  customerPhone     String?
+
+  // When a draft converts to a real order, links the two rows.
+  convertedFromDraftId String?
+
+  shopifyCreatedAt DateTime?
+  syncedAt         DateTime  @default(now())
+  createdAt        DateTime  @default(now())
+
+  items         SpecialOrderItem[]
+  notifications NotificationLog[]
+
+  @@unique([shop, shopifyId])
+  @@index([shop, overallStatus])
+  @@index([shop, createdAt])
+}
+
+model SpecialOrderItem {
+  id             String       @id @default(cuid())
+  specialOrderId String
+  specialOrder   SpecialOrder @relation(fields: [specialOrderId], references: [id], onDelete: Cascade)
+
+  // Stable Shopify LineItem / DraftOrderLineItem GID. This replaces the
+  // fragile 1-based position that keys the legacy metafields.
+  shopifyLineItemId String?
+  // 1-based index matching the legacy lineitem_{N}_* metafield keys.
+  position          Int
+
+  title        String
+  variantTitle String?
+  quantity     Int     @default(1)
+
+  // Per-item order status (Not Ordered / Ordered / Received / ...).
+  status String?
+  // JSON array of { key, value } item attributes (Brand, Size, Color, ...).
+  attributes Json?
+
+  adjustmentType    String?
+  exchangedForTitle String?
+
+  @@unique([specialOrderId, position])
+  @@index([shopifyLineItemId])
+}
+
+model NotificationLog {
+  id             String       @id @default(cuid())
+  specialOrderId String
+  specialOrder   SpecialOrder @relation(fields: [specialOrderId], references: [id], onDelete: Cascade)
+
+  // e.g. "email_ready_pickup"
+  type           String
+  recipientEmail String
+  employeeNote   String?
+  sentAt         DateTime
+  createdAt      DateTime @default(now())
+
+  @@index([specialOrderId, sentAt])
+}
