@@ -1,4 +1,5 @@
 import prisma from "../db.server";
+import { calculatePaymentStatus } from "./order-status-helpers";
 
 /**
  * Phase 1 of the v2 data model: mirror special-order state from Shopify
@@ -80,6 +81,8 @@ export function buildSpecialOrderRecord(node, kind) {
       name: node.name ?? "",
       contactStatus: mf.get("contact_status") ?? null,
       overallStatus: mf.get("overall_order_status") ?? null,
+      paymentStatus: calculatePaymentStatus(node),
+      shopifyStatus: kind === "DRAFT_ORDER" ? (node.status ?? null) : null,
       note: node.note ?? node.note2 ?? null,
       customerShopifyId: node.customer?.id ?? null,
       customerName: node.customer?.displayName ?? null,
@@ -159,13 +162,4 @@ export function syncInBackground(shop, node, kind, extra) {
       e instanceof Error ? e.message : e
     );
   });
-}
-
-/**
- * Sync a batch of nodes (used by the list loader).
- */
-export function syncManyInBackground(shop, nodes, kind) {
-  for (const node of nodes || []) {
-    syncInBackground(shop, node, kind);
-  }
 }

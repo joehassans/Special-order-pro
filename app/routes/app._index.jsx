@@ -2,13 +2,7 @@ import { useState, useMemo } from "react";
 import { useLoaderData } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { authenticate } from "../shopify.server";
-import {
-  calculatePaymentStatus,
-  normalizeOverallOrderStatus,
-} from "../lib/order-status-helpers";
-import { syncManyInBackground } from "../lib/special-order-db-sync.server";
-
-const SPECIAL_ORDER_TAG = "special-order";
+import { getSpecialOrderListRows } from "../lib/special-order-list.server";
 
 function getPaymentStatusTone(status) {
   if (!status) return "subdued";
@@ -41,94 +35,6 @@ function toTitleCase(str) {
     .join(" ");
 }
 
-/** Returns an array of { title, status } per line item, in order (first item first). */
-function extractOrderStatuses(order) {
-  const metafields = order.metafields || { edges: [] };
-  const edges = metafields.edges || [];
-  const metafieldsByKey = Object.fromEntries(
-    edges
-      .filter((e) => e?.node?.key != null)
-      .map((e) => [e.node.key, e.node.value])
-  );
-  const lineItems = order.lineItems?.edges || [];
-
-  if (lineItems.length === 0) {
-    // Fallback: gather all product_N_order_status metafields, sorted by N
-    const productStatusMfs = edges
-      .filter(
-        (e) =>
-          e?.node?.key &&
-          /^product_(\d+)_order_status$/.test(e.node.key) &&
-          e?.node?.value
-      )
-      .map((e) => {
-        const m = e.node.key.match(/^product_(\d+)_order_status$/);
-        return { n: parseInt(m[1], 10), value: e.node.value };
-      })
-      .sort((a, b) => a.n - b.n)
-      .map((x) => ({ title: "Item", status: x.value }));
-    if (productStatusMfs.length > 0) return productStatusMfs;
-    return [{ title: "Item", status: "Not set" }];
-  }
-
-  const items = lineItems.map((edge, index) => {
-    const title = edge?.node?.title || `Item ${index + 1}`;
-    const mfKey = `product_${index + 1}_order_status`;
-    const mfKeyAlt = `custom.${mfKey}`;
-    const mfValue =
-      metafieldsByKey[mfKey] ?? metafieldsByKey[mfKeyAlt];
-    if (mfValue) return { title, status: mfValue };
-
-    const attrs = edge?.node?.customAttributes || [];
-    const orderStatusAttr = attrs.find((a) => a.key === "Order Status" && a.value);
-    if (orderStatusAttr) return { title, status: orderStatusAttr.value };
-    const initialStatusAttr = attrs.find((a) => a.key === "Initial Status" && a.value);
-    if (initialStatusAttr) return { title, status: initialStatusAttr.value };
-
-    return { title, status: "Not set" };
-  });
-
-  return items.length > 0 ? items : [{ title: "Item", status: "Not set" }];
-}
-
-const VALID_CONTACT_STATUSES = [
-  "Not Contacted",
-  "No Answer",
-  "Left Message",
-  "Spoke to Customer",
-  "Notified — Ready for Pickup.",
-];
-
-function extractContactStatusFromMetafields(metafields) {
-  if (!metafields || !metafields.edges) return "Not Contacted";
-
-  const contactMf = metafields.edges.find(
-    (edge) => edge.node.key === "contact_status"
-  );
-  if (contactMf && contactMf.node.value) {
-    const value = contactMf.node.value.trim();
-    // Only return if it's a valid contact status (exclude Overall Order Status values)
-    if (VALID_CONTACT_STATUSES.includes(value)) {
-      return value;
-    }
-  }
-
-  return "Not Contacted";
-}
-
-function extractOverallOrderStatusFromMetafields(metafields) {
-  if (!metafields || !metafields.edges) return "Order Pending";
-
-  const mf = metafields.edges.find(
-    (edge) => edge.node.key === "overall_order_status"
-  );
-  if (mf && mf.node.value) {
-    return normalizeOverallOrderStatus(mf.node.value);
-  }
-
-  return "Order Pending";
-}
-
 function getContactStatusTone(status) {
   const s = String(status || "").toLowerCase().trim();
   if (!s || s === "not set" || s === "not contacted") return "critical";
@@ -146,241 +52,15 @@ function isCompletedOverallOrderStatus(status) {
   return s === "Picked Up - Sale Complete";
 }
 
-// Pages of 50 keep per-query GraphQL cost identical to the original single
-// query; loop pages so stores with >50 special orders don't silently lose
-// the oldest ones from the list.
-const LIST_PAGE_SIZE = 50;
-const LIST_MAX_PAGES = 5;
-
 export const loader = async ({ request }) => {
   const { admin, session } = await authenticate.admin(request);
 
-  // For now, use a fixed query filter for special orders only.
-  const queryFilter = `tag:${SPECIAL_ORDER_TAG}`;
+  // Phase 1 step 2: rows come from the app database (fast), refreshed
+  // from Shopify in the background. Falls back to a live Shopify fetch
+  // (which seeds the database) when the DB is still empty.
+  const { rows } = await getSpecialOrderListRows(admin, session.shop);
 
-  const LIST_QUERY = `#graphql
-    query GetSpecialOrdersAndDrafts(
-      $query: String
-      $ordersFirst: Int!
-      $ordersAfter: String
-      $draftsFirst: Int!
-      $draftsAfter: String
-    ) {
-      orders(
-        first: $ordersFirst
-        after: $ordersAfter
-        query: $query
-        sortKey: CREATED_AT
-        reverse: true
-      ) {
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-        edges {
-          node {
-            id
-            name
-            createdAt
-            note
-            displayFinancialStatus
-            totalPriceSet {
-              shopMoney {
-                amount
-                currencyCode
-              }
-            }
-            totalRefundedSet {
-              shopMoney {
-                amount
-                currencyCode
-              }
-            }
-            totalOutstandingSet {
-              shopMoney {
-                amount
-                currencyCode
-              }
-            }
-            customer {
-              id
-              displayName
-              email
-              phone
-            }
-            metafields(first: 250, namespace: "custom") {
-              edges {
-                node {
-                  key
-                  value
-                }
-              }
-            }
-        lineItems(first: 50) {
-          edges {
-            node {
-              id
-              title
-              quantity
-              variantTitle
-              customAttributes {
-                key
-                value
-              }
-            }
-          }
-        }
-          }
-        }
-      }
-      draftOrders(
-        first: $draftsFirst
-        after: $draftsAfter
-        query: $query
-        sortKey: ID
-        reverse: true
-      ) {
-        pageInfo {
-          hasNextPage
-          endCursor
-        }
-        edges {
-          node {
-            id
-            name
-            status
-            createdAt
-            note2
-            customer {
-              id
-              displayName
-              email
-              phone
-            }
-            metafields(first: 250, namespace: "custom") {
-              edges {
-                node {
-                  key
-                  value
-                }
-              }
-            }
-        lineItems(first: 50) {
-          edges {
-            node {
-              id
-              title
-              quantity
-              variant {
-                title
-              }
-              customAttributes {
-                key
-                value
-              }
-            }
-          }
-        }
-          }
-        }
-      }
-    }
-    `;
-
-  const fetchedOrders = [];
-  let fetchedDraftOrders = [];
-  let ordersCursor = null;
-  let draftsCursor = null;
-  let ordersDone = false;
-  let draftsDone = false;
-
-  for (let page = 0; page < LIST_MAX_PAGES; page++) {
-    if (ordersDone && draftsDone) break;
-
-    const response = await admin.graphql(LIST_QUERY, {
-      variables: {
-        query: queryFilter,
-        // Request 1 (not 0) for an exhausted connection: `first` must be
-        // positive. The extra row is already in our list, so skip its edges.
-        ordersFirst: ordersDone ? 1 : LIST_PAGE_SIZE,
-        ordersAfter: ordersCursor,
-        draftsFirst: draftsDone ? 1 : LIST_PAGE_SIZE,
-        draftsAfter: draftsCursor,
-      },
-    });
-    const json = await response.json();
-
-    if (!ordersDone) {
-      const conn = json.data?.orders;
-      fetchedOrders.push(...(conn?.edges?.map((edge) => edge.node) ?? []));
-      ordersCursor = conn?.pageInfo?.endCursor ?? null;
-      ordersDone = !conn?.pageInfo?.hasNextPage;
-    }
-    if (!draftsDone) {
-      const conn = json.data?.draftOrders;
-      fetchedDraftOrders.push(
-        ...(conn?.edges?.map((edge) => edge.node) ?? [])
-      );
-      draftsCursor = conn?.pageInfo?.endCursor ?? null;
-      draftsDone = !conn?.pageInfo?.hasNextPage;
-    }
-  }
-
-  // Hide draft orders that have been converted to real orders (e.g. paid → Order #1003).
-  // When a draft is paid/completed, Shopify sets its status to COMPLETED; the resulting
-  // order appears in the orders list, so we only show open draft orders here.
-  const DRAFT_STATUS_COMPLETED = "COMPLETED";
-  fetchedDraftOrders = fetchedDraftOrders.filter(
-    (draft) => draft.status !== DRAFT_STATUS_COMPLETED
-  );
-
-  // Phase 1 shadow sync: mirror special-order state into the app DB
-  // (fire-and-forget; metafields remain the source of truth).
-  syncManyInBackground(session.shop, fetchedOrders, "ORDER");
-  syncManyInBackground(session.shop, fetchedDraftOrders, "DRAFT_ORDER");
-
-  // Normalize both into a common shape for the table
-  const normalizedOrders = [...fetchedOrders, ...fetchedDraftOrders]
-    .map((order) => {
-      const metafields = order.metafields || { edges: [] };
-      let orderStatuses = extractOrderStatuses(order);
-      if (!Array.isArray(orderStatuses) || orderStatuses.length === 0) {
-        orderStatuses = [{ title: "Item", status: "Not set" }];
-      }
-      const contactStatus = extractContactStatusFromMetafields(metafields);
-      const overallOrderStatus = extractOverallOrderStatusFromMetafields(metafields);
-      const paymentStatus = calculatePaymentStatus(order);
-
-      return {
-        id: order.id,
-        name: order.name,
-        customerName: order.customer?.displayName || "No customer",
-        customerPhone: order.customer?.phone || "",
-        customerEmail: order.customer?.email || "",
-        orderStatuses,
-        paymentStatus,
-        contactStatus,
-        overallOrderStatus,
-        createdAt: order.createdAt,
-        createdDateLabel: new Date(order.createdAt).toLocaleDateString(),
-      };
-    })
-    // Open orders first; Picked Up - Sale Complete second; Order Canceled last. Within each group, newest first.
-    .sort((a, b) => {
-      const getTier = (order) => {
-        if (order.overallOrderStatus === "Order Canceled") return 2;
-        if (isCompletedOverallOrderStatus(order.overallOrderStatus)) return 1;
-        return 0;
-      };
-      const aTier = getTier(a);
-      const bTier = getTier(b);
-      if (aTier !== bTier) return aTier - bTier;
-      return (
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-    });
-
-  return { orders: normalizedOrders };
+  return { orders: rows };
 };
 
 /**
@@ -768,10 +448,9 @@ export default function Index() {
                       </s-badge>
                     </s-table-cell>
                     <s-table-cell id={`cell-contact-${order.id}`}>
+                      {/* Loader normalizes contactStatus to a valid value. */}
                       <s-badge tone={getContactStatusTone(order.contactStatus)}>
-                        {VALID_CONTACT_STATUSES.includes(order.contactStatus)
-                          ? order.contactStatus
-                          : "Not Contacted"}
+                        {order.contactStatus || "Not Contacted"}
                       </s-badge>
                     </s-table-cell>
                     <s-table-cell id={`cell-actions-${order.id}`}>

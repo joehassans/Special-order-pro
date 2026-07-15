@@ -53,6 +53,10 @@ model SpecialOrder {
 
   contactStatus String?
   overallStatus String?
+  // Derived at sync time from Shopify financial fields ("Paid in Full", ...).
+  paymentStatus String?
+  // Draft order status (OPEN / INVOICE_SENT / COMPLETED); null for orders.
+  shopifyStatus String?
   note          String?
 
   customerShopifyId String?
