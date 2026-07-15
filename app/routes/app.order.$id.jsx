@@ -28,6 +28,10 @@ import {
 } from "../lib/special-order-line-item-attributes";
 import { syncInBackground } from "../lib/special-order-db-sync.server";
 import {
+  dbItemAttributesArray,
+  loadSpecialOrderDbState,
+} from "../lib/special-order-db-read.server";
+import {
   dbUpdateContactStatus,
   dbUpdateOverallStatus,
   dbUpdateNote,
@@ -144,6 +148,12 @@ const VALID_CONTACT_STATUSES = [
   "Spoke to Customer",
   "Notified — Ready for Pickup.",
 ];
+
+/** Validates a contact status from any source (DB or metafield). */
+function normalizeContactStatus(value) {
+  const v = String(value || "").trim();
+  return VALID_CONTACT_STATUSES.includes(v) ? v : "Not Contacted";
+}
 
 function extractContactStatusFromMetafields(metafields) {
   if (!metafields || !metafields.edges) return "Not Contacted";
@@ -486,6 +496,10 @@ export const loader = async ({ request, params }) => {
       throw new Response("Draft order not found", { status: 404 });
     }
 
+    // DB is the primary read source for app-managed state; metafields are
+    // the fallback for orders that were never synced.
+    const dbState = await loadSpecialOrderDbState(session.shop, draftOrder.id);
+
     const metafields = draftOrder.metafields || { edges: [] };
 
     const attributesOverridesByIndex = {};
@@ -507,29 +521,46 @@ export const loader = async ({ request, params }) => {
       }
     });
 
-    const contactStatus = extractContactStatusFromMetafields(metafields);
-    const overallOrderStatus = extractOverallOrderStatusFromMetafields(metafields);
-    const pickupNotificationLog = extractPickupNotificationLog(metafields);
+    const contactStatus = normalizeContactStatus(
+      dbState?.record?.contactStatus ??
+        extractContactStatusFromMetafields(metafields)
+    );
+    const overallOrderStatus = normalizeOverallOrderStatus(
+      dbState?.record?.overallStatus ??
+        extractOverallOrderStatusFromMetafields(metafields)
+    );
+    const pickupNotificationLog =
+      dbState && dbState.notificationLog.length > 0
+        ? dbState.notificationLog
+        : extractPickupNotificationLog(metafields);
 
     const draftLineItems =
       draftOrder.lineItems?.edges?.map((edge, index) => {
         const li = edge.node;
-        const rawAttrs = attributesOverridesByIndex[index] || li.customAttributes || [];
-        const mfAdj = getProductAdjustmentTypeMetafield(metafields, index + 1);
-        const mfExchangedFor = getProductExchangedForTitleMetafield(
-          metafields,
-          index + 1
-        );
+        const dbItem = dbState?.itemFor(li.id, index + 1);
+        const rawAttrs =
+          dbItemAttributesArray(dbItem) ||
+          attributesOverridesByIndex[index] ||
+          li.customAttributes ||
+          [];
+        const mfAdj =
+          dbItem?.adjustmentType ||
+          getProductAdjustmentTypeMetafield(metafields, index + 1);
+        const mfExchangedFor =
+          dbItem?.exchangedForTitle ||
+          getProductExchangedForTitleMetafield(metafields, index + 1);
         const adj = readLineItemAdjustmentFields(
           rawAttrs,
           mfAdj,
           mfExchangedFor
         );
-        const itemStatus = extractItemStatusFromMetafields(
-          metafields,
-          index,
-          li.customAttributes
-        );
+        const itemStatus =
+          dbItem?.status ||
+          extractItemStatusFromMetafields(
+            metafields,
+            index,
+            li.customAttributes
+          );
         return {
           id: li.id,
           title: li.title,
@@ -733,6 +764,10 @@ export const loader = async ({ request, params }) => {
       throw new Response("Order not found", { status: 404 });
     }
 
+    // DB is the primary read source for app-managed state; metafields are
+    // the fallback for orders that were never synced.
+    const dbState = await loadSpecialOrderDbState(session.shop, order.id);
+
     const metafields = order.metafields || { edges: [] };
 
     const attributesOverridesByIndex = {};
@@ -754,9 +789,18 @@ export const loader = async ({ request, params }) => {
       }
     });
 
-    const contactStatus = extractContactStatusFromMetafields(metafields);
-    const overallOrderStatus = extractOverallOrderStatusFromMetafields(metafields);
-    const pickupNotificationLog = extractPickupNotificationLog(metafields);
+    const contactStatus = normalizeContactStatus(
+      dbState?.record?.contactStatus ??
+        extractContactStatusFromMetafields(metafields)
+    );
+    const overallOrderStatus = normalizeOverallOrderStatus(
+      dbState?.record?.overallStatus ??
+        extractOverallOrderStatusFromMetafields(metafields)
+    );
+    const pickupNotificationLog =
+      dbState && dbState.notificationLog.length > 0
+        ? dbState.notificationLog
+        : extractPickupNotificationLog(metafields);
 
     let paid = null;
     if (
@@ -788,22 +832,30 @@ export const loader = async ({ request, params }) => {
     const placedLineItems =
       order.lineItems?.edges?.map((edge, index) => {
         const li = edge.node;
-        const rawAttrs = attributesOverridesByIndex[index] || li.customAttributes || [];
-        const mfAdj = getProductAdjustmentTypeMetafield(metafields, index + 1);
-        const mfExchangedFor = getProductExchangedForTitleMetafield(
-          metafields,
-          index + 1
-        );
+        const dbItem = dbState?.itemFor(li.id, index + 1);
+        const rawAttrs =
+          dbItemAttributesArray(dbItem) ||
+          attributesOverridesByIndex[index] ||
+          li.customAttributes ||
+          [];
+        const mfAdj =
+          dbItem?.adjustmentType ||
+          getProductAdjustmentTypeMetafield(metafields, index + 1);
+        const mfExchangedFor =
+          dbItem?.exchangedForTitle ||
+          getProductExchangedForTitleMetafield(metafields, index + 1);
         const adj = readLineItemAdjustmentFields(
           rawAttrs,
           mfAdj,
           mfExchangedFor
         );
-        const itemStatus = extractItemStatusFromMetafields(
-          metafields,
-          index,
-          attributesOverridesByIndex[index] || li.customAttributes
-        );
+        const itemStatus =
+          dbItem?.status ||
+          extractItemStatusFromMetafields(
+            metafields,
+            index,
+            attributesOverridesByIndex[index] || li.customAttributes
+          );
         const qty = Number(li.quantity ?? 0);
         const currentQty = Number(li.currentQuantity ?? li.quantity ?? 0);
         const fulfillmentUi = computeLineItemFulfillmentUi(
