@@ -48,6 +48,33 @@ export const ORDER_REFRESH_QUERY = `#graphql
   query OrderRefreshForPos($id: ID!) {
     order(id: $id) {
       id
+      name
+      createdAt
+      note
+      displayFinancialStatus
+      subtotalPriceSet { shopMoney { amount currencyCode } }
+      totalTaxSet { shopMoney { amount currencyCode } }
+      totalPriceSet { shopMoney { amount currencyCode } }
+      totalRefundedSet { shopMoney { amount currencyCode } }
+      totalOutstandingSet { shopMoney { amount currencyCode } }
+      customer {
+        id
+        displayName
+        firstName
+        lastName
+        email
+        phone
+        defaultAddress {
+          id
+          address1
+          address2
+          city
+          provinceCode
+          zip
+          countryCodeV2
+          company
+        }
+      }
       fulfillmentOrders(first: 50) {
         edges {
           node {

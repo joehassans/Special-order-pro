@@ -477,6 +477,17 @@ function formatMoneySet(moneySet) {
   return `${amount} ${currencyCode}`;
 }
 
+/**
+ * DB-backed list rows carry __paymentStatus but no money sets; once the
+ * live per-order fetch merges real amounts, compute from those instead.
+ */
+function paymentStatusForNode(order) {
+  if (order?.subtotalPriceSet || order?.displayFinancialStatus) {
+    return calculatePaymentStatus(order);
+  }
+  return order?.__paymentStatus || calculatePaymentStatus(order);
+}
+
 function formatMoney(amount, currencyCode) {
   if (amount == null || currencyCode == null) return null;
   return `${amount} ${currencyCode}`;
@@ -722,6 +733,52 @@ const LIST_QUERY = `
   }
 `;
 
+/** Live per-draft data POS can't get from the app DB (money, address, prices). */
+const DRAFT_REFRESH_QUERY = `
+  query DraftRefreshForPos($id: ID!) {
+    draftOrder(id: $id) {
+      id
+      name
+      status
+      createdAt
+      note2
+      subtotalPriceSet { shopMoney { amount currencyCode } }
+      totalTaxSet { shopMoney { amount currencyCode } }
+      totalPriceSet { shopMoney { amount currencyCode } }
+      customer {
+        id
+        displayName
+        firstName
+        lastName
+        email
+        phone
+        defaultAddress {
+          id
+          address1
+          address2
+          city
+          provinceCode
+          zip
+          countryCodeV2
+          company
+        }
+      }
+      lineItems(first: 50) {
+        edges {
+          node {
+            id
+            title
+            quantity
+            originalUnitPriceSet { shopMoney { amount currencyCode } }
+            variant { title }
+            customAttributes { key value }
+          }
+        }
+      }
+    }
+  }
+`;
+
 const CUSTOMER_UPDATE_MUTATION = `
   mutation PosCustomerUpdate($input: CustomerInput!) {
     customerUpdate(input: $input) {
@@ -877,7 +934,7 @@ function Extension() {
         const contactStatus = extractContactStatus(order.metafields);
         const overallOrderStatus = extractOverallOrderStatus(order.metafields);
         const orderStatuses = extractOrderStatuses(order);
-        const paymentStatus = calculatePaymentStatus(order);
+        const paymentStatus = paymentStatusForNode(order);
         const customerName = order.customer?.displayName || "No customer";
         const productTitles = (order.lineItems?.edges || []).map(
           (e) => e?.node?.title || ""
@@ -991,6 +1048,22 @@ function Extension() {
   const fetchOrders = useCallback(async () => {
     setLoading(true);
     try {
+      // Phase 2: list comes from the app database via the backend — much
+      // lighter than the direct Admin API query below, which stays as a
+      // fallback (backend unreachable, or DB not seeded yet).
+      try {
+        const res = await fetch("/pos/api/orders");
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data?.orders)) {
+            setRawOrders(data.orders);
+            return;
+          }
+        }
+      } catch (err) {
+        console.error("Backend order list failed, using Shopify:", err);
+      }
+
       const data = await graphql(LIST_QUERY, {
         query: `tag:${SPECIAL_ORDER_TAG}`,
       });
@@ -1014,16 +1087,24 @@ function Extension() {
     fetchOrders();
   }, [fetchOrders]);
 
-  /** Fulfillment fields are omitted from LIST_QUERY (cost/size on POS); load when opening an order. */
+  /**
+   * The list (from the app DB) is intentionally thin: money, addresses,
+   * prices and fulfillment state are fetched live when a detail opens and
+   * merged into the row.
+   */
   useEffect(() => {
     const id = selectedOrder?.id;
-    if (!id || String(id).includes("DraftOrder")) return;
+    if (!id) return;
+    const isDraft = String(id).includes("DraftOrder");
     let cancelled = false;
     (async () => {
       try {
-        const json = await graphql(ORDER_REFRESH_QUERY, { id });
+        const json = await graphql(
+          isDraft ? DRAFT_REFRESH_QUERY : ORDER_REFRESH_QUERY,
+          { id }
+        );
         if (cancelled) return;
-        const refreshed = json?.data?.order;
+        const refreshed = isDraft ? json?.data?.draftOrder : json?.data?.order;
         if (refreshed) {
           setRawOrders((prev) =>
             prev.map((o) => (o.id === id ? { ...o, ...refreshed } : o))
@@ -1386,7 +1467,7 @@ function Extension() {
     });
     const contactStatus = extractContactStatus(metafields);
     const overallOrderStatus = extractOverallOrderStatus(metafields);
-    const paymentStatus = calculatePaymentStatus(order);
+    const paymentStatus = paymentStatusForNode(order);
     const isDraftOrder = order.id?.includes("DraftOrder");
     const fulfillmentOrderEdges = order.fulfillmentOrders?.edges || [];
     const rawFulfillments = order.fulfillments;

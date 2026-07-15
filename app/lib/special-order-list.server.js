@@ -335,10 +335,109 @@ async function fetchSyncAndBuildRows(admin, shop) {
   return sortListRows(rows);
 }
 
+/**
+ * Build GraphQL-node-shaped objects from DB records for the POS extension,
+ * which renders the same shapes the Admin API returns (metafields.edges,
+ * lineItems.edges). Money/fulfillment/address data is NOT included — POS
+ * fetches those live per-order when a detail screen opens.
+ *
+ * Returns null when the DB has no rows for this shop (caller falls back
+ * to a live Shopify fetch).
+ */
+export async function getPosOrderNodes(shop) {
+  const records = await prisma.specialOrder.findMany({
+    where: { shop },
+    include: { items: { orderBy: { position: "asc" } } },
+  });
+  if (records.length === 0) return null;
+
+  const convertedDraftIds = new Set(
+    records
+      .map((r) => r.convertedFromDraftId)
+      .filter((id) => typeof id === "string" && id.length > 0)
+  );
+  const visible = records.filter((r) => {
+    if (r.kind !== "DRAFT_ORDER") return true;
+    if (r.shopifyStatus === "COMPLETED") return false;
+    if (convertedDraftIds.has(r.shopifyId)) return false;
+    return true;
+  });
+
+  return visible.map((record) => {
+    const isDraft = record.kind === "DRAFT_ORDER";
+    const metafieldEdges = [];
+    const pushMetafield = (key, value) => {
+      if (value != null && String(value) !== "") {
+        metafieldEdges.push({ node: { key, value: String(value) } });
+      }
+    };
+    pushMetafield("contact_status", record.contactStatus);
+    pushMetafield("overall_order_status", record.overallStatus);
+
+    const items = record.items || [];
+    for (const item of items) {
+      pushMetafield(`product_${item.position}_order_status`, item.status);
+      pushMetafield(
+        `product_${item.position}_adjustment_type`,
+        item.adjustmentType
+      );
+      pushMetafield(
+        `product_${item.position}_exchanged_for_title`,
+        item.exchangedForTitle
+      );
+      if (Array.isArray(item.attributes) && item.attributes.length > 0) {
+        pushMetafield(
+          `lineitem_${item.position}_attributes`,
+          JSON.stringify(item.attributes)
+        );
+      }
+    }
+
+    const node = {
+      id: record.shopifyId,
+      name: record.name,
+      createdAt: record.shopifyCreatedAt
+        ? new Date(record.shopifyCreatedAt).toISOString()
+        : null,
+      // POS uses this until the live per-order fetch fills real money data.
+      __paymentStatus: record.paymentStatus || "Not Paid",
+      customer: record.customerShopifyId
+        ? {
+            id: record.customerShopifyId,
+            displayName: record.customerName || "",
+            email: record.customerEmail || "",
+            phone: record.customerPhone || "",
+          }
+        : null,
+      metafields: { edges: metafieldEdges },
+      lineItems: {
+        edges: items.map((item) => ({
+          node: {
+            id: item.shopifyLineItemId,
+            title: item.title,
+            variantTitle: item.variantTitle,
+            quantity: item.quantity,
+            customAttributes: Array.isArray(item.attributes)
+              ? item.attributes
+              : [],
+          },
+        })),
+      },
+    };
+    if (isDraft) {
+      node.status = record.shopifyStatus || "OPEN";
+      node.note2 = record.note || "";
+    } else {
+      node.note = record.note || "";
+    }
+    return node;
+  });
+}
+
 /** Per-shop guard so overlapping page loads don't stack refreshes. */
 const refreshState = new Map();
 
-function refreshInBackground(admin, shop) {
+export function refreshInBackground(admin, shop) {
   const state = refreshState.get(shop) || { running: false, lastRun: 0 };
   const now = Date.now();
   if (state.running || now - state.lastRun < REFRESH_MIN_INTERVAL_MS) return;
