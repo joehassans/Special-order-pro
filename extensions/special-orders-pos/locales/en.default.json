@@ -2,6 +2,7 @@
   "name": "Special Orders Pro",
   "tile_heading": "Special Orders Pro",
   "tile_subheading": "View special orders",
+  "show_more": "Show {count} more",
   "tile_subheading_open": "{count} open orders",
   "tile_subheading_open_one": "1 open order",
   "modal_heading": "Special Orders",

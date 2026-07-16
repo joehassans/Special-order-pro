@@ -150,6 +150,22 @@ const VALID_CONTACT_STATUSES = [
   "Notified — Ready for Pickup.",
 ];
 
+const OVERALL_ORDER_STATUS_OPTIONS = [
+  "Order Pending",
+  "Picked Up - Sale Complete",
+  "Order Canceled",
+];
+
+const ITEM_ORDER_STATUS_OPTIONS = [
+  "Not Ordered",
+  "Ordered",
+  "Back Ordered",
+  "Drop Ship - Ordered",
+  "Drop Ship - Delivered",
+  "Received",
+  "Canceled",
+];
+
 /** Validates a contact status from any source (DB or metafield). */
 function normalizeContactStatus(value) {
   const v = String(value || "").trim();
@@ -1694,6 +1710,19 @@ export default function OrderDetails() {
   /** Extra metadata when 409 returns a previous entry (race / stale client). */
   const [notifyDuplicatePrev, setNotifyDuplicatePrev] = useState(null);
 
+  // Line-item detail fields are uncontrolled (read from the DOM on save),
+  // so track which items have edits to show an "Unsaved changes" hint.
+  const [dirtyItems, setDirtyItems] = useState(() => new Set());
+  const markItemDirty = (idx) =>
+    setDirtyItems((prev) => (prev.has(idx) ? prev : new Set(prev).add(idx)));
+  const clearItemDirty = (idx) =>
+    setDirtyItems((prev) => {
+      if (!prev.has(idx)) return prev;
+      const next = new Set(prev);
+      next.delete(idx);
+      return next;
+    });
+
   const customerEmail = order.customer?.email?.trim() || "";
   const pickupLog = order.pickupNotificationLog || [];
   const lastPickup =
@@ -2110,14 +2139,9 @@ export default function OrderDetails() {
           min-height: 0;
         }
       `}</style>
-      {/* Top bar: back, print, dates, admin link, type badge, tags */}
+      {/* Top bar: action buttons on one row, order metadata on the next */}
       <s-section>
-        <s-stack
-          direction="inline"
-          alignItems="center"
-          justifyContent="space-between"
-          gap="small"
-        >
+        <s-stack gap="small">
           <s-stack
             direction="inline"
             gap="small"
@@ -2148,14 +2172,6 @@ export default function OrderDetails() {
             >
               Notify Customer
             </s-button>
-            <s-text color="subdued" style={{ whiteSpace: "nowrap" }}>
-              Created: {createdLabel}
-            </s-text>
-            <s-text color="subdued" style={{ whiteSpace: "nowrap" }}>
-              Updated: {updatedLabel}
-            </s-text>
-          </s-stack>
-          <s-stack direction="inline" gap="small" alignItems="center">
             <s-button
               variant="secondary"
               href={adminHref}
@@ -2164,18 +2180,27 @@ export default function OrderDetails() {
             >
               Go to Order in Admin
             </s-button>
+          </s-stack>
+          <s-stack
+            direction="inline"
+            gap="small"
+            alignItems="center"
+            style={{ flexWrap: "wrap" }}
+          >
             <s-badge tone={order.type === "draft" ? "warning" : "success"}>
               {order.type === "draft" ? "Draft order" : "Order"}
             </s-badge>
-            {tagsWithoutSpecialOrder.length > 0 && (
-              <s-stack direction="inline" gap="small">
-                {tagsWithoutSpecialOrder.map((tag) => (
-                  <s-badge key={tag} tone="subdued">
-                    {tag}
-                  </s-badge>
-                ))}
-              </s-stack>
-            )}
+            {tagsWithoutSpecialOrder.map((tag) => (
+              <s-badge key={tag} tone="subdued">
+                {tag}
+              </s-badge>
+            ))}
+            <s-text color="subdued" style={{ whiteSpace: "nowrap" }}>
+              Created: {createdLabel}
+            </s-text>
+            <s-text color="subdued" style={{ whiteSpace: "nowrap" }}>
+              Updated: {updatedLabel}
+            </s-text>
           </s-stack>
         </s-stack>
       </s-section>
@@ -2396,20 +2421,10 @@ export default function OrderDetails() {
           >
             <s-stack gap="small">
               <s-heading size="large" style={{ fontSize: "1.6rem" }}>
-                ☎️ CONTACT STATUS
+                Contact Status
               </s-heading>
               <s-select
-                value={
-                  [
-                    "Not Contacted",
-                    "No Answer",
-                    "Left Message",
-                    "Spoke to Customer",
-                    "Notified — Ready for Pickup.",
-                  ].includes(order.contactStatus || "")
-                    ? order.contactStatus || "Not Contacted"
-                    : "Not Contacted"
-                }
+                value={normalizeContactStatus(order.contactStatus)}
                 onChange={(event) => {
                   submit(
                     {
@@ -2421,24 +2436,16 @@ export default function OrderDetails() {
                   );
                 }}
               >
-                <s-option value="Not Contacted">Not Contacted</s-option>
-                <s-option value="No Answer">No Answer</s-option>
-                <s-option value="Left Message">Left Message</s-option>
-                <s-option value="Spoke to Customer">Spoke to Customer</s-option>
-                <s-option value="Notified — Ready for Pickup.">
-                  Notified — Ready for Pickup
-                </s-option>
+                {VALID_CONTACT_STATUSES.map((opt) => (
+                  <s-option key={opt} value={opt}>
+                    {opt === "Notified — Ready for Pickup."
+                      ? "Notified — Ready for Pickup"
+                      : opt}
+                  </s-option>
+                ))}
               </s-select>
               <s-badge tone={getContactStatusTone(order.contactStatus)}>
-                {[
-                  "Not Contacted",
-                  "No Answer",
-                  "Left Message",
-                  "Spoke to Customer",
-                  "Notified — Ready for Pickup.",
-                ].includes(order.contactStatus || "")
-                  ? order.contactStatus || "Not Contacted"
-                  : "Not Contacted"}
+                {normalizeContactStatus(order.contactStatus)}
               </s-badge>
             </s-stack>
           </s-box>
@@ -2453,11 +2460,11 @@ export default function OrderDetails() {
           >
             <s-stack gap="small">
               <s-heading size="large" style={{ fontSize: "1.6rem" }}>
-                ✓ OVERALL ORDER STATUS
+                Overall Order Status
               </s-heading>
               <s-select
                 value={
-                  ["Order Pending", "Picked Up - Sale Complete", "Order Canceled"].includes(
+                  OVERALL_ORDER_STATUS_OPTIONS.includes(
                     order.overallOrderStatus || ""
                   )
                     ? order.overallOrderStatus
@@ -2474,14 +2481,14 @@ export default function OrderDetails() {
                   );
                 }}
               >
-                <s-option value="Order Pending">Order Pending</s-option>
-                <s-option value="Picked Up - Sale Complete">
-                  Picked Up - Sale Complete
-                </s-option>
-                <s-option value="Order Canceled">Order Canceled</s-option>
+                {OVERALL_ORDER_STATUS_OPTIONS.map((opt) => (
+                  <s-option key={opt} value={opt}>
+                    {opt}
+                  </s-option>
+                ))}
               </s-select>
               <s-badge tone={getOverallOrderStatusTone(order.overallOrderStatus)}>
-                {["Order Pending", "Picked Up - Sale Complete", "Order Canceled"].includes(
+                {OVERALL_ORDER_STATUS_OPTIONS.includes(
                   order.overallOrderStatus || ""
                 )
                   ? order.overallOrderStatus
@@ -2500,7 +2507,7 @@ export default function OrderDetails() {
           >
             <s-stack gap="small">
               <s-heading size="large" style={{ fontSize: "1.6rem" }}>
-                💲 PAYMENT STATUS
+                Payment Status
               </s-heading>
               <s-badge tone={getPaymentStatusTone(paymentStatusLabel)}>
                 {paymentStatusLabel}
@@ -2529,7 +2536,7 @@ export default function OrderDetails() {
           >
             <div className="order-status-notes-inner">
               <s-heading size="large" style={{ fontSize: "1.6rem" }}>
-                NOTES
+                Notes
               </s-heading>
               <s-text-area
                 label="Notes"
@@ -2572,6 +2579,14 @@ export default function OrderDetails() {
                   borderWidth="base"
                   background={idx % 2 === 0 ? "subdued" : "base"}
                   data-line-index={idx}
+                  onInput={(event) => {
+                    // Only detail fields count as unsaved edits; the status
+                    // select saves instantly on change. Delegated, so use
+                    // event.target (the field), not currentTarget (the box).
+                    if (event?.target?.getAttribute?.("data-attr-key")) {
+                      markItemDirty(idx);
+                    }
+                  }}
                 >
                   <s-stack gap="small-300">
                     <div
@@ -2639,8 +2654,13 @@ export default function OrderDetails() {
                           marginLeft: "auto",
                         }}
                       >
+                        {dirtyItems.has(idx) && (
+                          <s-badge tone="warning">Unsaved changes</s-badge>
+                        )}
                         <s-button
-                          variant="secondary"
+                          variant={
+                            dirtyItems.has(idx) ? "primary" : "secondary"
+                          }
                           onClick={(event) => {
                             const el = eventTargetElement(event);
                             const container =
@@ -2662,6 +2682,7 @@ export default function OrderDetails() {
                               })
                               .filter(Boolean);
 
+                            clearItemDirty(idx);
                             submit(
                               {
                                 intent: "updateAttributes",
@@ -2807,21 +2828,11 @@ export default function OrderDetails() {
                                         );
                                       }}
                                     >
-                                      <s-option value="Not Ordered">
-                                        Not Ordered
-                                      </s-option>
-                                      <s-option value="Ordered">Ordered</s-option>
-                                      <s-option value="Back Ordered">
-                                        Back Ordered
-                                      </s-option>
-                                      <s-option value="Drop Ship - Ordered">
-                                        Drop Ship - Ordered
-                                      </s-option>
-                                      <s-option value="Drop Ship - Delivered">
-                                        Drop Ship - Delivered
-                                      </s-option>
-                                      <s-option value="Received">Received</s-option>
-                                      <s-option value="Canceled">Canceled</s-option>
+                                      {ITEM_ORDER_STATUS_OPTIONS.map((opt) => (
+                                        <s-option key={opt} value={opt}>
+                                          {opt}
+                                        </s-option>
+                                      ))}
                                     </s-select>
                                   </div>
                                   <div
@@ -2900,6 +2911,7 @@ export default function OrderDetails() {
                                                 return { key, value };
                                               })
                                               .filter(Boolean);
+                                            clearItemDirty(idx);
                                             submit(
                                               {
                                                 intent: "updateAttributes",

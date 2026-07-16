@@ -23,6 +23,8 @@ const OPEN_STATUSES = ["Not Ordered", "Ordered", "Back Ordered", "Drop Ship - Or
 const ALWAYS_PRESENT_ATTRIBUTES = ["Brand", "Type", "Style #", "Size", "Color", "Date Ordered", "Order Confirmation Number"];
 /** iPad order detail: notes column width in the status row (after payment card). */
 const TABLET_ORDER_NOTE_WIDTH = "340px";
+/** Orders shown per page in the list; "Show more" reveals the next page. */
+const LIST_PAGE_SIZE = 25;
 const HIDDEN_ATTRIBUTES = new Set([
   "_shopify_item_type",
   "Order Status",
@@ -1088,6 +1090,25 @@ function Extension() {
 
     return result;
   }, [normalizedOrders, searchTerm, statusFilter]);
+
+  // Render the list in pages so stores with hundreds of orders don't get a
+  // single giant scroll; "Show more" reveals the next page.
+  const [visibleCount, setVisibleCount] = useState(LIST_PAGE_SIZE);
+  useEffect(() => {
+    setVisibleCount(LIST_PAGE_SIZE);
+  }, [searchTerm, statusFilter]);
+  const visibleOrders = filteredOrders.slice(0, visibleCount);
+  const hiddenCount = filteredOrders.length - visibleOrders.length;
+
+  const showMoreButton =
+    hiddenCount > 0 ? (
+      <s-button
+        variant="secondary"
+        onClick={() => setVisibleCount((c) => c + LIST_PAGE_SIZE)}
+      >
+        {i18n.translate("show_more", { count: hiddenCount })}
+      </s-button>
+    ) : null;
 
   const fetchOrders = useCallback(async () => {
     setLoading(true);
@@ -2504,7 +2525,7 @@ function Extension() {
             ) : isTablet !== true ? (
               /* iPhone: stacked card layout (includes isTablet null until device resolves) */
               <s-stack gap="base">
-                {filteredOrders.map((order, index) => {
+                {visibleOrders.map((order, index) => {
                   const completed = order.overallOrderStatus === "Picked Up - Sale Complete";
                   const canceled = order.overallOrderStatus === "Order Canceled";
                   const orderBadgeTone = completed ? "success" : canceled ? "critical" : "warning";
@@ -2575,12 +2596,13 @@ function Extension() {
                           </s-stack>
                         </s-stack>
                       </s-box>
-                      {index < filteredOrders.length - 1 && (
+                      {index < visibleOrders.length - 1 && (
                         <s-divider />
                       )}
                     </Fragment>
                   );
                 })}
+                {showMoreButton}
               </s-stack>
             ) : (
               /* iPad: table layout */
@@ -2629,7 +2651,7 @@ function Extension() {
                 </s-box>
                 <s-divider />
                 <s-divider />
-                {filteredOrders.map((order, index) => {
+                {visibleOrders.map((order, index) => {
                   const completed = order.overallOrderStatus === "Picked Up - Sale Complete";
                   const canceled = order.overallOrderStatus === "Order Canceled";
                   const orderBadgeTone = completed ? "success" : canceled ? "critical" : "warning";
@@ -2693,12 +2715,13 @@ function Extension() {
                         </s-stack>
                       </s-box>
                     </s-clickable>
-                    {index < filteredOrders.length - 1 && (
+                    {index < visibleOrders.length - 1 && (
                       <s-divider />
                     )}
                   </Fragment>
                   );
                 })}
+                {showMoreButton}
                 </s-stack>
               </s-box>
             )}
