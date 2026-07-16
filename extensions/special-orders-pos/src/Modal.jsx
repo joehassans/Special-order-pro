@@ -73,28 +73,35 @@ const COL_IPAD = {
 const MIN_TABLE_MOBILE = "755px";
 const MIN_TABLE_IPAD = "955px";
 
-/** Default (phone) fixed column widths (px) for order-detail customer fields on POS. */
-const CUSTOMER_FIELD_WIDTH = {
-  firstName: "220px",
-  lastName: "220px",
-  email: "320px",
-  phone: "200px",
-  company: "250px",
-  address1: "350px",
-  city: "220px",
-  state: "150px",
-  zip: "150px",
-  country: "150px",
+/**
+ * iPhone order detail: percentage min-widths so customer fields wrap onto
+ * new lines instead of overflowing the screen (fixed px widths overlapped).
+ */
+const CUSTOMER_FIELD_MIN_PHONE = {
+  firstName: "45%",
+  lastName: "45%",
+  email: "94%",
+  phone: "45%",
+  company: "45%",
+  address1: "94%",
+  city: "45%",
+  state: "21%",
+  zip: "21%",
+  country: "45%",
 };
 
-/** iPad order detail: adjusted first/last/email/phone/address column widths. */
+/** iPad order detail: fixed column widths tuned to the wider screen. */
 const CUSTOMER_FIELD_WIDTH_IPAD = {
-  ...CUSTOMER_FIELD_WIDTH,
   firstName: "200px",
   lastName: "200px",
   email: "400px",
   phone: "180px",
+  company: "250px",
   address1: "450px",
+  city: "220px",
+  state: "150px",
+  zip: "150px",
+  country: "150px",
 };
 
 // Same names as admin; Picked Up and Order Canceled at bottom
@@ -1571,8 +1578,19 @@ function Extension() {
       };
     });
 
-    const customerFieldWidth =
-      isTablet === true ? CUSTOMER_FIELD_WIDTH_IPAD : CUSTOMER_FIELD_WIDTH;
+    // iPad keeps fixed pixel columns; iPhone uses percentage min-widths so
+    // the inline rows wrap instead of overflowing/overlapping.
+    const customerFieldSize = (key) =>
+      isTablet === true
+        ? {
+            inlineSize: CUSTOMER_FIELD_WIDTH_IPAD[key],
+            minInlineSize: CUSTOMER_FIELD_WIDTH_IPAD[key],
+            maxInlineSize: CUSTOMER_FIELD_WIDTH_IPAD[key],
+          }
+        : {
+            inlineSize: "auto",
+            minInlineSize: CUSTOMER_FIELD_MIN_PHONE[key],
+          };
 
     const orderNoteStack = (
       <s-stack gap={isTablet ? "small-500" : "small"}>
@@ -1712,11 +1730,7 @@ function Extension() {
                         alignItems="end"
                         inlineSize="100%"
                       >
-                        <s-box
-                          inlineSize={customerFieldWidth.firstName}
-                          minInlineSize={customerFieldWidth.firstName}
-                          maxInlineSize={customerFieldWidth.firstName}
-                        >
+                        <s-box {...customerFieldSize("firstName")}>
                           <s-text-field
                             label={i18n.translate("first_name")}
                             value={customerForm.firstName}
@@ -1730,11 +1744,7 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </s-box>
-                        <s-box
-                          inlineSize={customerFieldWidth.lastName}
-                          minInlineSize={customerFieldWidth.lastName}
-                          maxInlineSize={customerFieldWidth.lastName}
-                        >
+                        <s-box {...customerFieldSize("lastName")}>
                           <s-text-field
                             label={i18n.translate("last_name")}
                             value={customerForm.lastName}
@@ -1748,11 +1758,7 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </s-box>
-                        <s-box
-                          inlineSize={customerFieldWidth.email}
-                          minInlineSize={customerFieldWidth.email}
-                          maxInlineSize={customerFieldWidth.email}
-                        >
+                        <s-box {...customerFieldSize("email")}>
                           <s-text-field
                             label={i18n.translate("email_label")}
                             value={customerForm.email}
@@ -1764,11 +1770,7 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </s-box>
-                        <s-box
-                          inlineSize={customerFieldWidth.phone}
-                          minInlineSize={customerFieldWidth.phone}
-                          maxInlineSize={customerFieldWidth.phone}
-                        >
+                        <s-box {...customerFieldSize("phone")}>
                           <s-text-field
                             label={i18n.translate("phone_label")}
                             value={customerForm.phone}
@@ -1781,11 +1783,7 @@ function Extension() {
                           />
                         </s-box>
                         {!isTablet ? (
-                        <s-box
-                          inlineSize={customerFieldWidth.company}
-                          minInlineSize={customerFieldWidth.company}
-                          maxInlineSize={customerFieldWidth.company}
-                        >
+                        <s-box {...customerFieldSize("company")}>
                           <s-text-field
                             label={i18n.translate("company")}
                             value={customerForm.company}
@@ -1807,11 +1805,7 @@ function Extension() {
                         alignItems="end"
                         inlineSize="100%"
                       >
-                        <s-box
-                          inlineSize={customerFieldWidth.address1}
-                          minInlineSize={customerFieldWidth.address1}
-                          maxInlineSize={customerFieldWidth.address1}
-                        >
+                        <s-box {...customerFieldSize("address1")}>
                           <s-text-field
                             label={i18n.translate("address_line_1")}
                             value={customerForm.address1}
@@ -1825,11 +1819,7 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </s-box>
-                        <s-box
-                          inlineSize={customerFieldWidth.city}
-                          minInlineSize={customerFieldWidth.city}
-                          maxInlineSize={customerFieldWidth.city}
-                        >
+                        <s-box {...customerFieldSize("city")}>
                           <s-text-field
                             label={i18n.translate("city")}
                             value={customerForm.city}
@@ -1841,11 +1831,7 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </s-box>
-                        <s-box
-                          inlineSize={customerFieldWidth.state}
-                          minInlineSize={customerFieldWidth.state}
-                          maxInlineSize={customerFieldWidth.state}
-                        >
+                        <s-box {...customerFieldSize("state")}>
                           <s-text-field
                             label={i18n.translate("state")}
                             value={customerForm.provinceCode}
@@ -1865,11 +1851,7 @@ function Extension() {
                             disabled={!!saving}
                           />
                         </s-box>
-                        <s-box
-                          inlineSize={customerFieldWidth.zip}
-                          minInlineSize={customerFieldWidth.zip}
-                          maxInlineSize={customerFieldWidth.zip}
-                        >
+                        <s-box {...customerFieldSize("zip")}>
                           <s-text-field
                             label={
                               isTablet === true
@@ -1886,11 +1868,7 @@ function Extension() {
                           />
                         </s-box>
                         {!isTablet ? (
-                        <s-box
-                          inlineSize={customerFieldWidth.country}
-                          minInlineSize={customerFieldWidth.country}
-                          maxInlineSize={customerFieldWidth.country}
-                        >
+                        <s-box {...customerFieldSize("country")}>
                           <s-text-field
                             label={i18n.translate("country")}
                             value={customerForm.countryCode}
