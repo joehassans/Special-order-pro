@@ -2953,11 +2953,7 @@ export default function OrderDetails() {
                           .filter(
                             (a) =>
                               ![
-                                "Brand",
-                                "Type",
-                                "Style #",
-                                "Size",
-                                "Color",
+                                ...statusBoxAttributeKeys,
                                 "Date Ordered",
                                 "Order Confirmation Number",
                               ].includes(a.key)

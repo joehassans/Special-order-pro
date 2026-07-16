@@ -336,6 +336,44 @@ async function fetchSyncAndBuildRows(admin, shop) {
 }
 
 /**
+ * Count orders still being worked (not picked up, not canceled) for the
+ * POS home-screen tile. Uses the same draft-visibility rules as the lists.
+ * Returns null when the DB has no rows yet (tile shows its static text).
+ */
+export async function countOpenSpecialOrders(shop) {
+  const records = await prisma.specialOrder.findMany({
+    where: { shop },
+    select: {
+      shopifyId: true,
+      kind: true,
+      shopifyStatus: true,
+      convertedFromDraftId: true,
+      overallStatus: true,
+    },
+  });
+  if (records.length === 0) return null;
+
+  const convertedDraftIds = new Set(
+    records
+      .map((r) => r.convertedFromDraftId)
+      .filter((id) => typeof id === "string" && id.length > 0)
+  );
+
+  return records.filter((r) => {
+    if (r.kind === "DRAFT_ORDER") {
+      if (r.shopifyStatus === "COMPLETED") return false;
+      if (convertedDraftIds.has(r.shopifyId)) return false;
+    }
+    const overall = r.overallStatus
+      ? normalizeOverallOrderStatus(r.overallStatus)
+      : "Order Pending";
+    return (
+      overall !== "Picked Up - Sale Complete" && overall !== "Order Canceled"
+    );
+  }).length;
+}
+
+/**
  * Build GraphQL-node-shaped objects from DB records for the POS extension,
  * which renders the same shapes the Admin API returns (metafields.edges,
  * lineItems.edges). Money/fulfillment/address data is NOT included — POS

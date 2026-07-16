@@ -2048,7 +2048,7 @@ function Extension() {
                       command="--show"
                       disabled={!!saving}
                     >
-                      {CONTACT_STATUS_OPTIONS.includes(contactStatus) ? `${contactStatus}${" ".repeat(10)}↕️` : i18n.translate("select")}
+                      {CONTACT_STATUS_OPTIONS.includes(contactStatus) ? contactStatus : i18n.translate("select")}
                     </s-button>
                     <s-modal id="contact-status-modal" heading={i18n.translate("contact_status")}>
                       <s-stack gap="small">
@@ -2071,7 +2071,6 @@ function Extension() {
                     />
                   </s-stack>
                 </s-box>
-                <s-divider />
                 <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
                     <s-text type="strong">{i18n.translate("overall_order_status")}</s-text>
@@ -2081,7 +2080,7 @@ function Extension() {
                       command="--show"
                       disabled={!!saving}
                     >
-                      {OVERALL_ORDER_STATUS_OPTIONS.includes(overallOrderStatus) ? `${overallOrderStatus}${" ".repeat(10)}↕️` : "Order Pending"}
+                      {OVERALL_ORDER_STATUS_OPTIONS.includes(overallOrderStatus) ? overallOrderStatus : "Order Pending"}
                     </s-button>
                     <s-modal id="overall-order-status-modal" heading={i18n.translate("overall_order_status")}>
                       <s-stack gap="small">
@@ -2104,7 +2103,6 @@ function Extension() {
                     />
                   </s-stack>
                 </s-box>
-                <s-divider />
                 <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
                   <s-stack gap="small">
                     <s-text type="strong">{i18n.translate("payment_status")}</s-text>
@@ -2451,7 +2449,7 @@ function Extension() {
             <s-box padding="base" borderRadius="base" background="subdued">
               <s-stack gap="base">
                 {isTablet && (
-                  <s-heading>🔍 Search</s-heading>
+                  <s-heading>Search</s-heading>
                 )}
                 <s-text-field
                   label={i18n.translate("search")}
@@ -2465,11 +2463,7 @@ function Extension() {
                       <s-heading>{i18n.translate("filter")}</s-heading>
                       <s-button
                         variant="secondary"
-                        onClick={() => {
-                          setSearchTerm("");
-                          setStatusFilter("");
-                          fetchOrders();
-                        }}
+                        onClick={() => fetchOrders()}
                         disabled={loading}
                       >
                         {i18n.translate("refresh")}
@@ -2481,8 +2475,10 @@ function Extension() {
                       command="--show"
                       inlineSize="fill"
                     >
-                      <s-box padding="large">
-                        <span style={{ fontSize: "40px", fontWeight: "600" }}>{`${getFilterLabel(statusFilter, i18n)}${" ".repeat(30)}↕️`}</span>
+                      <s-box padding="base">
+                        <span style={{ fontSize: "20px", fontWeight: "600" }}>
+                          {getFilterLabel(statusFilter, i18n)}
+                        </span>
                       </s-box>
                     </s-button>
                   </>
@@ -2498,11 +2494,7 @@ function Extension() {
                     </s-button>
                     <s-button
                       variant="secondary"
-                      onClick={() => {
-                        setSearchTerm("");
-                        setStatusFilter("");
-                        fetchOrders();
-                      }}
+                      onClick={() => fetchOrders()}
                       disabled={loading}
                     >
                       {i18n.translate("refresh")}
@@ -2718,7 +2710,7 @@ function Extension() {
                             </s-badge>
                           </s-box>
                           <s-box inlineSize={col.created} minInlineSize={col.created}>
-                            <s-text color="subdued">{`${order.createdDateLabel || ""}${" ".repeat(8)}↕️`}</s-text>
+                            <s-text color="subdued">{order.createdDateLabel || ""}</s-text>
                           </s-box>
                         </s-stack>
                       </s-box>

@@ -47,6 +47,18 @@ function CartLineItemAction() {
 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  // null until the device resolves; phone layout is the safe default.
+  const [isTablet, setIsTablet] = useState(null);
+
+  useEffect(() => {
+    shopify.device
+      ?.isTablet?.()
+      .then(setIsTablet)
+      .catch(() => setIsTablet(false));
+  }, []);
+
+  // Phone: two fields per row so inputs stay finger-sized; iPad: four.
+  const fieldMinWidth = isTablet === true ? "23%" : "45%";
 
   /** Show 4 standard choices; if saved status is legacy (removed from modal), keep it selectable */
   const orderStatusChoices = useMemo(() => {
@@ -221,10 +233,14 @@ function CartLineItemAction() {
               <s-heading>{i18n.translate("cart_line_item_details_heading")}</s-heading>
               <s-box paddingBlockStart="small">
                 <s-stack direction="vertical" gap="base">
-                  {/* Store-configured detail fields, four per row */}
+                  {/* Store-configured detail fields; row density follows device */}
                   <s-stack direction="inline" gap="small" alignItems="stretch">
                     {detailFields.map((field) => (
-                      <s-box key={field} minInlineSize="23%" inlineSize="auto">
+                      <s-box
+                        key={field}
+                        minInlineSize={fieldMinWidth}
+                        inlineSize="auto"
+                      >
                         <s-text-field
                           label={field}
                           value={detailValues[field] ?? ""}
@@ -245,7 +261,10 @@ function CartLineItemAction() {
                     alignItems="stretch"
                     inlineSize="100%"
                   >
-                    <s-box minInlineSize="31%" inlineSize="auto">
+                    <s-box
+                      minInlineSize={isTablet === true ? "31%" : "45%"}
+                      inlineSize="auto"
+                    >
                       <s-stack gap="small-300">
                         <s-text type="strong">
                           {i18n.translate("cart_line_item_order_date")}
@@ -274,7 +293,10 @@ function CartLineItemAction() {
                         </s-button>
                       </s-stack>
                     </s-box>
-                    <s-box minInlineSize="31%" inlineSize="auto">
+                    <s-box
+                      minInlineSize={isTablet === true ? "31%" : "45%"}
+                      inlineSize="auto"
+                    >
                       <s-text-field
                         label={i18n.translate(
                           "cart_line_item_order_confirmation"
@@ -319,7 +341,7 @@ function CartLineItemAction() {
                 justifyContent="start"
                 alignItems="stretch"
               >
-                <s-box inlineSize="100%" minBlockSize="52px">
+                <s-box inlineSize="70%" minBlockSize="52px">
                   <s-button
                     variant="primary"
                     inlineSize="fill"
@@ -329,6 +351,16 @@ function CartLineItemAction() {
                     {saving
                       ? i18n.translate("cart_line_item_saving")
                       : i18n.translate("cart_line_item_save")}
+                  </s-button>
+                </s-box>
+                <s-box inlineSize="28%" minBlockSize="52px">
+                  <s-button
+                    variant="secondary"
+                    inlineSize="fill"
+                    onClick={dismissModal}
+                    disabled={saving}
+                  >
+                    {i18n.translate("cart_line_item_cancel")}
                   </s-button>
                 </s-box>
               </s-stack>

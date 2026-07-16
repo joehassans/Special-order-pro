@@ -45,6 +45,9 @@ function getContactStatusTone(status) {
   return "critical";
 }
 
+/** Item-status badges shown per row before collapsing to "+N more". */
+const MAX_ITEM_BADGES = 4;
+
 // Treat "Picked Up - Sale Complete" as completed (overall order status)
 function isCompletedOverallOrderStatus(status) {
   if (!status || typeof status !== "string") return false;
@@ -61,126 +64,6 @@ export const loader = async ({ request }) => {
   const { rows } = await getSpecialOrderListRows(admin, session.shop);
 
   return { orders: rows };
-};
-
-/**
- * We’re keeping the original demo `action` here for now so the route
- * structure stays intact. It isn’t used by the current UI.
- */
-export const action = async ({ request }) => {
-  const { admin } = await authenticate.admin(request);
-  const color = ["Red", "Orange", "Yellow", "Green"][
-    Math.floor(Math.random() * 4)
-  ];
-  const response = await admin.graphql(
-    `#graphql
-      mutation populateProduct($product: ProductCreateInput!) {
-        productCreate(product: $product) {
-          product {
-            id
-            title
-            handle
-            status
-            variants(first: 10) {
-              edges {
-                node {
-                  id
-                  price
-                  barcode
-                  createdAt
-                }
-              }
-            }
-            demoInfo: metafield(namespace: "$app", key: "demo_info") {
-              jsonValue
-            }
-          }
-        }
-      }`,
-    {
-      variables: {
-        product: {
-          title: `${color} Snowboard`,
-          metafields: [
-            {
-              namespace: "$app",
-              key: "demo_info",
-              value: "Created by React Router Template",
-            },
-          ],
-        },
-      },
-    }
-  );
-  const responseJson = await response.json();
-  const product = responseJson.data.productCreate.product;
-  const variantId = product.variants.edges[0].node.id;
-  const variantResponse = await admin.graphql(
-    `#graphql
-    mutation shopifyReactRouterTemplateUpdateVariant($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-      productVariantsBulkUpdate(productId: $productId, variants: $variants) {
-        productVariants {
-          id
-          price
-          barcode
-          createdAt
-        }
-      }
-    }`,
-    {
-      variables: {
-        productId: product.id,
-        variants: [{ id: variantId, price: "100.00" }],
-      },
-    }
-  );
-  const variantResponseJson = await variantResponse.json();
-  const metaobjectResponse = await admin.graphql(
-    `#graphql
-    mutation shopifyReactRouterTemplateUpsertMetaobject($handle: MetaobjectHandleInput!, $metaobject: MetaobjectUpsertInput!) {
-      metaobjectUpsert(handle: $handle, metaobject: $metaobject) {
-        metaobject {
-          id
-          handle
-          title: field(key: "title") {
-            jsonValue
-          }
-          description: field(key: "description") {
-            jsonValue
-          }
-        }
-        userErrors {
-          field
-          message
-        }
-      }
-    }`,
-    {
-      variables: {
-        handle: {
-          type: "$app:example",
-          handle: "demo-entry",
-        },
-        metaobject: {
-          fields: [
-            { key: "title", value: "Demo Entry" },
-            {
-              key: "description",
-              value:
-                "This metaobject was created by the Shopify app template to demonstrate the metaobject API.",
-            },
-          ],
-        },
-      },
-    }
-  );
-  const metaobjectResponseJson = await metaobjectResponse.json();
-
-  return {
-    product: responseJson.data.productCreate.product,
-    variant: variantResponseJson.data.productVariantsBulkUpdate.productVariants,
-    metaobject: metaobjectResponseJson.data.metaobjectUpsert.metaobject,
-  };
 };
 
 export default function Index() {
@@ -206,6 +89,11 @@ export default function Index() {
         )
           return true;
         if (order.name && String(order.name).toLowerCase().includes(term))
+          return true;
+        if (
+          order.customerEmail &&
+          String(order.customerEmail).toLowerCase().includes(term)
+        )
           return true;
         if (termDigits && order.customerPhone) {
           const phoneDigits = String(order.customerPhone).replace(/\D/g, "");
@@ -266,16 +154,10 @@ export default function Index() {
     return result;
   }, [orders, searchTerm, statusFilter]);
 
+  const hasActiveFilters = Boolean(searchTerm.trim() || statusFilter);
+
   return (
     <s-page heading="Special Orders Pro" inlineSize="large">
-      <style>{`
-        s-table-cell.order-cell-completed {
-          background-color: #66bb6a !important;
-        }
-        s-table-cell.order-cell-canceled {
-          background-color: #e53935 !important;
-        }
-      `}</style>
       {/* Filters section */}
       <s-section id="filters-section">
         <s-stack direction="inline" gap="base" alignItems="end">
@@ -310,13 +192,13 @@ export default function Index() {
           </s-select>
           <s-button
             id="clear-filters-button"
+            disabled={!hasActiveFilters}
             onClick={() => {
               setSearchTerm("");
               setStatusFilter("");
-              // Later: trigger a reload with new query params for search
             }}
           >
-            Refresh
+            Clear filters
           </s-button>
         </s-stack>
       </s-section>
@@ -359,8 +241,21 @@ export default function Index() {
                     padding="large"
                   >
                     <s-text id="empty-text" color="subdued">
-                      No special orders yet
+                      {orders.length > 0 && hasActiveFilters
+                        ? "No orders match your search or filters."
+                        : "No special orders yet"}
                     </s-text>
+                    {orders.length > 0 && hasActiveFilters && (
+                      <s-button
+                        variant="secondary"
+                        onClick={() => {
+                          setSearchTerm("");
+                          setStatusFilter("");
+                        }}
+                      >
+                        Clear filters
+                      </s-button>
+                    )}
                   </s-stack>
                 </s-table-cell>
               </s-table-row>
@@ -372,74 +267,68 @@ export default function Index() {
                 const orderCanceled =
                   order.overallOrderStatus === "Order Canceled";
 
-                const orderCellClass =
-                  completed
-                    ? "order-cell-completed"
-                    : orderCanceled
-                      ? "order-cell-canceled"
-                      : "";
-
-                const orderSpanBg =
-                  completed
-                    ? "#66bb6a"
-                    : orderCanceled
-                      ? "#e53935"
-                      : undefined;
-
                 return (
                   <s-table-row
                     id={`order-row-${order.id}`}
                     key={order.id}
                   >
-                    <s-table-cell
-                      id={`cell-order-${order.id}`}
-                      className={orderCellClass}
-                    >
-                      <span
-                        style={
-                          orderSpanBg
-                            ? {
-                                backgroundColor: orderSpanBg,
-                                padding: "6px 10px",
-                                borderRadius: "4px",
-                                display: "inline-block",
-                              }
-                            : undefined
-                        }
-                      >
+                    <s-table-cell id={`cell-order-${order.id}`}>
+                      <s-stack gap="small-300">
                         <s-text type="strong">{order.name}</s-text>
-                      </span>
+                        {completed && (
+                          <s-badge tone="success">Picked Up</s-badge>
+                        )}
+                        {orderCanceled && (
+                          <s-badge tone="critical">Canceled</s-badge>
+                        )}
+                      </s-stack>
                     </s-table-cell>
                     <s-table-cell id={`cell-customer-${order.id}`}>
                       <s-text>{order.customerName}</s-text>
                     </s-table-cell>
                     <s-table-cell id={`cell-status-${order.id}`}>
                       <s-stack gap="small-300">
-                        {((order.orderStatuses || []).length > 0
-                          ? order.orderStatuses
-                          : [{ title: "Item", status: "Not set" }]
-                        ).map((item, i) => {
-                          const title =
-                            typeof item === "object" && item != null
-                              ? item.title
-                              : "Item";
-                          const status =
-                            typeof item === "object" && item != null
-                              ? item.status
-                              : item;
-                          const label =
-                            toTitleCase(title || "Item") +
-                            " - " +
-                            (String(status ?? "Not set").trim() || "Not set");
+                        {(() => {
+                          const statuses =
+                            (order.orderStatuses || []).length > 0
+                              ? order.orderStatuses
+                              : [{ title: "Item", status: "Not set" }];
+                          const shown = statuses.slice(0, MAX_ITEM_BADGES);
+                          const hidden = statuses.length - shown.length;
                           return (
-                            <s-badge
-                              key={i}
-                              tone={getOrderStatusTone(status)}
-                            >
-                              {label}
-                            </s-badge>
+                            <>
+                              {shown.map((item, i) => {
+                                const title =
+                                  typeof item === "object" && item != null
+                                    ? item.title
+                                    : "Item";
+                                const status =
+                                  typeof item === "object" && item != null
+                                    ? item.status
+                                    : item;
+                                const label =
+                                  toTitleCase(title || "Item") +
+                                  " - " +
+                                  (String(status ?? "Not set").trim() ||
+                                    "Not set");
+                                return (
+                                  <s-badge
+                                    key={i}
+                                    tone={getOrderStatusTone(status)}
+                                  >
+                                    {label}
+                                  </s-badge>
+                                );
+                              })}
+                              {hidden > 0 && (
+                                <s-text color="subdued" type="small">
+                                  +{hidden} more item{hidden === 1 ? "" : "s"} —
+                                  view details
+                                </s-text>
+                              )}
+                            </>
                           );
-                        })}
+                        })()}
                       </s-stack>
                     </s-table-cell>
                     <s-table-cell id={`cell-payment-${order.id}`}>
