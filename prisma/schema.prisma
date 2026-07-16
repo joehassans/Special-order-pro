@@ -35,12 +35,13 @@ model Session {
   refreshTokenExpires DateTime?
 }
 
-// --- Special order shadow store (Phase 1 of the v2 data model) ---
+// --- Special order store (v2 data model) ---
 //
-// Mirrors the special-order state currently kept in position-keyed Shopify
-// metafields (namespace "custom"). Rows are upserted whenever the app loads
-// an order, so the database fills organically. Metafields remain the source
-// of truth until reads are flipped over in a later phase.
+// Authoritative store for app-managed special-order state (statuses, item
+// attributes, notification log). Rows bootstrap from the legacy
+// position-keyed metafields (namespace "custom") on first sight; after
+// that, sync only refreshes Shopify-owned fields and app writes go through
+// the DB first. Metafields are still mirrored for backward compatibility.
 
 model SpecialOrder {
   id        String @id @default(cuid())
