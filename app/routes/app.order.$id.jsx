@@ -31,6 +31,7 @@ import {
   dbItemAttributesArray,
   loadSpecialOrderDbState,
 } from "../lib/special-order-db-read.server";
+import { getItemFields } from "../lib/item-fields.server";
 import {
   dbUpdateContactStatus,
   dbUpdateOverallStatus,
@@ -289,14 +290,7 @@ function lineItemAttrByKey(customAttributes, key) {
   return a ?? { key, value: "" };
 }
 
-const LINE_ITEM_ATTR_KEYS_IN_STATUS_BOX = [
-  "Brand",
-  "Type",
-  "Style #",
-  "Size",
-  "Color",
-];
-
+/** Fallback when the shop hasn't customized fields (see app/settings). */
 const ALWAYS_PRESENT_ATTRIBUTES = ["Brand", "Type", "Style #", "Size", "Color", "Date Ordered", "Order Confirmation Number"];
 const HIDDEN_ATTRIBUTES = new Set([
   "_shopify_item_type",
@@ -337,7 +331,8 @@ function getProductExchangedForTitleMetafield(metafields, position) {
   return edge?.node?.value?.trim() || "";
 }
 
-function getAttributesForDisplay(attrs) {
+function getAttributesForDisplay(attrs, alwaysPresent) {
+  const present = alwaysPresent || ALWAYS_PRESENT_ATTRIBUTES;
   const map = new Map();
   for (const a of attrs || []) {
     if (!HIDDEN_ATTRIBUTES.has(a.key)) {
@@ -345,14 +340,14 @@ function getAttributesForDisplay(attrs) {
     }
   }
   const result = [];
-  for (const key of ALWAYS_PRESENT_ATTRIBUTES) {
+  for (const key of present) {
     result.push({
       key,
       value: normalizeSpecialOrderAttributeValue(key, map.get(key) || ""),
     });
   }
   for (const [key, value] of map) {
-    if (!ALWAYS_PRESENT_ATTRIBUTES.includes(key)) {
+    if (!present.includes(key)) {
       result.push({ key, value });
     }
   }
@@ -401,6 +396,14 @@ export const loader = async ({ request, params }) => {
   }
 
   const isDraftOrder = id.includes("DraftOrder");
+
+  // Shop-configured item detail fields + fixed workflow fields (Settings).
+  const itemFields = await getItemFields(session.shop);
+  const alwaysPresentAttributes = [
+    ...itemFields,
+    "Date Ordered",
+    "Order Confirmation Number",
+  ];
 
   if (isDraftOrder) {
     const response = await admin.graphql(
@@ -567,7 +570,10 @@ export const loader = async ({ request, params }) => {
           quantity: li.quantity,
           variantTitle: li.variant?.title || null,
           pricePerItem: formatMoneySet(li.originalUnitPriceSet),
-          customAttributes: getAttributesForDisplay(rawAttrs),
+          customAttributes: getAttributesForDisplay(
+            rawAttrs,
+            alwaysPresentAttributes
+          ),
           orderStatus: itemStatus,
           itemAdjustmentType: adj.itemAdjustmentType,
           adjustmentRefundAmount: adj.adjustmentRefundAmount,
@@ -618,7 +624,7 @@ export const loader = async ({ request, params }) => {
     // Phase 1 shadow sync (fire-and-forget; metafields stay authoritative).
     syncInBackground(session.shop, draftOrder, "DRAFT_ORDER");
 
-    return { order: normalized };
+    return { order: normalized, itemFields };
   } else {
     const response = await admin.graphql(
       `#graphql
@@ -870,7 +876,10 @@ export const loader = async ({ request, params }) => {
           quantity: li.quantity,
           variantTitle: li.variantTitle || null,
           pricePerItem: formatMoneySet(li.originalUnitPriceSet),
-          customAttributes: getAttributesForDisplay(rawAttrs),
+          customAttributes: getAttributesForDisplay(
+            rawAttrs,
+            alwaysPresentAttributes
+          ),
           orderStatus: itemStatus,
           itemAdjustmentType: adj.itemAdjustmentType,
           adjustmentRefundAmount: adj.adjustmentRefundAmount,
@@ -925,7 +934,7 @@ export const loader = async ({ request, params }) => {
     // Phase 1 shadow sync (fire-and-forget; metafields stay authoritative).
     syncInBackground(session.shop, order, "ORDER");
 
-    return { order: normalized };
+    return { order: normalized, itemFields };
   }
 };
 
@@ -1634,7 +1643,9 @@ function OrderAdjustmentsCard({ orderAdjustments }) {
 }
 
 export default function OrderDetails() {
-  const { order } = useLoaderData();
+  const { order, itemFields } = useLoaderData();
+  // Shop-configured fields shown inline in each item's status box.
+  const statusBoxAttributeKeys = itemFields || ["Brand", "Type", "Style #", "Size", "Color"];
   const submit = useSubmit();
   const [searchParams] = useSearchParams();
   const fulfillmentError = searchParams.get("fulfillmentError");
@@ -2748,7 +2759,7 @@ export default function OrderDetails() {
                               </div>
                               <div className="order-status-dropdown-inner">
                                 <div className="order-status-attr-fields">
-                                  {LINE_ITEM_ATTR_KEYS_IN_STATUS_BOX.map(
+                                  {statusBoxAttributeKeys.map(
                                     (key) => {
                                       const attr = lineItemAttrByKey(
                                         attrs,

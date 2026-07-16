@@ -59,15 +59,21 @@ export function buildLineItems(rawItems, attrsByIndex, getVariantTitle, formatMo
     const variantTitle = getVariantTitle(li);
     const variant = variantTitle ? ` (${variantTitle})` : "";
 
-    const brand = attrs.find((a) => a.key === "Brand")?.value || "";
-    const type = attrs.find((a) => a.key === "Type")?.value || "";
-    const styleNum = attrs.find((a) => a.key === "Style #")?.value || "";
-    const size = attrs.find((a) => a.key === "Size")?.value || "";
-    const color = attrs.find((a) => a.key === "Color")?.value || "";
-
+    // Print all detail fields with values (shop-configured or defaults),
+    // excluding workflow fields shown elsewhere on the summary. Two-ish
+    // values per line mirrors the original Brand|Type / Style|Size|Color
+    // layout without hard-coding field names.
+    const excluded = new Set(["Date Ordered", "Order Confirmation Number"]);
+    const detailValues = attrs
+      .filter((a) => !excluded.has(a.key) && String(a.value || "").trim())
+      .map((a) => String(a.value).trim());
     const detailsLines = [];
-    if (brand || type) detailsLines.push([brand, type].filter(Boolean).join(" | "));
-    if (styleNum || size || color) detailsLines.push([styleNum, size, color].filter(Boolean).join(" | "));
+    if (detailValues.length > 0) {
+      detailsLines.push(detailValues.slice(0, 2).join(" | "));
+    }
+    if (detailValues.length > 2) {
+      detailsLines.push(detailValues.slice(2).join(" | "));
+    }
     const detailsHtml = detailsLines.length
       ? detailsLines.map((l) => escapeHtml(l)).join("<br>")
       : "—";

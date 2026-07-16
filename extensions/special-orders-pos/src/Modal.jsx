@@ -11,6 +11,7 @@ import {
   normalizeAttributesArrayForSave,
   normalizeSpecialOrderAttributeValue,
 } from "./special-order-line-item-attributes.js";
+import { DEFAULT_ITEM_DETAIL_FIELDS } from "./pos-line-item-attributes.js";
 
 export default async () => {
   render(<Extension />, document.body);
@@ -18,10 +19,8 @@ export default async () => {
 
 const SPECIAL_ORDER_TAG = "special-order";
 const OPEN_STATUSES = ["Not Ordered", "Ordered", "Back Ordered", "Drop Ship - Ordered", "Drop Ship - Delivered", "Received"];
+/** Fallback when the shop's configured fields haven't loaded yet. */
 const ALWAYS_PRESENT_ATTRIBUTES = ["Brand", "Type", "Style #", "Size", "Color", "Date Ordered", "Order Confirmation Number"];
-/** iPad order detail: two rows so Color / Item Order Date / Order Confirmation share one line (even columns). */
-const TABLET_ORDER_DETAIL_ROW1_KEYS = ["Brand", "Type", "Style #", "Size"];
-const TABLET_ORDER_DETAIL_ROW2_KEYS = ["Color", "Date Ordered", "Order Confirmation Number"];
 /** iPad order detail: notes column width in the status row (after payment card). */
 const TABLET_ORDER_NOTE_WIDTH = "340px";
 const HIDDEN_ATTRIBUTES = new Set([
@@ -565,21 +564,22 @@ function isCompletedContactStatus(s) {
   return s === "Picked Up - Sale Complete";
 }
 
-function getAttributesForDisplay(attrs, overrides) {
+function getAttributesForDisplay(attrs, overrides, alwaysPresent) {
+  const present = alwaysPresent || ALWAYS_PRESENT_ATTRIBUTES;
   const src = overrides || attrs || [];
   const map = new Map();
   for (const a of src) {
     if (!HIDDEN_ATTRIBUTES.has(a.key)) map.set(a.key, a.value || "");
   }
   const result = [];
-  for (const key of ALWAYS_PRESENT_ATTRIBUTES) {
+  for (const key of present) {
     result.push({
       key,
       value: normalizeSpecialOrderAttributeValue(key, map.get(key) || ""),
     });
   }
   for (const [key, value] of map) {
-    if (!ALWAYS_PRESENT_ATTRIBUTES.includes(key)) result.push({ key, value });
+    if (!present.includes(key)) result.push({ key, value });
   }
   return result;
 }
@@ -874,6 +874,8 @@ function Extension() {
   const { i18n } = shopify;
   const [rawOrders, setRawOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  // Shop-configured item detail fields (Settings in the admin app).
+  const [itemFields, setItemFields] = useState(DEFAULT_ITEM_DETAIL_FIELDS);
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [localNote, setLocalNote] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
@@ -887,6 +889,41 @@ function Extension() {
   useEffect(() => {
     shopify.device?.isTablet?.().then(setIsTablet).catch(() => setIsTablet(false));
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/pos/api/item-fields");
+        if (!res.ok) return;
+        const data = await res.json();
+        const fields = Array.isArray(data?.fields)
+          ? data.fields.filter((f) => typeof f === "string" && f.trim())
+          : null;
+        if (!cancelled && fields && fields.length > 0) setItemFields(fields);
+      } catch (err) {
+        console.error("Item fields fetch failed, using defaults:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  /** Editable keys per item: shop fields + fixed workflow fields. */
+  const displayAttributeKeys = useMemo(
+    () => [...itemFields, "Date Ordered", "Order Confirmation Number"],
+    [itemFields]
+  );
+
+  /** Tablet detail layout: rows of four fields (dates get button stacking on short rows). */
+  const tabletAttributeRows = useMemo(() => {
+    const rows = [];
+    for (let i = 0; i < displayAttributeKeys.length; i += 4) {
+      rows.push(displayAttributeKeys.slice(i, i + 4));
+    }
+    return rows;
+  }, [displayAttributeKeys]);
 
   useEffect(() => {
     setFulfillmentError(null);
@@ -1477,7 +1514,11 @@ function Extension() {
     const lineItems = (order.lineItems?.edges || []).map((edge, idx) => {
       const li = edge.node;
       const overrides = attrsByIndex[idx];
-      const attrs = getAttributesForDisplay(li.customAttributes, overrides);
+      const attrs = getAttributesForDisplay(
+        li.customAttributes,
+        overrides,
+        displayAttributeKeys
+      );
       const rawAttrs = overrides || li.customAttributes || [];
       const mfAdj = getOrderMetafieldString(
         metafields,
@@ -2257,64 +2298,43 @@ function Extension() {
                       </s-stack>
                       {isTablet ? (
                         <>
-                          <s-stack
-                            direction="inline"
-                            gap="small"
-                            alignItems="stretch"
-                            inlineSize="100%"
-                          >
-                            {TABLET_ORDER_DETAIL_ROW1_KEYS.map((key) => {
-                              const attr = (item.customAttributes || []).find(
-                                (a) => a.key === key
-                              );
-                              if (!attr) return null;
-                              return (
-                                <TabletOrderDetailAttributeCell
-                                  key={attr.key}
-                                  attr={attr}
-                                  item={item}
-                                  orderId={order.id}
-                                  lineIndex={idx}
-                                  saving={saving}
-                                  minInlineSize="23%"
-                                  handleUpdateAttributes={handleUpdateAttributes}
-                                  i18n={i18n}
-                                  stackDateControlsVertically={false}
-                                />
-                              );
-                            })}
-                          </s-stack>
-                          <s-stack
-                            direction="inline"
-                            gap="small"
-                            alignItems="stretch"
-                            inlineSize="100%"
-                          >
-                            {TABLET_ORDER_DETAIL_ROW2_KEYS.map((key) => {
-                              const attr = (item.customAttributes || []).find(
-                                (a) => a.key === key
-                              );
-                              if (!attr) return null;
-                              return (
-                                <TabletOrderDetailAttributeCell
-                                  key={attr.key}
-                                  attr={attr}
-                                  item={item}
-                                  orderId={order.id}
-                                  lineIndex={idx}
-                                  saving={saving}
-                                  minInlineSize="31%"
-                                  handleUpdateAttributes={handleUpdateAttributes}
-                                  i18n={i18n}
-                                  stackDateControlsVertically
-                                />
-                              );
-                            })}
-                          </s-stack>
+                          {tabletAttributeRows.map((rowKeys, rowIdx) => (
+                            <s-stack
+                              key={`attr-row-${rowIdx}`}
+                              direction="inline"
+                              gap="small"
+                              alignItems="stretch"
+                              inlineSize="100%"
+                            >
+                              {rowKeys.map((key) => {
+                                const attr = (item.customAttributes || []).find(
+                                  (a) => a.key === key
+                                );
+                                if (!attr) return null;
+                                return (
+                                  <TabletOrderDetailAttributeCell
+                                    key={attr.key}
+                                    attr={attr}
+                                    item={item}
+                                    orderId={order.id}
+                                    lineIndex={idx}
+                                    saving={saving}
+                                    minInlineSize={
+                                      rowKeys.length >= 4 ? "23%" : "31%"
+                                    }
+                                    handleUpdateAttributes={handleUpdateAttributes}
+                                    i18n={i18n}
+                                    stackDateControlsVertically={
+                                      rowKeys.length < 4
+                                    }
+                                  />
+                                );
+                              })}
+                            </s-stack>
+                          ))}
                           {(item.customAttributes || [])
                             .filter(
-                              (a) =>
-                                !["Brand", "Type", "Style #", "Size", "Color", "Date Ordered", "Order Confirmation Number"].includes(a.key)
+                              (a) => !displayAttributeKeys.includes(a.key)
                             )
                             .map((attr) => (
                               <s-stack key={attr.key} gap="small-300">

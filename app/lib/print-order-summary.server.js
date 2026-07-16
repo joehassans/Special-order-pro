@@ -46,6 +46,13 @@ export function getAttributesForDisplay(attrs) {
       value: normalizeSpecialOrderAttributeValue(key, map.get(key) || ""),
     });
   }
+  // Shop-configured fields (see app/settings) that aren't in the legacy
+  // defaults — items carry whatever fields they were created with.
+  for (const [key, value] of map) {
+    if (!ALWAYS_PRESENT_ATTRIBUTES.includes(key)) {
+      result.push({ key, value });
+    }
+  }
   return result;
 }
 
