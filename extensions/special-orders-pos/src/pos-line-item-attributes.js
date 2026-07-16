@@ -5,15 +5,22 @@
 export const LINE_ITEM_PROPERTY_KEYS = {
   SPECIAL_ORDER: "Special Order",
   INITIAL_STATUS: "Initial Status",
-  BRAND: "Brand",
-  TYPE: "Type",
-  STYLE: "Style #",
-  SIZE: "Size",
-  COLOR: "Color",
   /** Stored as "Date Ordered" on line properties; label in UI is "Item Order Date" */
   DATE_ORDERED: "Date Ordered",
   ORDER_CONFIRMATION_NUMBER: "Order Confirmation Number",
 };
+
+/**
+ * Item detail fields when the shop hasn't customized them in the app's
+ * Settings page (served by /pos/api/item-fields).
+ */
+export const DEFAULT_ITEM_DETAIL_FIELDS = [
+  "Brand",
+  "Type",
+  "Style #",
+  "Size",
+  "Color",
+];
 
 /**
  * Cart line item modal only — subset of Modal.jsx ORDER_STATUS_OPTIONS

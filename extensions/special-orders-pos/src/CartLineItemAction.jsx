@@ -2,6 +2,7 @@ import "@shopify/ui-extensions/preact";
 import { render } from "preact";
 import { useState, useEffect, useMemo } from "preact/hooks";
 import {
+  DEFAULT_ITEM_DETAIL_FIELDS,
   LINE_ITEM_PROPERTY_KEYS,
   ORDER_STATUS_OPTIONS_FOR_LINE_ITEM,
 } from "./pos-line-item-attributes.js";
@@ -37,11 +38,10 @@ function CartLineItemAction() {
 
   const [specialOrder, setSpecialOrder] = useState("Yes");
   const [orderStatus, setOrderStatus] = useState("Not Ordered");
-  const [brand, setBrand] = useState("");
-  const [type, setType] = useState("");
-  const [styleNumber, setStyleNumber] = useState("");
-  const [size, setSize] = useState("");
-  const [color, setColor] = useState("");
+  // Shop-configured item detail fields (Settings in the admin app); the
+  // defaults render immediately, then swap once the shop's list loads.
+  const [detailFields, setDetailFields] = useState(DEFAULT_ITEM_DETAIL_FIELDS);
+  const [detailValues, setDetailValues] = useState({});
   const [dateOrdered, setDateOrdered] = useState("");
   const [orderConfirmationNumber, setOrderConfirmationNumber] = useState("");
 
@@ -60,6 +60,18 @@ function CartLineItemAction() {
     return base;
   }, [orderStatus]);
 
+  const readDetailValuesFromLineItem = (fields) => {
+    const lineItem = shopify.cartLineItem;
+    const values = {};
+    for (const field of fields) {
+      values[field] = normalizeSpecialOrderAttributeValue(
+        field,
+        getProperty(lineItem, field)
+      );
+    }
+    return values;
+  };
+
   useEffect(() => {
     try {
       const lineItem = shopify.cartLineItem;
@@ -75,24 +87,7 @@ function CartLineItemAction() {
         setOrderStatus(status);
       }
 
-      setBrand(
-        normalizeSpecialOrderAttributeValue(k.BRAND, getProperty(lineItem, k.BRAND))
-      );
-      setType(
-        normalizeSpecialOrderAttributeValue(k.TYPE, getProperty(lineItem, k.TYPE))
-      );
-      setStyleNumber(
-        normalizeSpecialOrderAttributeValue(
-          k.STYLE,
-          getProperty(lineItem, k.STYLE)
-        )
-      );
-      setSize(
-        normalizeSpecialOrderAttributeValue(k.SIZE, getProperty(lineItem, k.SIZE))
-      );
-      setColor(
-        normalizeSpecialOrderAttributeValue(k.COLOR, getProperty(lineItem, k.COLOR))
-      );
+      setDetailValues(readDetailValuesFromLineItem(DEFAULT_ITEM_DETAIL_FIELDS));
       setDateOrdered(
         normalizeSpecialOrderAttributeValue(
           k.DATE_ORDERED,
@@ -109,6 +104,36 @@ function CartLineItemAction() {
       console.error("Error loading line item properties", err);
       setError(i18n.translate("cart_line_item_load_error"));
     }
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/pos/api/item-fields");
+        if (!res.ok) return;
+        const data = await res.json();
+        const fields = Array.isArray(data?.fields)
+          ? data.fields.filter((f) => typeof f === "string" && f.trim())
+          : null;
+        if (!cancelled && fields && fields.length > 0) {
+          setDetailFields(fields);
+          setDetailValues((prev) => {
+            const fromItem = readDetailValuesFromLineItem(fields);
+            const merged = {};
+            for (const field of fields) {
+              merged[field] = prev[field] || fromItem[field] || "";
+            }
+            return merged;
+          });
+        }
+      } catch (err) {
+        console.error("Item fields fetch failed, using defaults:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   async function handleSave() {
@@ -129,11 +154,6 @@ function CartLineItemAction() {
       const properties = {
         [k.SPECIAL_ORDER]: specialOrder,
         [k.INITIAL_STATUS]: orderStatus,
-        [k.BRAND]: normalizeSpecialOrderAttributeValue(k.BRAND, brand),
-        [k.TYPE]: normalizeSpecialOrderAttributeValue(k.TYPE, type),
-        [k.STYLE]: normalizeSpecialOrderAttributeValue(k.STYLE, styleNumber),
-        [k.SIZE]: normalizeSpecialOrderAttributeValue(k.SIZE, size),
-        [k.COLOR]: normalizeSpecialOrderAttributeValue(k.COLOR, color),
         [k.DATE_ORDERED]: normalizeSpecialOrderAttributeValue(
           k.DATE_ORDERED,
           dateOrdered
@@ -143,6 +163,12 @@ function CartLineItemAction() {
           orderConfirmationNumber
         ),
       };
+      for (const field of detailFields) {
+        properties[field] = normalizeSpecialOrderAttributeValue(
+          field,
+          detailValues[field] ?? ""
+        );
+      }
 
       await shopify.cart.addLineItemProperties(uuid, properties);
 
@@ -195,51 +221,30 @@ function CartLineItemAction() {
               <s-heading>{i18n.translate("cart_line_item_details_heading")}</s-heading>
               <s-box paddingBlockStart="small">
                 <s-stack direction="vertical" gap="base">
-                  {/* Row 1: Brand, Type, Style #, Size */}
+                  {/* Store-configured detail fields, four per row */}
                   <s-stack direction="inline" gap="small" alignItems="stretch">
-                    <s-box minInlineSize="23%" inlineSize="auto">
-                      <s-text-field
-                        label={i18n.translate("cart_line_item_brand")}
-                        value={brand}
-                        onInput={(e) => setBrand(e.currentTarget.value)}
-                      />
-                    </s-box>
-                    <s-box minInlineSize="23%" inlineSize="auto">
-                      <s-text-field
-                        label={i18n.translate("cart_line_item_type")}
-                        value={type}
-                        onInput={(e) => setType(e.currentTarget.value)}
-                      />
-                    </s-box>
-                    <s-box minInlineSize="23%" inlineSize="auto">
-                      <s-text-field
-                        label={i18n.translate("cart_line_item_style")}
-                        value={styleNumber}
-                        onInput={(e) => setStyleNumber(e.currentTarget.value)}
-                      />
-                    </s-box>
-                    <s-box minInlineSize="23%" inlineSize="auto">
-                      <s-text-field
-                        label={i18n.translate("cart_line_item_size")}
-                        value={size}
-                        onInput={(e) => setSize(e.currentTarget.value)}
-                      />
-                    </s-box>
+                    {detailFields.map((field) => (
+                      <s-box key={field} minInlineSize="23%" inlineSize="auto">
+                        <s-text-field
+                          label={field}
+                          value={detailValues[field] ?? ""}
+                          onInput={(e) =>
+                            setDetailValues((prev) => ({
+                              ...prev,
+                              [field]: e.currentTarget.value,
+                            }))
+                          }
+                        />
+                      </s-box>
+                    ))}
                   </s-stack>
-                  {/* Row 2: Color, Item Order Date, Order Confirmation — even columns */}
+                  {/* Workflow fields: Item Order Date, Order Confirmation */}
                   <s-stack
                     direction="inline"
                     gap="small"
                     alignItems="stretch"
                     inlineSize="100%"
                   >
-                    <s-box minInlineSize="31%" inlineSize="auto">
-                      <s-text-field
-                        label={i18n.translate("cart_line_item_color")}
-                        value={color}
-                        onInput={(e) => setColor(e.currentTarget.value)}
-                      />
-                    </s-box>
                     <s-box minInlineSize="31%" inlineSize="auto">
                       <s-stack gap="small-300">
                         <s-text type="strong">

@@ -106,6 +106,18 @@ model SpecialOrderItem {
   @@index([shopifyLineItemId])
 }
 
+/// Per-shop item detail fields shown in POS/admin editors (e.g. a bike
+/// shop uses "Frame Color", "Rim Size" instead of the apparel defaults).
+model ShopItemField {
+  id       String @id @default(cuid())
+  shop     String
+  label    String
+  position Int
+
+  @@unique([shop, label])
+  @@index([shop, position])
+}
+
 model NotificationLog {
   id             String       @id @default(cuid())
   specialOrderId String
