@@ -75,23 +75,6 @@ const COL_IPAD = {
 const MIN_TABLE_MOBILE = "755px";
 const MIN_TABLE_IPAD = "955px";
 
-/**
- * iPhone order detail: percentage min-widths so customer fields wrap onto
- * new lines instead of overflowing the screen (fixed px widths overlapped).
- */
-const CUSTOMER_FIELD_MIN_PHONE = {
-  firstName: "45%",
-  lastName: "45%",
-  email: "94%",
-  phone: "45%",
-  company: "45%",
-  address1: "94%",
-  city: "45%",
-  state: "21%",
-  zip: "21%",
-  country: "45%",
-};
-
 /** iPad order detail: fixed column widths tuned to the wider screen. */
 const CUSTOMER_FIELD_WIDTH_IPAD = {
   firstName: "200px",
@@ -1599,19 +1582,13 @@ function Extension() {
       };
     });
 
-    // iPad keeps fixed pixel columns; iPhone uses percentage min-widths so
-    // the inline rows wrap instead of overflowing/overlapping.
-    const customerFieldSize = (key) =>
-      isTablet === true
-        ? {
-            inlineSize: CUSTOMER_FIELD_WIDTH_IPAD[key],
-            minInlineSize: CUSTOMER_FIELD_WIDTH_IPAD[key],
-            maxInlineSize: CUSTOMER_FIELD_WIDTH_IPAD[key],
-          }
-        : {
-            inlineSize: "auto",
-            minInlineSize: CUSTOMER_FIELD_MIN_PHONE[key],
-          };
+    // iPad: fixed pixel columns in horizontal rows.
+    // iPhone: one full-width field per row (inline % widths do not wrap in POS).
+    const ipadField = (key) => ({
+      inlineSize: CUSTOMER_FIELD_WIDTH_IPAD[key],
+      minInlineSize: CUSTOMER_FIELD_WIDTH_IPAD[key],
+      maxInlineSize: CUSTOMER_FIELD_WIDTH_IPAD[key],
+    });
 
     const orderNoteStack = (
       <s-stack gap={isTablet ? "small-500" : "small"}>
@@ -1628,7 +1605,6 @@ function Extension() {
       </s-stack>
     );
 
-    /** iPad status row: tall enough to match payment card; width uses remaining row space */
     const tabletOrderNoteRows = Math.min(
       24,
       Math.max(14, getNoteRows(noteValue))
@@ -1644,20 +1620,302 @@ function Extension() {
       </s-box>
     );
 
+    const createdDateLabel = order.createdAt
+      ? new Date(order.createdAt).toLocaleDateString("en-US", {
+          month: "2-digit",
+          day: "2-digit",
+          year: "2-digit",
+        })
+      : null;
+
+    const setCustomerField = (field) => (e) =>
+      setCustomerForm((f) =>
+        f ? { ...f, [field]: e.currentTarget.value } : f
+      );
+
+    const phoneCustomerForm = !customerForm ? null : (
+      <s-box
+        padding="base"
+        inlineSize="100%"
+        background="subdued"
+        border="base"
+        borderRadius="base"
+      >
+        <s-stack gap="base" inlineSize="100%">
+          <s-text-field
+            label={i18n.translate("first_name")}
+            value={customerForm.firstName}
+            onInput={setCustomerField("firstName")}
+            disabled={!!saving}
+          />
+          <s-text-field
+            label={i18n.translate("last_name")}
+            value={customerForm.lastName}
+            onInput={setCustomerField("lastName")}
+            disabled={!!saving}
+          />
+          <s-text-field
+            label={i18n.translate("email_label")}
+            value={customerForm.email}
+            onInput={setCustomerField("email")}
+            disabled={!!saving}
+          />
+          <s-text-field
+            label={i18n.translate("phone_label")}
+            value={customerForm.phone}
+            onInput={setCustomerField("phone")}
+            disabled={!!saving}
+          />
+          <s-text-field
+            label={i18n.translate("company")}
+            value={customerForm.company}
+            onInput={setCustomerField("company")}
+            disabled={!!saving}
+          />
+          <s-text-field
+            label={i18n.translate("address_line_1")}
+            value={customerForm.address1}
+            onInput={setCustomerField("address1")}
+            disabled={!!saving}
+          />
+          <s-text-field
+            label={i18n.translate("city")}
+            value={customerForm.city}
+            onInput={setCustomerField("city")}
+            disabled={!!saving}
+          />
+          <s-text-field
+            label={i18n.translate("state")}
+            value={customerForm.provinceCode}
+            onInput={(e) =>
+              setCustomerForm((f) =>
+                f
+                  ? {
+                      ...f,
+                      provinceCode: e.currentTarget.value
+                        .toUpperCase()
+                        .replace(/[^A-Za-z]/g, "")
+                        .slice(0, 2),
+                    }
+                  : f
+              )
+            }
+            disabled={!!saving}
+          />
+          <s-text-field
+            label={i18n.translate("zip_postal")}
+            value={customerForm.zip}
+            onInput={setCustomerField("zip")}
+            disabled={!!saving}
+          />
+          <s-text-field
+            label={i18n.translate("country")}
+            value={customerForm.countryCode}
+            onInput={(e) => {
+              const v = e.currentTarget.value
+                .toUpperCase()
+                .replace(/[^A-Z]/g, "")
+                .slice(0, 2);
+              setCustomerForm((f) =>
+                f ? { ...f, countryCode: v || "US" } : f
+              );
+            }}
+            disabled={!!saving}
+          />
+        </s-stack>
+      </s-box>
+    );
+
+    const tabletCustomerForm = !customerForm ? null : (
+      <s-box
+        padding="base"
+        inlineSize="100%"
+        background="subdued"
+        border="base"
+        borderRadius="base"
+      >
+        <s-stack gap="small">
+          <s-stack
+            direction="inline"
+            gap="small-300"
+            alignItems="end"
+            inlineSize="100%"
+          >
+            <s-box {...ipadField("firstName")}>
+              <s-text-field
+                label={i18n.translate("first_name")}
+                value={customerForm.firstName}
+                onInput={setCustomerField("firstName")}
+                disabled={!!saving}
+              />
+            </s-box>
+            <s-box {...ipadField("lastName")}>
+              <s-text-field
+                label={i18n.translate("last_name")}
+                value={customerForm.lastName}
+                onInput={setCustomerField("lastName")}
+                disabled={!!saving}
+              />
+            </s-box>
+            <s-box {...ipadField("email")}>
+              <s-text-field
+                label={i18n.translate("email_label")}
+                value={customerForm.email}
+                onInput={setCustomerField("email")}
+                disabled={!!saving}
+              />
+            </s-box>
+            <s-box {...ipadField("phone")}>
+              <s-text-field
+                label={i18n.translate("phone_label")}
+                value={customerForm.phone}
+                onInput={setCustomerField("phone")}
+                disabled={!!saving}
+              />
+            </s-box>
+          </s-stack>
+          <s-stack
+            direction="inline"
+            gap="small-300"
+            alignItems="end"
+            inlineSize="100%"
+          >
+            <s-box {...ipadField("address1")}>
+              <s-text-field
+                label={i18n.translate("address_line_1")}
+                value={customerForm.address1}
+                onInput={setCustomerField("address1")}
+                disabled={!!saving}
+              />
+            </s-box>
+            <s-box {...ipadField("city")}>
+              <s-text-field
+                label={i18n.translate("city")}
+                value={customerForm.city}
+                onInput={setCustomerField("city")}
+                disabled={!!saving}
+              />
+            </s-box>
+            <s-box {...ipadField("state")}>
+              <s-text-field
+                label={i18n.translate("state")}
+                value={customerForm.provinceCode}
+                onInput={(e) =>
+                  setCustomerForm((f) =>
+                    f
+                      ? {
+                          ...f,
+                          provinceCode: e.currentTarget.value
+                            .toUpperCase()
+                            .replace(/[^A-Za-z]/g, "")
+                            .slice(0, 2),
+                        }
+                      : f
+                  )
+                }
+                disabled={!!saving}
+              />
+            </s-box>
+            <s-box {...ipadField("zip")}>
+              <s-text-field
+                label="Zip Code"
+                value={customerForm.zip}
+                onInput={setCustomerField("zip")}
+                disabled={!!saving}
+              />
+            </s-box>
+          </s-stack>
+        </s-stack>
+      </s-box>
+    );
+
+    const noCustomerBox = (
+      <s-box
+        padding="base"
+        inlineSize="100%"
+        background="subdued"
+        border="base"
+        borderRadius="base"
+      >
+        <s-text color="subdued">
+          {i18n.translate("no_customer_on_order")}
+        </s-text>
+      </s-box>
+    );
+
     return (
       <s-page inlineSize={isTablet ? "large" : "base"}>
         <s-scroll-box>
           <s-box padding="base">
-            <s-stack gap="small">
+            <s-stack gap="base">
               {isTablet === true ? null : <s-heading>{order.name}</s-heading>}
-              <s-stack
-                direction="inline"
-                gap="small"
-                alignItems="center"
-                inlineSize="100%"
-                justifyContent="space-between"
-              >
-                <s-stack direction="inline" gap="small" alignItems="center">
+
+              {isTablet === true ? (
+                <s-stack
+                  direction="inline"
+                  gap="small"
+                  alignItems="center"
+                  inlineSize="100%"
+                  justifyContent="space-between"
+                >
+                  <s-stack direction="inline" gap="small" alignItems="center">
+                    <s-button
+                      variant="secondary"
+                      onClick={() => {
+                        setSelectedOrder(null);
+                        setLocalNote("");
+                        setFulfillmentError(null);
+                        setCustomerError(null);
+                      }}
+                    >
+                      ← {i18n.translate("back")}
+                    </s-button>
+                    <s-button
+                      variant="primary"
+                      onClick={() => {
+                        const path = `/print?id=${encodeURIComponent(order.id)}`;
+                        shopify.print.print(path);
+                      }}
+                    >
+                      {i18n.translate("print_order_summary")}
+                    </s-button>
+                    <s-text type="strong">
+                      <span style={{ fontSize: "2em", fontWeight: "700" }}>
+                        {order.name}
+                      </span>
+                    </s-text>
+                  </s-stack>
+                  {(createdDateLabel ||
+                    (order.customer?.id && customerForm)) && (
+                    <s-stack direction="inline" gap="small" alignItems="center">
+                      {createdDateLabel ? (
+                        <s-text type="strong">
+                          {i18n.translate("date_created")}: {createdDateLabel}
+                        </s-text>
+                      ) : null}
+                      {order.customer?.id && customerForm ? (
+                        <>
+                          <s-button
+                            variant="primary"
+                            onClick={handleSaveCustomer}
+                            disabled={!!saving}
+                          >
+                            {i18n.translate("save_customer")}
+                          </s-button>
+                          <s-button
+                            variant="secondary"
+                            onClick={handleResetCustomer}
+                            disabled={!!saving}
+                          >
+                            {i18n.translate("reset_customer")}
+                          </s-button>
+                        </>
+                      ) : null}
+                    </s-stack>
+                  )}
+                </s-stack>
+              ) : (
+                <s-stack gap="small" inlineSize="100%">
                   <s-button
                     variant="secondary"
                     onClick={() => {
@@ -1678,53 +1936,31 @@ function Extension() {
                   >
                     {i18n.translate("print_order_summary")}
                   </s-button>
-                  {isTablet === true ? (
-                    <s-text type="strong">
-                      <span
-                        style={{
-                          fontSize: "2em",
-                          fontWeight: "700",
-                        }}
-                      >
-                        {order.name}
-                      </span>
+                  {createdDateLabel ? (
+                    <s-text color="subdued">
+                      {i18n.translate("date_created")}: {createdDateLabel}
                     </s-text>
                   ) : null}
+                  {order.customer?.id && customerForm ? (
+                    <s-stack direction="inline" gap="small" alignItems="center">
+                      <s-button
+                        variant="primary"
+                        onClick={handleSaveCustomer}
+                        disabled={!!saving}
+                      >
+                        {i18n.translate("save_customer")}
+                      </s-button>
+                      <s-button
+                        variant="secondary"
+                        onClick={handleResetCustomer}
+                        disabled={!!saving}
+                      >
+                        {i18n.translate("reset_customer")}
+                      </s-button>
+                    </s-stack>
+                  ) : null}
                 </s-stack>
-                {order.createdAt ||
-                (order.customer?.id && customerForm) ? (
-                  <s-stack direction="inline" gap="small" alignItems="center">
-                    {order.createdAt ? (
-                      <s-text type="strong">
-                        {i18n.translate("date_created")}:{" "}
-                        {new Date(order.createdAt).toLocaleDateString("en-US", {
-                          month: "2-digit",
-                          day: "2-digit",
-                          year: "2-digit",
-                        })}
-                      </s-text>
-                    ) : null}
-                    {order.customer?.id && customerForm ? (
-                      <>
-                        <s-button
-                          variant="primary"
-                          onClick={handleSaveCustomer}
-                          disabled={!!saving}
-                        >
-                          {i18n.translate("save_customer")}
-                        </s-button>
-                        <s-button
-                          variant="secondary"
-                          onClick={handleResetCustomer}
-                          disabled={!!saving}
-                        >
-                          {i18n.translate("reset_customer")}
-                        </s-button>
-                      </>
-                    ) : null}
-                  </s-stack>
-                ) : null}
-              </s-stack>
+              )}
 
               {fulfillmentError && !order.id?.includes("DraftOrder") && (
                 <s-banner tone="critical" heading={fulfillmentError} />
@@ -1734,442 +1970,379 @@ function Extension() {
                 <s-banner tone="critical" heading={customerError} />
               )}
 
-              <s-stack gap="small" blockSize="auto">
-                {order.customer?.id && customerForm ? (
-                  <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
-                    <span
-                      style={{
-                        display: "block",
-                        fontSize: "calc(1em - 3pt)",
-                      }}
-                    >
-                    <s-stack gap="small">
-                      {/* Row 1: POS ignores raw div flex — use s-stack inline + s-box like TabletOrderDetailAttributeCell */}
-                      <s-stack
-                        direction="inline"
-                        gap="small-300"
-                        alignItems="end"
-                        inlineSize="100%"
-                      >
-                        <s-box {...customerFieldSize("firstName")}>
-                          <s-text-field
-                            label={i18n.translate("first_name")}
-                            value={customerForm.firstName}
-                            onInput={(e) =>
-                              setCustomerForm((f) =>
-                                f
-                                  ? { ...f, firstName: e.currentTarget.value }
-                                  : f
-                              )
-                            }
-                            disabled={!!saving}
-                          />
-                        </s-box>
-                        <s-box {...customerFieldSize("lastName")}>
-                          <s-text-field
-                            label={i18n.translate("last_name")}
-                            value={customerForm.lastName}
-                            onInput={(e) =>
-                              setCustomerForm((f) =>
-                                f
-                                  ? { ...f, lastName: e.currentTarget.value }
-                                  : f
-                              )
-                            }
-                            disabled={!!saving}
-                          />
-                        </s-box>
-                        <s-box {...customerFieldSize("email")}>
-                          <s-text-field
-                            label={i18n.translate("email_label")}
-                            value={customerForm.email}
-                            onInput={(e) =>
-                              setCustomerForm((f) =>
-                                f ? { ...f, email: e.currentTarget.value } : f
-                              )
-                            }
-                            disabled={!!saving}
-                          />
-                        </s-box>
-                        <s-box {...customerFieldSize("phone")}>
-                          <s-text-field
-                            label={i18n.translate("phone_label")}
-                            value={customerForm.phone}
-                            onInput={(e) =>
-                              setCustomerForm((f) =>
-                                f ? { ...f, phone: e.currentTarget.value } : f
-                              )
-                            }
-                            disabled={!!saving}
-                          />
-                        </s-box>
-                        {!isTablet ? (
-                        <s-box {...customerFieldSize("company")}>
-                          <s-text-field
-                            label={i18n.translate("company")}
-                            value={customerForm.company}
-                            onInput={(e) =>
-                              setCustomerForm((f) =>
-                                f
-                                  ? { ...f, company: e.currentTarget.value }
-                                  : f
-                              )
-                            }
-                            disabled={!!saving}
-                          />
-                        </s-box>
-                        ) : null}
-                      </s-stack>
-                      <s-stack
-                        direction="inline"
-                        gap="small-300"
-                        alignItems="end"
-                        inlineSize="100%"
-                      >
-                        <s-box {...customerFieldSize("address1")}>
-                          <s-text-field
-                            label={i18n.translate("address_line_1")}
-                            value={customerForm.address1}
-                            onInput={(e) =>
-                              setCustomerForm((f) =>
-                                f
-                                  ? { ...f, address1: e.currentTarget.value }
-                                  : f
-                              )
-                            }
-                            disabled={!!saving}
-                          />
-                        </s-box>
-                        <s-box {...customerFieldSize("city")}>
-                          <s-text-field
-                            label={i18n.translate("city")}
-                            value={customerForm.city}
-                            onInput={(e) =>
-                              setCustomerForm((f) =>
-                                f ? { ...f, city: e.currentTarget.value } : f
-                              )
-                            }
-                            disabled={!!saving}
-                          />
-                        </s-box>
-                        <s-box {...customerFieldSize("state")}>
-                          <s-text-field
-                            label={i18n.translate("state")}
-                            value={customerForm.provinceCode}
-                            onInput={(e) =>
-                              setCustomerForm((f) =>
-                                f
-                                  ? {
-                                      ...f,
-                                      provinceCode: e.currentTarget.value
-                                        .toUpperCase()
-                                        .replace(/[^A-Za-z]/g, "")
-                                        .slice(0, 2),
-                                    }
-                                  : f
-                              )
-                            }
-                            disabled={!!saving}
-                          />
-                        </s-box>
-                        <s-box {...customerFieldSize("zip")}>
-                          <s-text-field
-                            label={
-                              isTablet === true
-                                ? "Zip Code"
-                                : i18n.translate("zip_postal")
-                            }
-                            value={customerForm.zip}
-                            onInput={(e) =>
-                              setCustomerForm((f) =>
-                                f ? { ...f, zip: e.currentTarget.value } : f
-                              )
-                            }
-                            disabled={!!saving}
-                          />
-                        </s-box>
-                        {!isTablet ? (
-                        <s-box {...customerFieldSize("country")}>
-                          <s-text-field
-                            label={i18n.translate("country")}
-                            value={customerForm.countryCode}
-                            onInput={(e) => {
-                              const v = e.currentTarget.value
-                                .toUpperCase()
-                                .replace(/[^A-Z]/g, "")
-                                .slice(0, 2);
-                              setCustomerForm((f) =>
-                                f ? { ...f, countryCode: v || "US" } : f
-                              );
-                            }}
-                            disabled={!!saving}
-                          />
-                        </s-box>
-                        ) : null}
-                      </s-stack>
-                    </s-stack>
-                    </span>
-                  </s-box>
-                ) : (
-                  <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
-                    <s-text color="subdued">{i18n.translate("no_customer_on_order")}</s-text>
-                  </s-box>
-                )}
+              <s-stack gap="base" blockSize="auto">
+                {order.customer?.id && customerForm
+                  ? isTablet === true
+                    ? tabletCustomerForm
+                    : phoneCustomerForm
+                  : noCustomerBox}
 
                 {!isTablet ? (
-                <s-stack gap="10px" blockSize="auto">
-                  <s-divider />
-                <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
-                  <s-stack gap="small">
-                    <s-text type="strong">{i18n.translate("contact_status")}</s-text>
-                    <s-button
-                      variant="secondary"
-                      commandFor="contact-status-modal"
-                      command="--show"
-                      disabled={!!saving}
+                  <s-stack gap="base" blockSize="auto">
+                    <s-box
+                      padding="base"
+                      inlineSize="100%"
+                      background="subdued"
+                      border="base"
+                      borderRadius="base"
                     >
-                      {CONTACT_STATUS_OPTIONS.includes(contactStatus) ? contactStatus : i18n.translate("select")}
-                    </s-button>
-                    <s-modal id="contact-status-modal" heading={i18n.translate("contact_status")}>
                       <s-stack gap="small">
-                        {CONTACT_STATUS_OPTIONS.map((opt) => (
-                          <s-button
-                            key={opt}
-                            variant="secondary"
-                            commandFor="contact-status-modal"
-                            command="--hide"
-                            onClick={() => handleUpdateContactStatus(order.id, opt)}
-                          >
-                            {opt}
-                          </s-button>
-                        ))}
+                        <s-text type="strong">
+                          {i18n.translate("contact_status")}
+                        </s-text>
+                        <s-button
+                          variant="secondary"
+                          commandFor="contact-status-modal"
+                          command="--show"
+                          disabled={!!saving}
+                        >
+                          {CONTACT_STATUS_OPTIONS.includes(contactStatus)
+                            ? contactStatus
+                            : i18n.translate("select")}
+                        </s-button>
+                        <s-modal
+                          id="contact-status-modal"
+                          heading={i18n.translate("contact_status")}
+                        >
+                          <s-stack gap="small">
+                            {CONTACT_STATUS_OPTIONS.map((opt) => (
+                              <s-button
+                                key={opt}
+                                variant="secondary"
+                                commandFor="contact-status-modal"
+                                command="--hide"
+                                onClick={() =>
+                                  handleUpdateContactStatus(order.id, opt)
+                                }
+                              >
+                                {opt}
+                              </s-button>
+                            ))}
+                          </s-stack>
+                        </s-modal>
                       </s-stack>
-                    </s-modal>
-                    <s-banner
-                      tone={getTone(contactStatus, "contact") === "subdued" || getTone(contactStatus, "contact") === "neutral" ? "auto" : getTone(contactStatus, "contact")}
-                      heading={CONTACT_STATUS_OPTIONS.includes(contactStatus) ? contactStatus : ""}
-                    />
-                  </s-stack>
-                </s-box>
-                <s-divider />
-                <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
-                  <s-stack gap="small">
-                    <s-text type="strong">{i18n.translate("overall_order_status")}</s-text>
-                    <s-button
-                      variant="secondary"
-                      commandFor="overall-order-status-modal"
-                      command="--show"
-                      disabled={!!saving}
+                    </s-box>
+                    <s-box
+                      padding="base"
+                      inlineSize="100%"
+                      background="subdued"
+                      border="base"
+                      borderRadius="base"
                     >
-                      {OVERALL_ORDER_STATUS_OPTIONS.includes(overallOrderStatus) ? overallOrderStatus : "Order Pending"}
-                    </s-button>
-                    <s-modal id="overall-order-status-modal" heading={i18n.translate("overall_order_status")}>
                       <s-stack gap="small">
-                        {OVERALL_ORDER_STATUS_OPTIONS.map((opt) => (
-                          <s-button
-                            key={opt}
-                            variant="secondary"
-                            commandFor="overall-order-status-modal"
-                            command="--hide"
-                            onClick={() => handleUpdateOverallOrderStatus(order.id, opt)}
-                          >
-                            {opt}
-                          </s-button>
-                        ))}
+                        <s-text type="strong">
+                          {i18n.translate("overall_order_status")}
+                        </s-text>
+                        <s-button
+                          variant="secondary"
+                          commandFor="overall-order-status-modal"
+                          command="--show"
+                          disabled={!!saving}
+                        >
+                          {OVERALL_ORDER_STATUS_OPTIONS.includes(
+                            overallOrderStatus
+                          )
+                            ? overallOrderStatus
+                            : "Order Pending"}
+                        </s-button>
+                        <s-modal
+                          id="overall-order-status-modal"
+                          heading={i18n.translate("overall_order_status")}
+                        >
+                          <s-stack gap="small">
+                            {OVERALL_ORDER_STATUS_OPTIONS.map((opt) => (
+                              <s-button
+                                key={opt}
+                                variant="secondary"
+                                commandFor="overall-order-status-modal"
+                                command="--hide"
+                                onClick={() =>
+                                  handleUpdateOverallOrderStatus(order.id, opt)
+                                }
+                              >
+                                {opt}
+                              </s-button>
+                            ))}
+                          </s-stack>
+                        </s-modal>
                       </s-stack>
-                    </s-modal>
-                    <s-banner
-                      tone={getTone(overallOrderStatus, "overall") === "subdued" || getTone(overallOrderStatus, "overall") === "neutral" ? "auto" : getTone(overallOrderStatus, "overall")}
-                      heading={OVERALL_ORDER_STATUS_OPTIONS.includes(overallOrderStatus) ? overallOrderStatus : "Order Pending"}
-                    />
-                  </s-stack>
-                </s-box>
-                <s-divider />
-                <s-box padding="base" inlineSize="100%" background="subdued" border="base" borderRadius="base">
-                  <s-stack gap="small">
-                    <s-text type="strong">{i18n.translate("payment_status")}</s-text>
-                    <s-banner
-                      tone={getTone(paymentStatus, "payment") === "subdued" || getTone(paymentStatus, "payment") === "neutral" ? "auto" : getTone(paymentStatus, "payment")}
-                      heading={paymentStatus}
-                    />
-                    {(() => {
-                      const details = getPaymentDetails(order);
-                      return (
-                        <>
-                          {details.subtotal && (
-                            <s-text color="subdued" type="small">
-                              {i18n.translate("subtotal")}: {details.subtotal}
-                            </s-text>
-                          )}
-                          {details.tax && (
-                            <s-text color="subdued" type="small">
-                              {i18n.translate("tax")}: {details.tax}
-                            </s-text>
-                          )}
-                          {details.total && (
-                            <s-text color="subdued" type="small">
-                              {i18n.translate("total")}: {details.total}
-                            </s-text>
-                          )}
-                          {details.outstanding && (
-                            <s-text color="subdued" type="small">
-                              {i18n.translate("balance")}: {details.outstanding}
-                            </s-text>
-                          )}
-                          {details.paid && (
-                            <s-text color="subdued" type="small">
-                              {i18n.translate("paid")}: {details.paid}
-                            </s-text>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </s-stack>
-                </s-box>
-                </s-stack>
-              ) : (
-                /* iPad: status cards in one row below customer */
-              <>
-                <s-divider />
-                <s-stack
-                  direction="inline"
-                  gap="small-500"
-                  blockSize="auto"
-                  inlineSize="100%"
-                  alignItems="stretch"
-                >
-                <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
-                  <s-stack gap="small">
-                    <s-text type="strong">{i18n.translate("contact_status")}</s-text>
-                    <s-button
-                      variant="secondary"
-                      commandFor="contact-status-modal"
-                      command="--show"
-                      disabled={!!saving}
+                    </s-box>
+                    <s-box
+                      padding="base"
+                      inlineSize="100%"
+                      background="subdued"
+                      border="base"
+                      borderRadius="base"
                     >
-                      {CONTACT_STATUS_OPTIONS.includes(contactStatus) ? contactStatus : i18n.translate("select")}
-                    </s-button>
-                    <s-modal id="contact-status-modal" heading={i18n.translate("contact_status")}>
                       <s-stack gap="small">
-                        {CONTACT_STATUS_OPTIONS.map((opt) => (
-                          <s-button
-                            key={opt}
-                            variant="secondary"
-                            commandFor="contact-status-modal"
-                            command="--hide"
-                            onClick={() => handleUpdateContactStatus(order.id, opt)}
-                          >
-                            {opt}
-                          </s-button>
-                        ))}
+                        <s-text type="strong">
+                          {i18n.translate("payment_status")}
+                        </s-text>
+                        <s-badge
+                          tone={
+                            getTone(paymentStatus, "payment") === "subdued" ||
+                            getTone(paymentStatus, "payment") === "neutral"
+                              ? "auto"
+                              : getTone(paymentStatus, "payment")
+                          }
+                        >
+                          {paymentStatus}
+                        </s-badge>
+                        {(() => {
+                          const details = getPaymentDetails(order);
+                          return (
+                            <>
+                              {details.subtotal && (
+                                <s-text color="subdued" type="small">
+                                  {i18n.translate("subtotal")}:{" "}
+                                  {details.subtotal}
+                                </s-text>
+                              )}
+                              {details.tax && (
+                                <s-text color="subdued" type="small">
+                                  {i18n.translate("tax")}: {details.tax}
+                                </s-text>
+                              )}
+                              {details.total && (
+                                <s-text color="subdued" type="small">
+                                  {i18n.translate("total")}: {details.total}
+                                </s-text>
+                              )}
+                              {details.outstanding && (
+                                <s-text color="subdued" type="small">
+                                  {i18n.translate("balance")}:{" "}
+                                  {details.outstanding}
+                                </s-text>
+                              )}
+                              {details.paid && (
+                                <s-text color="subdued" type="small">
+                                  {i18n.translate("paid")}: {details.paid}
+                                </s-text>
+                              )}
+                            </>
+                          );
+                        })()}
                       </s-stack>
-                    </s-modal>
-                    <s-banner
-                      tone={getTone(contactStatus, "contact") === "subdued" || getTone(contactStatus, "contact") === "neutral" ? "auto" : getTone(contactStatus, "contact")}
-                      heading={CONTACT_STATUS_OPTIONS.includes(contactStatus) ? contactStatus : ""}
-                    />
-                  </s-stack>
-                </s-box>
-                <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
-                  <s-stack gap="small">
-                    <s-text type="strong">{i18n.translate("overall_order_status")}</s-text>
-                    <s-button
-                      variant="secondary"
-                      commandFor="overall-order-status-modal"
-                      command="--show"
-                      disabled={!!saving}
-                    >
-                      {OVERALL_ORDER_STATUS_OPTIONS.includes(overallOrderStatus) ? overallOrderStatus : "Order Pending"}
-                    </s-button>
-                    <s-modal id="overall-order-status-modal" heading={i18n.translate("overall_order_status")}>
-                      <s-stack gap="small">
-                        {OVERALL_ORDER_STATUS_OPTIONS.map((opt) => (
-                          <s-button
-                            key={opt}
-                            variant="secondary"
-                            commandFor="overall-order-status-modal"
-                            command="--hide"
-                            onClick={() => handleUpdateOverallOrderStatus(order.id, opt)}
-                          >
-                            {opt}
-                          </s-button>
-                        ))}
-                      </s-stack>
-                    </s-modal>
-                    <s-banner
-                      tone={getTone(overallOrderStatus, "overall") === "subdued" || getTone(overallOrderStatus, "overall") === "neutral" ? "auto" : getTone(overallOrderStatus, "overall")}
-                      heading={OVERALL_ORDER_STATUS_OPTIONS.includes(overallOrderStatus) ? overallOrderStatus : "Order Pending"}
-                    />
-                  </s-stack>
-                </s-box>
-                <s-box padding="base" inlineSize="220px" background="subdued" border="base" borderRadius="base">
-                  <s-stack gap="small">
-                    <s-text type="strong">{i18n.translate("payment_status")}</s-text>
-                    <s-banner
-                      tone={getTone(paymentStatus, "payment") === "subdued" || getTone(paymentStatus, "payment") === "neutral" ? "auto" : getTone(paymentStatus, "payment")}
-                      heading={paymentStatus}
-                    />
-                    {(() => {
-                      const details = getPaymentDetails(order);
-                      return (
-                        <>
-                          {details.subtotal && (
-                            <s-text color="subdued" type="small">
-                              {i18n.translate("subtotal")}: {details.subtotal}
-                            </s-text>
-                          )}
-                          {details.tax && (
-                            <s-text color="subdued" type="small">
-                              {i18n.translate("tax")}: {details.tax}
-                            </s-text>
-                          )}
-                          {details.total && (
-                            <s-text color="subdued" type="small">
-                              {i18n.translate("total")}: {details.total}
-                            </s-text>
-                          )}
-                          {details.outstanding && (
-                            <s-text color="subdued" type="small">
-                              {i18n.translate("balance")}: {details.outstanding}
-                            </s-text>
-                          )}
-                          {details.paid && (
-                            <s-text color="subdued" type="small">
-                              {i18n.translate("paid")}: {details.paid}
-                            </s-text>
-                          )}
-                        </>
-                      );
-                    })()}
-                  </s-stack>
-                </s-box>
-                <s-box
-                  padding="base"
-                  inlineSize={TABLET_ORDER_NOTE_WIDTH}
-                  minInlineSize={TABLET_ORDER_NOTE_WIDTH}
-                  maxInlineSize={TABLET_ORDER_NOTE_WIDTH}
-                  background="subdued"
-                  border="base"
-                  borderRadius="base"
-                >
-                  <s-stack gap="small-500" inlineSize="100%">
-                    <s-text type="strong">{i18n.translate("note")}</s-text>
-                    <s-box inlineSize="100%">
-                      <s-text-area
-                        value={noteValue || ""}
-                        rows={tabletOrderNoteRows}
-                        onInput={(e) => setLocalNote(e.currentTarget.value)}
-                        onBlur={(e) =>
-                          handleUpdateNote(order.id, e.currentTarget.value)
-                        }
-                        disabled={!!saving}
-                      />
                     </s-box>
                   </s-stack>
-                </s-box>
-                </s-stack>
-              </>
-              )}
+                ) : (
+                  <>
+                    <s-divider />
+                    <s-stack
+                      direction="inline"
+                      gap="small-500"
+                      blockSize="auto"
+                      inlineSize="100%"
+                      alignItems="stretch"
+                    >
+                      <s-box
+                        padding="base"
+                        inlineSize="220px"
+                        background="subdued"
+                        border="base"
+                        borderRadius="base"
+                      >
+                        <s-stack gap="small">
+                          <s-text type="strong">
+                            {i18n.translate("contact_status")}
+                          </s-text>
+                          <s-button
+                            variant="secondary"
+                            commandFor="contact-status-modal"
+                            command="--show"
+                            disabled={!!saving}
+                          >
+                            {CONTACT_STATUS_OPTIONS.includes(contactStatus)
+                              ? contactStatus
+                              : i18n.translate("select")}
+                          </s-button>
+                          <s-modal
+                            id="contact-status-modal"
+                            heading={i18n.translate("contact_status")}
+                          >
+                            <s-stack gap="small">
+                              {CONTACT_STATUS_OPTIONS.map((opt) => (
+                                <s-button
+                                  key={opt}
+                                  variant="secondary"
+                                  commandFor="contact-status-modal"
+                                  command="--hide"
+                                  onClick={() =>
+                                    handleUpdateContactStatus(order.id, opt)
+                                  }
+                                >
+                                  {opt}
+                                </s-button>
+                              ))}
+                            </s-stack>
+                          </s-modal>
+                          <s-banner
+                            tone={
+                              getTone(contactStatus, "contact") === "subdued" ||
+                              getTone(contactStatus, "contact") === "neutral"
+                                ? "auto"
+                                : getTone(contactStatus, "contact")
+                            }
+                            heading={
+                              CONTACT_STATUS_OPTIONS.includes(contactStatus)
+                                ? contactStatus
+                                : ""
+                            }
+                          />
+                        </s-stack>
+                      </s-box>
+                      <s-box
+                        padding="base"
+                        inlineSize="220px"
+                        background="subdued"
+                        border="base"
+                        borderRadius="base"
+                      >
+                        <s-stack gap="small">
+                          <s-text type="strong">
+                            {i18n.translate("overall_order_status")}
+                          </s-text>
+                          <s-button
+                            variant="secondary"
+                            commandFor="overall-order-status-modal"
+                            command="--show"
+                            disabled={!!saving}
+                          >
+                            {OVERALL_ORDER_STATUS_OPTIONS.includes(
+                              overallOrderStatus
+                            )
+                              ? overallOrderStatus
+                              : "Order Pending"}
+                          </s-button>
+                          <s-modal
+                            id="overall-order-status-modal"
+                            heading={i18n.translate("overall_order_status")}
+                          >
+                            <s-stack gap="small">
+                              {OVERALL_ORDER_STATUS_OPTIONS.map((opt) => (
+                                <s-button
+                                  key={opt}
+                                  variant="secondary"
+                                  commandFor="overall-order-status-modal"
+                                  command="--hide"
+                                  onClick={() =>
+                                    handleUpdateOverallOrderStatus(
+                                      order.id,
+                                      opt
+                                    )
+                                  }
+                                >
+                                  {opt}
+                                </s-button>
+                              ))}
+                            </s-stack>
+                          </s-modal>
+                          <s-banner
+                            tone={
+                              getTone(overallOrderStatus, "overall") ===
+                                "subdued" ||
+                              getTone(overallOrderStatus, "overall") ===
+                                "neutral"
+                                ? "auto"
+                                : getTone(overallOrderStatus, "overall")
+                            }
+                            heading={
+                              OVERALL_ORDER_STATUS_OPTIONS.includes(
+                                overallOrderStatus
+                              )
+                                ? overallOrderStatus
+                                : "Order Pending"
+                            }
+                          />
+                        </s-stack>
+                      </s-box>
+                      <s-box
+                        padding="base"
+                        inlineSize="220px"
+                        background="subdued"
+                        border="base"
+                        borderRadius="base"
+                      >
+                        <s-stack gap="small">
+                          <s-text type="strong">
+                            {i18n.translate("payment_status")}
+                          </s-text>
+                          <s-banner
+                            tone={
+                              getTone(paymentStatus, "payment") === "subdued" ||
+                              getTone(paymentStatus, "payment") === "neutral"
+                                ? "auto"
+                                : getTone(paymentStatus, "payment")
+                            }
+                            heading={paymentStatus}
+                          />
+                          {(() => {
+                            const details = getPaymentDetails(order);
+                            return (
+                              <>
+                                {details.subtotal && (
+                                  <s-text color="subdued" type="small">
+                                    {i18n.translate("subtotal")}:{" "}
+                                    {details.subtotal}
+                                  </s-text>
+                                )}
+                                {details.tax && (
+                                  <s-text color="subdued" type="small">
+                                    {i18n.translate("tax")}: {details.tax}
+                                  </s-text>
+                                )}
+                                {details.total && (
+                                  <s-text color="subdued" type="small">
+                                    {i18n.translate("total")}: {details.total}
+                                  </s-text>
+                                )}
+                                {details.outstanding && (
+                                  <s-text color="subdued" type="small">
+                                    {i18n.translate("balance")}:{" "}
+                                    {details.outstanding}
+                                  </s-text>
+                                )}
+                                {details.paid && (
+                                  <s-text color="subdued" type="small">
+                                    {i18n.translate("paid")}: {details.paid}
+                                  </s-text>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </s-stack>
+                      </s-box>
+                      <s-box
+                        padding="base"
+                        inlineSize={TABLET_ORDER_NOTE_WIDTH}
+                        minInlineSize={TABLET_ORDER_NOTE_WIDTH}
+                        maxInlineSize={TABLET_ORDER_NOTE_WIDTH}
+                        background="subdued"
+                        border="base"
+                        borderRadius="base"
+                      >
+                        <s-stack gap="small-500" inlineSize="100%">
+                          <s-text type="strong">
+                            {i18n.translate("note")}
+                          </s-text>
+                          <s-box inlineSize="100%">
+                            <s-text-area
+                              value={noteValue || ""}
+                              rows={tabletOrderNoteRows}
+                              onInput={(e) =>
+                                setLocalNote(e.currentTarget.value)
+                              }
+                              onBlur={(e) =>
+                                handleUpdateNote(order.id, e.currentTarget.value)
+                              }
+                              disabled={!!saving}
+                            />
+                          </s-box>
+                        </s-stack>
+                      </s-box>
+                    </s-stack>
+                  </>
+                )}
               </s-stack>
 
               {isTablet !== true ? orderNoteSection : null}
@@ -2184,27 +2357,29 @@ function Extension() {
                     background="subdued"
                   >
                     <s-stack gap="small">
-                      <s-stack direction="inline" gap="small" inlineSize="100%" justifyContent="space-between" alignItems="center">
-                        <s-stack direction="inline" gap="small" alignItems="center">
-                          <s-heading>{item.title}</s-heading>
-                          {item.lineItemRefunded && (
-                            <s-badge tone="critical">Refunded</s-badge>
-                          )}
-                          {item.lineItemExchanged && (
-                            <s-stack direction="inline" gap="small-300" alignItems="center">
-                              <s-badge tone="warning">Exchanged</s-badge>
-                              {item.exchangedForProductTitle ? (
-                                <s-text type="strong">{item.exchangedForProductTitle}</s-text>
-                              ) : null}
-                            </s-stack>
-                          )}
-                        </s-stack>
-                        <s-stack direction="inline" gap="small">
-                          <s-heading>{i18n.translate("quantity")}: {item.quantity}</s-heading>
-                          {item.priceLabel && (
-                            <s-heading>{item.priceLabel}</s-heading>
-                          )}
-                        </s-stack>
+                      <s-stack gap="small-300" inlineSize="100%">
+                        <s-heading>{item.title}</s-heading>
+                        {(item.lineItemRefunded || item.lineItemExchanged) && (
+                          <s-stack direction="inline" gap="small" alignItems="center">
+                            {item.lineItemRefunded && (
+                              <s-badge tone="critical">Refunded</s-badge>
+                            )}
+                            {item.lineItemExchanged && (
+                              <>
+                                <s-badge tone="warning">Exchanged</s-badge>
+                                {item.exchangedForProductTitle ? (
+                                  <s-text type="strong">
+                                    {item.exchangedForProductTitle}
+                                  </s-text>
+                                ) : null}
+                              </>
+                            )}
+                          </s-stack>
+                        )}
+                        <s-text color="subdued">
+                          {i18n.translate("quantity")}: {item.quantity}
+                          {item.priceLabel ? `  ·  ${item.priceLabel}` : ""}
+                        </s-text>
                       </s-stack>
                       {item.variantTitle && (
                         <s-text color="subdued">{item.variantTitle}</s-text>
@@ -2244,54 +2419,62 @@ function Extension() {
                             )}
                           </s-stack>
                         )}
-                      <s-stack gap="small">
-                        <s-box inlineSize="100%">
-                          <s-stack gap="small">
-                            <s-button
-                              variant="secondary"
-                              tone={getOrderButtonTone(item.orderStatus)}
-                              commandFor={`order-status-modal-${item.id}`}
-                              command="--show"
-                              disabled={!!saving}
-                            >
-                              {ORDER_STATUS_OPTIONS.includes(item.orderStatus) ? (isTablet ? `${item.orderStatus}${" ".repeat(30)}↕️` : item.orderStatus) : "Not Ordered"}
-                            </s-button>
-                            <s-modal id={`order-status-modal-${item.id}`}>
-                              <s-stack gap="base">
-                                {ORDER_STATUS_OPTIONS.map((opt) => (
-                                  <s-button
-                                    key={opt}
-                                    variant="secondary"
-                                    commandFor={`order-status-modal-${item.id}`}
-                                    command="--hide"
-                                    onClick={() => handleUpdateOrderStatus(order.id, item.id, opt)}
-                                  >
-                                    {opt}
-                                  </s-button>
-                                ))}
-                              </s-stack>
-                            </s-modal>
-                            <s-stack gap="small" inlineSize="100%">
-                              <s-banner
-                                tone={getTone(item.orderStatus, "order") === "subdued" ? "auto" : getTone(item.orderStatus, "order")}
-                                heading={ORDER_STATUS_OPTIONS.includes(item.orderStatus) ? item.orderStatus : "Not Ordered"}
-                              />
-                              {isTablet === true ? null : (
-                                <s-stack
-                                  direction="inline"
-                                  inlineSize="100%"
-                                  justifyContent="end"
+                      <s-stack gap="small" inlineSize="100%">
+                        <s-stack gap="small" inlineSize="100%">
+                          <s-text type="strong">
+                            {i18n.translate("item_order_status")}
+                          </s-text>
+                          <s-button
+                            variant="secondary"
+                            tone={getOrderButtonTone(item.orderStatus)}
+                            commandFor={`order-status-modal-${item.id}`}
+                            command="--show"
+                            disabled={!!saving}
+                          >
+                            {ORDER_STATUS_OPTIONS.includes(item.orderStatus)
+                              ? item.orderStatus
+                              : "Not Ordered"}
+                          </s-button>
+                          <s-modal id={`order-status-modal-${item.id}`}>
+                            <s-stack gap="base">
+                              {ORDER_STATUS_OPTIONS.map((opt) => (
+                                <s-button
+                                  key={opt}
+                                  variant="secondary"
+                                  commandFor={`order-status-modal-${item.id}`}
+                                  command="--hide"
+                                  onClick={() =>
+                                    handleUpdateOrderStatus(
+                                      order.id,
+                                      item.id,
+                                      opt
+                                    )
+                                  }
                                 >
-                                  <s-text type="strong">
-                                    {i18n.translate(
-                                      "cart_line_item_details_heading"
-                                    )}
-                                  </s-text>
-                                </s-stack>
-                              )}
+                                  {opt}
+                                </s-button>
+                              ))}
                             </s-stack>
-                          </s-stack>
-                        </s-box>
+                          </s-modal>
+                          {isTablet === true ? (
+                            <s-banner
+                              tone={
+                                getTone(item.orderStatus, "order") === "subdued"
+                                  ? "auto"
+                                  : getTone(item.orderStatus, "order")
+                              }
+                              heading={
+                                ORDER_STATUS_OPTIONS.includes(item.orderStatus)
+                                  ? item.orderStatus
+                                  : "Not Ordered"
+                              }
+                            />
+                          ) : (
+                            <s-text type="strong">
+                              {i18n.translate("cart_line_item_details_heading")}
+                            </s-text>
+                          )}
+                        </s-stack>
                       </s-stack>
                       {isTablet ? (
                         <>
@@ -2352,12 +2535,16 @@ function Extension() {
                             ))}
                         </>
                       ) : (
-                        item.customAttributes.map((attr) => (
-                          <s-stack key={attr.key} gap="small-300">
-                            <s-text type="bodySmall">{attr.key}</s-text>
-                            {attr.key === "Date Ordered" ? (
-                              <s-stack direction="inline" gap="small" alignItems="end">
-                                <s-box inlineSize="100%">
+                        <s-stack gap="base" inlineSize="100%">
+                          {item.customAttributes.map((attr) => (
+                            <s-stack key={attr.key} gap="small-300" inlineSize="100%">
+                              <s-text type="strong">
+                                {attr.key === "Date Ordered"
+                                  ? "Item Order Date"
+                                  : attr.key}
+                              </s-text>
+                              {attr.key === "Date Ordered" ? (
+                                <s-stack gap="small">
                                   <s-date-field
                                     value={attr.value || ""}
                                     onBlur={(e) => {
@@ -2385,43 +2572,50 @@ function Extension() {
                                     }}
                                     disabled={!!saving}
                                   />
-                                </s-box>
-                                <s-button
-                                  variant="secondary"
-                                  disabled={
-                                    !!saving ||
-                                    !(attr.value && String(attr.value).trim())
-                                  }
-                                  onClick={() => {
-                                    applyLineItemAttributeValue(
-                                      item,
-                                      attr.key,
-                                      "",
+                                  <s-button
+                                    variant="secondary"
+                                    disabled={
+                                      !!saving ||
+                                      !(attr.value && String(attr.value).trim())
+                                    }
+                                    onClick={() => {
+                                      applyLineItemAttributeValue(
+                                        item,
+                                        attr.key,
+                                        "",
+                                        order.id,
+                                        idx,
+                                        handleUpdateAttributes
+                                      );
+                                    }}
+                                  >
+                                    {i18n.translate("clear_date")}
+                                  </s-button>
+                                </s-stack>
+                              ) : (
+                                <s-text-field
+                                  value={attr.value}
+                                  onBlur={(e) => {
+                                    const newVal = e.currentTarget.value;
+                                    const newAttrs = item.customAttributes.map(
+                                      (a) => ({
+                                        key: a.key,
+                                        value:
+                                          a.key === attr.key ? newVal : a.value,
+                                      })
+                                    );
+                                    handleUpdateAttributes(
                                       order.id,
                                       idx,
-                                      handleUpdateAttributes
+                                      newAttrs
                                     );
                                   }}
-                                >
-                                  {i18n.translate("clear_date")}
-                                </s-button>
-                              </s-stack>
-                            ) : (
-                              <s-text-field
-                                value={attr.value}
-                                onBlur={(e) => {
-                                  const newVal = e.currentTarget.value;
-                                  const newAttrs = item.customAttributes.map((a) => ({
-                                    key: a.key,
-                                    value: a.key === attr.key ? newVal : a.value,
-                                  }));
-                                  handleUpdateAttributes(order.id, idx, newAttrs);
-                                }}
-                                disabled={!!saving}
-                              />
-                            )}
-                          </s-stack>
-                        ))
+                                  disabled={!!saving}
+                                />
+                              )}
+                            </s-stack>
+                          ))}
+                        </s-stack>
                       )}
                     </s-stack>
                   </s-box>
