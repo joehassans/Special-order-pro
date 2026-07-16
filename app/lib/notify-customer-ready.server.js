@@ -4,7 +4,11 @@ import {
   getPaymentStatusFromOrder,
   buildPaymentDetailsRows,
 } from "./order-summary-print-html.server";
-import { STORE_CONFIG } from "./print-order-summary.server";
+import {
+  LEGACY_STORE_PROFILE,
+  getStoreProfile,
+  resolveLogoUrl,
+} from "./store-profile.server";
 import { buildReadyPickupEmailHtml } from "./ready-pickup-email-html.server";
 import { sendTransactionalEmail } from "./send-transactional-email.server";
 import { dbAppendNotification } from "./special-order-db-write.server";
@@ -163,7 +167,9 @@ export async function sendPickupReadyNotification({
   }
 
   const origin = new URL(requestOrigin || "https://localhost").origin;
-  const logoAbsoluteUrl = `${origin}${STORE_CONFIG.logoUrl}`;
+  const profile = shop ? await getStoreProfile(shop) : LEGACY_STORE_PROFILE;
+  const logoAbsoluteUrl = resolveLogoUrl(profile, origin);
+  const fromName = `${profile.storeName || "Special Orders"} Special Orders`;
 
   const isDraft = id.includes("DraftOrder");
 
@@ -248,12 +254,13 @@ export async function sendPickupReadyNotification({
       balanceDueFormatted: total ? formatMoney(total) : "—",
       paymentDetailsRows: [],
       logoAbsoluteUrl,
+      profile,
     });
 
     const subject = `Your special order is ready — ${orderDisplayName}`;
 
     try {
-      await sendTransactionalEmail({ to: email, subject, html });
+      await sendTransactionalEmail({ to: email, subject, html, fromName });
     } catch (e) {
       const err = new Error(
         e instanceof Error ? e.message : "Failed to send email."
@@ -420,12 +427,13 @@ export async function sendPickupReadyNotification({
     balanceDueFormatted: outstanding ? formatMoney(outstanding) : "—",
     paymentDetailsRows,
     logoAbsoluteUrl,
+    profile,
   });
 
   const subject = `Your special order is ready — ${orderDisplayName}`;
 
   try {
-    await sendTransactionalEmail({ to: email, subject, html });
+    await sendTransactionalEmail({ to: email, subject, html, fromName });
   } catch (e) {
     const err = new Error(
       e instanceof Error ? e.message : "Failed to send email."

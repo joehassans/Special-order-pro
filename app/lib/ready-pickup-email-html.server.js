@@ -1,4 +1,5 @@
-import { STORE_CONFIG, escapeHtml } from "./print-order-summary.server";
+import { escapeHtml } from "./print-order-summary.server";
+import { LEGACY_STORE_PROFILE } from "./store-profile.server";
 
 /**
  * Table-based HTML email (inline styles) for "ready for pickup" notification.
@@ -16,7 +17,9 @@ export function buildReadyPickupEmailHtml({
   balanceDueFormatted,
   paymentDetailsRows = [],
   logoAbsoluteUrl,
+  profile = LEGACY_STORE_PROFILE,
 }) {
+  const storeName = String(profile.storeName || "our store");
   const greetingName = escapeHtml(customerFirstName || "there");
   const orderNum = escapeHtml(orderDisplayName);
   const noteBlock =
@@ -78,11 +81,15 @@ export function buildReadyPickupEmailHtml({
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="vertical-align:middle;">
-                    <img src="${escapeHtml(logoAbsoluteUrl)}" alt="Joe Hassan's" width="180" style="display:block;max-width:180px;height:auto;border:0;" />
+                    ${
+                      logoAbsoluteUrl
+                        ? `<img src="${escapeHtml(logoAbsoluteUrl)}" alt="${escapeHtml(storeName)}" width="180" style="display:block;max-width:180px;height:auto;border:0;" />`
+                        : `<span style="font-family:Arial,Helvetica,sans-serif;font-size:20px;font-weight:bold;color:#1a1a1a;">${escapeHtml(storeName)}</span>`
+                    }
                   </td>
                   <td style="text-align:right;vertical-align:middle;font-family:Arial,Helvetica,sans-serif;font-size:12px;color:#555;line-height:1.5;">
-                    ${escapeHtml(STORE_CONFIG.address)}<br/>
-                    ${escapeHtml(STORE_CONFIG.hours)}
+                    ${profile.address ? `${escapeHtml(profile.address)}<br/>` : ""}
+                    ${profile.hours ? escapeHtml(profile.hours) : ""}
                   </td>
                 </tr>
               </table>
@@ -92,7 +99,7 @@ export function buildReadyPickupEmailHtml({
             <td style="padding:24px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.5;color:#222;">
               <p style="margin:0 0 12px 0;">Hi ${greetingName},</p>
               <p style="margin:0 0 16px 0;font-size:16px;font-weight:bold;color:#1a1a1a;">
-                Your special order is ready for pickup at Joe Hassan's Stockton!
+                Your special order is ready for pickup at ${escapeHtml(storeName)}!
               </p>
               <p style="margin:0 0 8px 0;">Order <strong>#${orderNum}</strong></p>
               ${noteBlock}
@@ -149,8 +156,8 @@ export function buildReadyPickupEmailHtml({
           </tr>
           <tr>
             <td style="padding:16px 24px 24px 24px;border-top:1px solid #eee;font-family:Arial,Helvetica,sans-serif;font-size:14px;color:#333;text-align:center;">
-              Questions? Call us at <strong>${escapeHtml(STORE_CONFIG.phone)}</strong><br/>
-              <span style="font-size:12px;color:#666;">${escapeHtml(STORE_CONFIG.website)}</span>
+              ${profile.phone ? `Questions? Call us at <strong>${escapeHtml(profile.phone)}</strong><br/>` : ""}
+              ${profile.website ? `<span style="font-size:12px;color:#666;">${escapeHtml(profile.website)}</span>` : ""}
             </td>
           </tr>
         </table>

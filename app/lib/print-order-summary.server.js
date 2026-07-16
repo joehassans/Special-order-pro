@@ -7,15 +7,6 @@ import { normalizeSpecialOrderAttributeValue } from "./special-order-line-item-a
  * 10+ items = 9 per page, last page has remaining items + bottom below.
  */
 
-export const STORE_CONFIG = {
-  logoUrl: "/store-logo.png",
-  address: "343 Lincoln Center, Stockton, CA 95207",
-  hours: "Monday - Saturday: 10am-7pm | Sunday: 10am-5pm",
-  phone: "(209) 323-4588",
-  website: "joehassans.com",
-  instagram: "@joehassans",
-};
-
 export const MAX_ITEMS_PER_PAGE = 9;
 
 const ALWAYS_PRESENT_ATTRIBUTES = [
@@ -149,8 +140,10 @@ export function escapeHtml(str) {
  * @param {string} data.amountPaidFormatted
  * @param {string} data.balanceDueFormatted
  * @param {Array} [data.paymentDetailsRows] - [{ label, amountFormatted }] for Card, Cash, Voucher breakdown
- * @param {string} data.logoUrl
+ * @param {string} data.logoUrl - empty string hides the logo
+ * @param {string} data.storeName - shown when there is no logo
  * @param {string} data.shopAddressStr
+ * @param {string} data.shopHoursStr
  * @param {string} data.metaContact
  */
 export function buildOrderSummaryHtml(data) {
@@ -171,7 +164,9 @@ export function buildOrderSummaryHtml(data) {
     balanceDueFormatted,
     paymentDetailsRows = [],
     logoUrl,
+    storeName = "",
     shopAddressStr,
+    shopHoursStr = "",
     metaContact,
   } = data;
 
@@ -283,11 +278,15 @@ export function buildOrderSummaryHtml(data) {
         <div class="header-divider"></div>
         <div class="business-row">
           <div class="business-left">
-            <img src="${escapeHtml(logoUrl)}" alt="Store logo" class="store-logo" />
+            ${
+              logoUrl
+                ? `<img src="${escapeHtml(logoUrl)}" alt="Store logo" class="store-logo" />`
+                : `<div class="store-name-text">${escapeHtml(storeName)}</div>`
+            }
           </div>
           <div class="business-right">
-            <div class="business-address">${escapeHtml(shopAddressStr)}</div>
-            <div class="business-hours">${escapeHtml(STORE_CONFIG.hours)}</div>
+            ${shopAddressStr ? `<div class="business-address">${escapeHtml(shopAddressStr)}</div>` : ""}
+            ${shopHoursStr ? `<div class="business-hours">${escapeHtml(shopHoursStr)}</div>` : ""}
           </div>
         </div>
         <div class="meta-row">
@@ -380,6 +379,11 @@ export function buildOrderSummaryHtml(data) {
       display: block;
       -webkit-print-color-adjust: exact;
       print-color-adjust: exact;
+    }
+    .store-name-text {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
     }
     .business-right {
       text-align: right;

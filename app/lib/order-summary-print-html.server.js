@@ -1,9 +1,13 @@
 import {
-  STORE_CONFIG,
   getAttributesForDisplay,
   escapeHtml,
   buildOrderSummaryHtml,
 } from "./print-order-summary.server";
+import {
+  LEGACY_STORE_PROFILE,
+  resolveLogoUrl,
+  buildContactLine,
+} from "./store-profile.server";
 
 export function getPaymentStatusFromOrder(order) {
   const status = order.displayFinancialStatus;
@@ -104,7 +108,12 @@ export function normalizePrintOrderId(rawId) {
 }
 
 /** Builds the same HTML document as GET /print?id=... */
-export async function buildOrderSummaryPrintHtml({ admin, requestUrl, id: rawId }) {
+export async function buildOrderSummaryPrintHtml({
+  admin,
+  requestUrl,
+  id: rawId,
+  profile = LEGACY_STORE_PROFILE,
+}) {
   const id = normalizePrintOrderId(rawId);
   if (!id) {
     const err = new Error("Missing id parameter");
@@ -113,7 +122,7 @@ export async function buildOrderSummaryPrintHtml({ admin, requestUrl, id: rawId 
   }
 
   const origin = new URL(requestUrl).origin;
-  const logoUrl = `${origin}${STORE_CONFIG.logoUrl}`;
+  const logoUrl = resolveLogoUrl(profile, origin);
   const formatMoney = (money) => {
     if (!money) return "—";
     const amt = parseFloat(money.amount).toFixed(2);
@@ -201,8 +210,10 @@ export async function buildOrderSummaryPrintHtml({ admin, requestUrl, id: rawId 
       balanceDueFormatted: total ? formatMoney(total) : "—",
       paymentDetailsRows: [],
       logoUrl,
-      shopAddressStr: STORE_CONFIG.address,
-      metaContact: [STORE_CONFIG.phone, STORE_CONFIG.website, `Instagram: ${STORE_CONFIG.instagram}`].filter(Boolean).join(" | "),
+      storeName: profile.storeName || "",
+      shopAddressStr: profile.address || "",
+      shopHoursStr: profile.hours || "",
+      metaContact: buildContactLine(profile),
     };
 
     return buildOrderSummaryHtml(data);
@@ -317,8 +328,10 @@ export async function buildOrderSummaryPrintHtml({ admin, requestUrl, id: rawId 
     balanceDueFormatted: outstanding ? formatMoney(outstanding) : "—",
     paymentDetailsRows: buildPaymentDetailsRows(order.transactions, formatMoney),
     logoUrl,
-    shopAddressStr: STORE_CONFIG.address,
-    metaContact: [STORE_CONFIG.phone, STORE_CONFIG.website, `Instagram: ${STORE_CONFIG.instagram}`].filter(Boolean).join(" | "),
+    storeName: profile.storeName || "",
+    shopAddressStr: profile.address || "",
+    shopHoursStr: profile.hours || "",
+    metaContact: buildContactLine(profile),
   };
 
   return buildOrderSummaryHtml(data);

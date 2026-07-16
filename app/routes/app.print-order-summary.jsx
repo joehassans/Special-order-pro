@@ -1,12 +1,13 @@
 import { authenticate } from "../shopify.server";
 import { buildOrderSummaryPrintHtml } from "../lib/order-summary-print-html.server";
+import { getStoreProfile } from "../lib/store-profile.server";
 
 /**
  * JSON API for embedded admin: same HTML as /print, for in-app preview modal.
  * GET /app/print-order-summary?id=...
  */
 export async function loader({ request }) {
-  const { admin } = await authenticate.admin(request);
+  const { admin, session } = await authenticate.admin(request);
   const url = new URL(request.url);
   const id = url.searchParams.get("id")?.trim();
 
@@ -15,6 +16,7 @@ export async function loader({ request }) {
       admin,
       requestUrl: request.url,
       id,
+      profile: await getStoreProfile(session.shop),
     });
     return Response.json({ html });
   } catch (e) {

@@ -107,6 +107,25 @@ model SpecialOrderItem {
   @@index([shopifyLineItemId])
 }
 
+/// Per-shop store identity used on printed order summaries and customer
+/// emails (logo, address, hours, contact info). Shops without a row fall
+/// back to the legacy hard-coded config until they save one in Settings.
+model ShopProfile {
+  id        String @id @default(cuid())
+  shop      String @unique
+  storeName String?
+  address   String?
+  hours     String?
+  phone     String?
+  website   String?
+  instagram String?
+  // Absolute URL, or a path served by this app (e.g. "/store-logo.png").
+  logoUrl   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 /// Per-shop item detail fields shown in POS/admin editors (e.g. a bike
 /// shop uses "Frame Color", "Rim Size" instead of the apparel defaults).
 model ShopItemField {

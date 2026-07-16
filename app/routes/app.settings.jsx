@@ -14,48 +14,102 @@ import {
   saveItemFields,
   validateItemFieldLabels,
 } from "../lib/item-fields.server";
+import {
+  getStoreProfile,
+  saveStoreProfile,
+  validateStoreProfile,
+} from "../lib/store-profile.server";
 
 export const loader = async ({ request }) => {
   const { session } = await authenticate.admin(request);
-  const itemFields = await getItemFields(session.shop);
-  return { itemFields, defaults: DEFAULT_ITEM_FIELDS };
+  const [itemFields, profile] = await Promise.all([
+    getItemFields(session.shop),
+    getStoreProfile(session.shop),
+  ]);
+  return { itemFields, defaults: DEFAULT_ITEM_FIELDS, profile };
 };
 
 export const action = async ({ request }) => {
   const { session } = await authenticate.admin(request);
   const formData = await request.formData();
+  const section = String(formData.get("section") || "fields");
+  const url = new URL(request.url);
+
+  if (section === "profile") {
+    let profile;
+    try {
+      profile = JSON.parse(String(formData.get("profile") || "{}"));
+    } catch {
+      return { error: "Could not read the form. Reload and try again.", section };
+    }
+    const error = validateStoreProfile(profile);
+    if (error) return { error, section };
+    await saveStoreProfile(session.shop, profile);
+    return redirect(url.pathname + "?saved=profile");
+  }
 
   let labels;
   try {
     labels = JSON.parse(String(formData.get("fields") || "[]"));
   } catch {
-    return { error: "Could not read the field list. Reload and try again." };
+    return { error: "Could not read the field list. Reload and try again.", section };
   }
   labels = (Array.isArray(labels) ? labels : []).map((l) => String(l).trim());
 
   const error = validateItemFieldLabels(labels);
-  if (error) return { error };
+  if (error) return { error, section };
 
   await saveItemFields(session.shop, labels);
-
-  const url = new URL(request.url);
-  return redirect(url.pathname + "?saved=1");
+  return redirect(url.pathname + "?saved=fields");
 };
 
+const PROFILE_FIELDS = [
+  { key: "storeName", label: "Store name", placeholder: "e.g. Joe Hassan's" },
+  { key: "address", label: "Address", placeholder: "e.g. 343 Lincoln Center, Stockton, CA 95207" },
+  { key: "hours", label: "Store hours", placeholder: "e.g. Mon - Sat: 10am-7pm | Sun: 10am-5pm" },
+  { key: "phone", label: "Phone", placeholder: "e.g. (209) 555-0100" },
+  { key: "website", label: "Website", placeholder: "e.g. mystore.com" },
+  { key: "instagram", label: "Instagram", placeholder: "e.g. @mystore" },
+  { key: "logoUrl", label: "Logo image URL", placeholder: "https://... (leave blank to print the store name instead)" },
+];
+
 export default function Settings() {
-  const { itemFields, defaults } = useLoaderData();
+  const { itemFields, defaults, profile } = useLoaderData();
   const actionData = useActionData();
   const submit = useSubmit();
 
+  const savedParam =
+    typeof window !== "undefined"
+      ? new URLSearchParams(window.location.search).get("saved")
+      : null;
+
   const [fields, setFields] = useState(itemFields);
-  const [saved, setSaved] = useState(
-    typeof window !== "undefined" &&
-      new URLSearchParams(window.location.search).get("saved") === "1"
-  );
+  const [saved, setSaved] = useState(savedParam === "fields" || savedParam === "1");
+  const [profileForm, setProfileForm] = useState(profile);
+  const [profileSaved, setProfileSaved] = useState(savedParam === "profile");
 
   useEffect(() => {
     setFields(itemFields);
   }, [itemFields]);
+
+  useEffect(() => {
+    setProfileForm(profile);
+  }, [profile]);
+
+  const setProfileValue = (key, value) => {
+    setProfileSaved(false);
+    setProfileForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleSaveProfile = () => {
+    const formData = new FormData();
+    formData.set("section", "profile");
+    formData.set("profile", JSON.stringify(profileForm));
+    submit(formData, { method: "post" });
+  };
+
+  const fieldsError = actionData?.error && actionData.section !== "profile";
+  const profileError = actionData?.error && actionData.section === "profile";
 
   const setFieldAt = (index, value) => {
     setSaved(false);
@@ -82,12 +136,55 @@ export default function Settings() {
 
   const handleSave = () => {
     const formData = new FormData();
+    formData.set("section", "fields");
     formData.set("fields", JSON.stringify(fields));
     submit(formData, { method: "post" });
   };
 
   return (
     <s-page heading="Settings" inlineSize="base">
+      <s-section heading="Store information">
+        <s-paragraph>
+          This appears on printed order summaries and in the emails customers
+          receive when their order is ready for pickup.
+        </s-paragraph>
+
+        {!profile.isSaved && (
+          <s-banner tone="warning" heading="Review your store details">
+            These are starter values — check them and save so your printouts
+            and customer emails show your own store information.
+          </s-banner>
+        )}
+        {profileError && (
+          <s-banner tone="critical" heading="Couldn't save">
+            {actionData.error}
+          </s-banner>
+        )}
+        {profileSaved && !profileError && (
+          <s-banner tone="success" heading="Saved">
+            Store information updated. All printouts and customer emails use
+            it from now on.
+          </s-banner>
+        )}
+
+        <s-stack direction="block" gap="base">
+          {PROFILE_FIELDS.map(({ key, label, placeholder }) => (
+            <s-text-field
+              key={key}
+              label={label}
+              value={profileForm[key] || ""}
+              placeholder={placeholder}
+              onInput={(e) => setProfileValue(key, e.target?.value ?? "")}
+            />
+          ))}
+          <s-box>
+            <s-button variant="primary" onClick={handleSaveProfile}>
+              Save store information
+            </s-button>
+          </s-box>
+        </s-stack>
+      </s-section>
+
       <s-section heading="Item detail fields">
         <s-paragraph>
           These fields appear for every special-order item — at the register
@@ -96,12 +193,12 @@ export default function Settings() {
           bike shop might use Frame Color and Rim Size).
         </s-paragraph>
 
-        {actionData?.error && (
+        {fieldsError && (
           <s-banner tone="critical" heading="Couldn't save">
             {actionData.error}
           </s-banner>
         )}
-        {saved && !actionData?.error && (
+        {saved && !fieldsError && (
           <s-banner tone="success" heading="Saved">
             Item fields updated. New POS special orders will use them right
             away; items created earlier keep the fields they were saved with.
@@ -176,7 +273,7 @@ export default function Settings() {
 
       <s-box padding="base">
         <s-button variant="primary" onClick={handleSave}>
-          Save
+          Save item fields
         </s-button>
       </s-box>
     </s-page>
