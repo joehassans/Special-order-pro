@@ -254,11 +254,11 @@ function CartLineItemAction() {
                       </s-box>
                     ))}
                   </s-stack>
-                  {/* Workflow fields: Item Order Date, Order Confirmation */}
+                  {/* Workflow fields: matching title-above-field so both columns align */}
                   <s-stack
                     direction="inline"
                     gap="small"
-                    alignItems="stretch"
+                    alignItems="start"
                     inlineSize="100%"
                   >
                     <s-box
@@ -297,15 +297,17 @@ function CartLineItemAction() {
                       minInlineSize={isTablet === true ? "31%" : "45%"}
                       inlineSize="auto"
                     >
-                      <s-text-field
-                        label={i18n.translate(
-                          "cart_line_item_order_confirmation"
-                        )}
-                        value={orderConfirmationNumber}
-                        onInput={(e) =>
-                          setOrderConfirmationNumber(e.currentTarget.value)
-                        }
-                      />
+                      <s-stack gap="small-300">
+                        <s-text type="strong">
+                          {i18n.translate("cart_line_item_order_confirmation")}
+                        </s-text>
+                        <s-text-field
+                          value={orderConfirmationNumber}
+                          onInput={(e) =>
+                            setOrderConfirmationNumber(e.currentTarget.value)
+                          }
+                        />
+                      </s-stack>
                     </s-box>
                   </s-stack>
                 </s-stack>
