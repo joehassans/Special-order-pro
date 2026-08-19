@@ -48,8 +48,6 @@ function getCartCustomerId() {
 function CartLineItemAction() {
   const { i18n } = shopify;
 
-  const [specialOrder, setSpecialOrder] = useState("Yes");
-
   // Customer attached to the cart (or chosen/created in this modal).
   // A special order can't be saved without one — that's the whole point:
   // no more special orders with nobody to call.
@@ -137,11 +135,6 @@ function CartLineItemAction() {
     try {
       const lineItem = shopify.cartLineItem;
       const k = LINE_ITEM_PROPERTY_KEYS;
-
-      const so = getProperty(lineItem, k.SPECIAL_ORDER);
-      if (so === "Yes" || so === "No") {
-        setSpecialOrder(so);
-      }
 
       const status = getProperty(lineItem, k.INITIAL_STATUS);
       if (ORDER_STATUS_OPTIONS_FOR_LINE_ITEM.includes(status)) {
@@ -276,7 +269,7 @@ function CartLineItemAction() {
       setCustomerMatches(null);
 
       // A special order must have a customer before it can be saved.
-      if (specialOrder === "Yes" && !cartCustomer) {
+      if (!cartCustomer) {
         const first = custFirstName.trim();
         const last = custLastName.trim();
         const email = custEmail.trim();
@@ -343,8 +336,9 @@ function CartLineItemAction() {
 
       const k = LINE_ITEM_PROPERTY_KEYS;
       /** @type {Record<string, string>} */
+      // Filling out this modal always marks the line as a special order.
       const properties = {
-        [k.SPECIAL_ORDER]: specialOrder,
+        [k.SPECIAL_ORDER]: "Yes",
         [k.INITIAL_STATUS]: orderStatus,
         [k.DATE_ORDERED]: normalizeSpecialOrderAttributeValue(
           k.DATE_ORDERED,
@@ -413,9 +407,6 @@ function CartLineItemAction() {
                   </s-stack>
                 ) : (
                   <s-stack direction="vertical" gap="base">
-                    <s-text tone="subdued">
-                      {i18n.translate("cart_line_item_customer_required_note")}
-                    </s-text>
                     <s-stack
                       direction="inline"
                       gap="small"
@@ -506,29 +497,6 @@ function CartLineItemAction() {
                     )}
                   </s-stack>
                 )}
-              </s-box>
-            </s-section>
-
-            <s-section>
-              <s-heading>{i18n.translate("cart_line_item_special_order_heading")}</s-heading>
-              <s-box paddingBlockStart="small">
-                <s-stack direction="inline" gap="base" alignItems="center">
-                  <s-switch
-                    checked={specialOrder === "Yes"}
-                    onChange={(event) => {
-                      const t = /** @type {any} */ (event.currentTarget);
-                      const checked = t.checked ?? false;
-                      setSpecialOrder(checked ? "Yes" : "No");
-                    }}
-                  >
-                    {i18n.translate("cart_line_item_special_order_switch")}
-                  </s-switch>
-                  <s-text tone="subdued">
-                    {specialOrder === "Yes"
-                      ? i18n.translate("cart_line_item_special_order_yes")
-                      : i18n.translate("cart_line_item_special_order_no")}
-                  </s-text>
-                </s-stack>
               </s-box>
             </s-section>
 
