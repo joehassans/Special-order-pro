@@ -6,7 +6,7 @@ type = "ui_extension"
 name = "t:name"
 uid = "7f8f55e9-1392-23a6-dbeb-28a3aa4e8516b056888a"
 handle = "special-orders-pos"
-description = "A preact POS UI extension"
+description = "Special Orders Pro"
 
 # module: file that contains your extension’s source code
 # target: location where your extension appears in POS

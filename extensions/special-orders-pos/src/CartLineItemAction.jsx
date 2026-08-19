@@ -33,10 +33,33 @@ function dismissModal() {
   else if (typeof a?.close === "function") a.close();
 }
 
+/** Read the numeric customer id already attached to the POS cart, if any. */
+function getCartCustomerId() {
+  try {
+    const sig = shopify.cart?.current;
+    const cart = sig?.value ?? sig;
+    const id = cart?.customer?.id;
+    return typeof id === "number" && id > 0 ? id : null;
+  } catch {
+    return null;
+  }
+}
+
 function CartLineItemAction() {
   const { i18n } = shopify;
 
   const [specialOrder, setSpecialOrder] = useState("Yes");
+
+  // Customer attached to the cart (or chosen/created in this modal).
+  // A special order can't be saved without one — that's the whole point:
+  // no more special orders with nobody to call.
+  const [cartCustomer, setCartCustomer] = useState(null);
+  const [custFirstName, setCustFirstName] = useState("");
+  const [custLastName, setCustLastName] = useState("");
+  const [custEmail, setCustEmail] = useState("");
+  const [custPhone, setCustPhone] = useState("");
+  // Possible existing customers found by name/email/phone before creating.
+  const [customerMatches, setCustomerMatches] = useState(null);
   const [orderStatus, setOrderStatus] = useState("Not Ordered");
   // Shop-configured item detail fields (Settings in the admin app); the
   // defaults render immediately, then swap once the shop's list loads.
@@ -55,6 +78,32 @@ function CartLineItemAction() {
       ?.isTablet?.()
       .then(setIsTablet)
       .catch(() => setIsTablet(false));
+  }, []);
+
+  // If the cart already has a customer, the requirement is satisfied —
+  // load their details so staff can see who the sale belongs to.
+  useEffect(() => {
+    const legacyId = getCartCustomerId();
+    if (!legacyId) return;
+    let cancelled = false;
+    setCartCustomer({ legacyId, name: "" });
+    (async () => {
+      try {
+        const res = await fetch("/pos/api/customers", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ intent: "get", legacyId }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && data?.customer) setCartCustomer(data.customer);
+      } catch (err) {
+        console.error("Cart customer lookup failed:", err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   // Phone: two fields per row so inputs stay finger-sized; iPad: four.
@@ -148,11 +197,142 @@ function CartLineItemAction() {
     };
   }, []);
 
+  async function postCustomers(body) {
+    const res = await fetch("/pos/api/customers", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    let data = null;
+    try {
+      data = await res.json();
+    } catch (_) {
+      // Non-JSON error responses are handled by the callers via data == null.
+    }
+    return { ok: res.ok, data };
+  }
+
+  /** Attach a customer to the POS cart and reflect them in the form. */
+  async function attachCustomer(customer) {
+    await shopify.cart.setCustomer({ id: customer.legacyId });
+    setCartCustomer(customer);
+    setCustFirstName(customer.firstName || "");
+    setCustLastName(customer.lastName || "");
+    setCustEmail(customer.email || "");
+    setCustPhone(customer.phone || "");
+    setCustomerMatches(null);
+  }
+
+  /** Staff confirmed a duplicate match — use the existing Shopify customer. */
+  async function chooseExistingCustomer(match) {
+    try {
+      setSaving(true);
+      setError("");
+      await attachCustomer(match);
+      await saveLineItemProperties();
+    } catch (err) {
+      console.error("Error attaching existing customer", err);
+      setError(i18n.translate("cart_line_item_save_error"));
+      setSaving(false);
+    }
+  }
+
+  /** Staff said the matches aren't the same person — create a new customer. */
+  async function createNewCustomer() {
+    try {
+      setSaving(true);
+      setError("");
+      setCustomerMatches(null);
+      const { data } = await postCustomers({
+        intent: "create",
+        firstName: custFirstName,
+        lastName: custLastName,
+        email: custEmail,
+        phone: custPhone,
+      });
+      if (!data?.ok || !data?.customer?.legacyId) {
+        const msg = (data?.userErrors || [])
+          .map((e) => e.message)
+          .join(" ");
+        setError(
+          msg || i18n.translate("cart_line_item_customer_create_failed")
+        );
+        setSaving(false);
+        return;
+      }
+      await attachCustomer(data.customer);
+      await saveLineItemProperties();
+    } catch (err) {
+      console.error("Error creating customer", err);
+      setError(i18n.translate("cart_line_item_customer_create_failed"));
+      setSaving(false);
+    }
+  }
+
   async function handleSave() {
     try {
       setSaving(true);
       setError("");
+      setCustomerMatches(null);
 
+      // A special order must have a customer before it can be saved.
+      if (specialOrder === "Yes" && !cartCustomer) {
+        const first = custFirstName.trim();
+        const last = custLastName.trim();
+        const email = custEmail.trim();
+        const phone = custPhone.trim();
+
+        if (!first || !last || (!email && !phone)) {
+          setError(i18n.translate("cart_line_item_customer_required_error"));
+          setSaving(false);
+          return;
+        }
+
+        // Duplicate check: same name, email, or phone already in Shopify.
+        const { data } = await postCustomers({
+          intent: "search",
+          firstName: first,
+          lastName: last,
+          email,
+          phone,
+        });
+        const matches = Array.isArray(data?.matches) ? data.matches : [];
+        if (matches.length > 0) {
+          setCustomerMatches(matches);
+          setSaving(false);
+          return;
+        }
+
+        const created = await postCustomers({
+          intent: "create",
+          firstName: first,
+          lastName: last,
+          email,
+          phone,
+        });
+        if (!created.data?.ok || !created.data?.customer?.legacyId) {
+          const msg = (created.data?.userErrors || [])
+            .map((e) => e.message)
+            .join(" ");
+          setError(
+            msg || i18n.translate("cart_line_item_customer_create_failed")
+          );
+          setSaving(false);
+          return;
+        }
+        await attachCustomer(created.data.customer);
+      }
+
+      await saveLineItemProperties();
+    } catch (err) {
+      console.error("Error saving line item properties", err);
+      setError(i18n.translate("cart_line_item_save_error"));
+      setSaving(false);
+    }
+  }
+
+  async function saveLineItemProperties() {
+    try {
       const lineItem = shopify.cartLineItem;
       const uuid = lineItem?.uuid;
       if (!uuid) {
@@ -205,6 +385,129 @@ function CartLineItemAction() {
                 <s-text tone="critical">{error}</s-text>
               </s-section>
             )}
+
+            <s-section>
+              <s-heading>
+                {i18n.translate("cart_line_item_customer_heading")}
+              </s-heading>
+              <s-box paddingBlockStart="small">
+                {cartCustomer ? (
+                  <s-stack direction="vertical" gap="small-300">
+                    <s-text type="strong">
+                      {i18n.translate("cart_line_item_customer_on_cart", {
+                        name:
+                          cartCustomer.name ||
+                          `#${cartCustomer.legacyId}`,
+                      })}
+                    </s-text>
+                    {(cartCustomer.email || cartCustomer.phone) && (
+                      <s-text tone="subdued">
+                        {[cartCustomer.email, cartCustomer.phone]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </s-text>
+                    )}
+                    <s-text tone="subdued">
+                      {i18n.translate("cart_line_item_customer_change_note")}
+                    </s-text>
+                  </s-stack>
+                ) : (
+                  <s-stack direction="vertical" gap="base">
+                    <s-text tone="subdued">
+                      {i18n.translate("cart_line_item_customer_required_note")}
+                    </s-text>
+                    <s-stack
+                      direction="inline"
+                      gap="small"
+                      alignItems="stretch"
+                    >
+                      <s-box minInlineSize={fieldMinWidth} inlineSize="auto">
+                        <s-text-field
+                          label={i18n.translate("first_name")}
+                          value={custFirstName}
+                          onInput={(e) =>
+                            setCustFirstName(e.currentTarget.value)
+                          }
+                          disabled={!!saving}
+                        />
+                      </s-box>
+                      <s-box minInlineSize={fieldMinWidth} inlineSize="auto">
+                        <s-text-field
+                          label={i18n.translate("last_name")}
+                          value={custLastName}
+                          onInput={(e) =>
+                            setCustLastName(e.currentTarget.value)
+                          }
+                          disabled={!!saving}
+                        />
+                      </s-box>
+                      <s-box minInlineSize={fieldMinWidth} inlineSize="auto">
+                        <s-text-field
+                          label={i18n.translate("phone_label")}
+                          value={custPhone}
+                          onInput={(e) => setCustPhone(e.currentTarget.value)}
+                          disabled={!!saving}
+                        />
+                      </s-box>
+                      <s-box minInlineSize={fieldMinWidth} inlineSize="auto">
+                        <s-text-field
+                          label={i18n.translate("email_label")}
+                          value={custEmail}
+                          onInput={(e) => setCustEmail(e.currentTarget.value)}
+                          disabled={!!saving}
+                        />
+                      </s-box>
+                    </s-stack>
+                    {customerMatches && customerMatches.length > 0 && (
+                      <s-stack direction="vertical" gap="small">
+                        <s-text type="strong">
+                          {i18n.translate(
+                            "cart_line_item_customer_match_prompt"
+                          )}
+                        </s-text>
+                        {customerMatches.map((match) => (
+                          <s-box
+                            key={match.legacyId}
+                            padding="small"
+                            border="base"
+                            borderRadius="base"
+                          >
+                            <s-stack direction="vertical" gap="small-300">
+                              <s-text type="strong">{match.name}</s-text>
+                              {(match.email || match.phone) && (
+                                <s-text tone="subdued">
+                                  {[match.email, match.phone]
+                                    .filter(Boolean)
+                                    .join(" · ")}
+                                </s-text>
+                              )}
+                              <s-button
+                                variant="primary"
+                                disabled={!!saving}
+                                onClick={() => chooseExistingCustomer(match)}
+                              >
+                                {i18n.translate(
+                                  "cart_line_item_customer_use_existing"
+                                )}
+                              </s-button>
+                            </s-stack>
+                          </s-box>
+                        ))}
+                        <s-button
+                          variant="secondary"
+                          disabled={!!saving}
+                          onClick={createNewCustomer}
+                        >
+                          {i18n.translate(
+                            "cart_line_item_customer_create_new"
+                          )}
+                        </s-button>
+                      </s-stack>
+                    )}
+                  </s-stack>
+                )}
+              </s-box>
+            </s-section>
 
             <s-section>
               <s-heading>{i18n.translate("cart_line_item_special_order_heading")}</s-heading>
