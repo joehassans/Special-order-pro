@@ -311,7 +311,9 @@ export default function Index() {
                     </s-table-cell>
                     <s-table-cell id={`cell-customer-${order.id}`} style={tint}>
                       <s-stack gap="small-300">
-                        <s-text>{order.customerName}</s-text>
+                        <span style={{ fontSize: "15px", fontWeight: 700 }}>
+                          {order.customerName}
+                        </span>
                         {order.customerPhone && (
                           <s-text color="subdued" type="small">
                             {order.customerPhone}
