@@ -1857,6 +1857,39 @@ function Extension() {
       </s-box>
     );
 
+    // Deep link into native POS so staff can check the customer out without
+    // leaving the special-orders workflow: drafts load into the cart via the
+    // native draft screen (keeps the draft link and any deposit); orders
+    // with a balance open the native order screen to collect payment.
+    const posCheckoutUri = (() => {
+      const num = String(order.id || "").split("/").pop();
+      if (!num || /\D/.test(num)) return null;
+      if (overallOrderStatus === "Order Canceled") return null;
+      if (isDraftOrder) return `shopify:point-of-sale/draft_orders/${num}`;
+      if (paymentStatus === "Partially Paid" || paymentStatus === "Not Paid") {
+        return `shopify:point-of-sale/orders/${num}`;
+      }
+      return null;
+    })();
+
+    const posCheckoutButton = posCheckoutUri ? (
+      <s-button
+        variant="primary"
+        onClick={async () => {
+          try {
+            await shopify.navigation.navigate(posCheckoutUri);
+          } catch (e) {
+            console.error("POS navigation failed:", e);
+            shopify.toast?.show?.(i18n.translate("open_in_pos_failed"));
+          }
+        }}
+      >
+        {isDraftOrder
+          ? i18n.translate("load_into_cart")
+          : i18n.translate("collect_balance")}
+      </s-button>
+    ) : null;
+
     return (
       <s-page inlineSize={isTablet ? "large" : "base"}>
         <s-scroll-box>
@@ -1893,6 +1926,7 @@ function Extension() {
                     >
                       {i18n.translate("print_order_summary")}
                     </s-button>
+                    {posCheckoutButton}
                     <s-text type="strong">
                       <span style={{ fontSize: "2em", fontWeight: "700" }}>
                         {order.name}
@@ -1950,6 +1984,7 @@ function Extension() {
                   >
                     {i18n.translate("print_order_summary")}
                   </s-button>
+                  {posCheckoutButton}
                   {createdDateLabel ? (
                     <s-text color="subdued">
                       {i18n.translate("date_created")}: {createdDateLabel}
