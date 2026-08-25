@@ -219,10 +219,14 @@ export async function syncSpecialOrder(shop, node, kind, extra = {}) {
           paymentStatus: order.paymentStatus,
           shopifyStatus: order.shopifyStatus,
           note: order.note,
-          customerShopifyId: order.customerShopifyId,
-          customerName: order.customerName,
-          customerEmail: order.customerEmail,
-          customerPhone: order.customerPhone,
+          // Shopify-owned, but never clear a known customer with nulls —
+          // a sync that races the webhook's customer attach (or any node
+          // fetched without customer data) must not blank the tables.
+          customerShopifyId:
+            order.customerShopifyId ?? existing.customerShopifyId,
+          customerName: order.customerName ?? existing.customerName,
+          customerEmail: order.customerEmail ?? existing.customerEmail,
+          customerPhone: order.customerPhone ?? existing.customerPhone,
           shopifyCreatedAt: order.shopifyCreatedAt,
           // App-managed: DB wins once set.
           contactStatus: hasValue(existing.contactStatus)

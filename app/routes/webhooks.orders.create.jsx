@@ -12,6 +12,15 @@ const TAGS_ADD = `#graphql
   }
 `;
 
+const ORDER_CUSTOMER_SET = `#graphql
+  mutation SetOrderCustomer($orderId: ID!, $customerId: ID!) {
+    orderCustomerSet(orderId: $orderId, customerId: $customerId) {
+      order { id }
+      userErrors { field message }
+    }
+  }
+`;
+
 /**
  * True when any line item carries the "Special Order: Yes" property that the
  * POS cart extension writes. This is how register-created special orders
@@ -26,6 +35,24 @@ function hasSpecialOrderLineProperty(payload) {
         String(p?.value ?? "").trim().toLowerCase() === "yes"
     )
   );
+}
+
+/**
+ * The POS extension stamps a hidden "_Customer ID" property on the line it
+ * saves. If the device dropped the cart-level customer attach (common when
+ * the customer was created seconds earlier), this is how the order still
+ * gets linked to the right Shopify customer.
+ */
+function customerIdFromLineProperties(payload) {
+  for (const li of payload?.line_items ?? []) {
+    for (const p of li?.properties ?? []) {
+      if (String(p?.name ?? "").trim().toLowerCase() === "_customer id") {
+        const id = String(p?.value ?? "").replace(/\D/g, "");
+        if (id) return id;
+      }
+    }
+  }
+  return null;
 }
 
 function payloadHasSpecialOrderTag(payload) {
@@ -94,6 +121,36 @@ export const action = async ({ request }) => {
       );
     } catch (e) {
       console.error(`[ORDERS_CREATE] tagsAdd failed for ${orderGid}`, e);
+    }
+  }
+
+  // If the order arrived without a customer but the POS extension recorded
+  // one on the line item, attach them now — before the DB sync below, so
+  // the customer name lands in the app's tables on the first pass.
+  if (copyResult?.copied || alreadyTagged || soldAsSpecialOrder) {
+    const propertyCustomerId = customerIdFromLineProperties(payload);
+    if (!payload?.customer?.id && propertyCustomerId) {
+      try {
+        const res = await admin.graphql(ORDER_CUSTOMER_SET, {
+          variables: {
+            orderId: orderGid,
+            customerId: `gid://shopify/Customer/${propertyCustomerId}`,
+          },
+        });
+        const json = await res.json();
+        const errs = json.data?.orderCustomerSet?.userErrors ?? [];
+        if (errs.length) {
+          throw new Error(errs.map((e) => e.message).join(", "));
+        }
+        console.log(
+          `[ORDERS_CREATE] Attached customer ${propertyCustomerId} to ${orderGid} from line property`
+        );
+      } catch (e) {
+        console.error(
+          `[ORDERS_CREATE] orderCustomerSet failed for ${orderGid}`,
+          e
+        );
+      }
     }
   }
 

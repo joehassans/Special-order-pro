@@ -28,7 +28,11 @@ const HIDDEN_ATTRIBUTES = new Set([
 export function getAttributesForDisplay(attrs) {
   const map = new Map();
   for (const a of attrs || []) {
-    if (!HIDDEN_ATTRIBUTES.has(a.key)) map.set(a.key, a.value || "");
+    // Underscore-prefixed keys are internal (e.g. "_Customer ID").
+    if (HIDDEN_ATTRIBUTES.has(a.key) || String(a.key).startsWith("_")) {
+      continue;
+    }
+    map.set(a.key, a.value || "");
   }
   const result = [];
   for (const key of ALWAYS_PRESENT_ATTRIBUTES) {

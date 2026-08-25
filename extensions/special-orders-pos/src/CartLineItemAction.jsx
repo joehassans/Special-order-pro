@@ -205,9 +205,25 @@ function CartLineItemAction() {
     return { ok: res.ok, data };
   }
 
-  /** Attach a customer to the POS cart and reflect them in the form. */
+  /**
+   * Attach a customer to the POS cart and reflect them in the form.
+   * POS devices can silently drop a setCustomer for a customer created
+   * moments ago (local cache not synced yet), so verify and retry once.
+   * Even if the attach doesn't stick, the hidden `_Customer ID` line
+   * property lets the backend link the customer when the order is created.
+   */
   async function attachCustomer(customer) {
     await shopify.cart.setCustomer({ id: customer.legacyId });
+    if (getCartCustomerId() !== customer.legacyId) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      if (getCartCustomerId() !== customer.legacyId) {
+        try {
+          await shopify.cart.setCustomer({ id: customer.legacyId });
+        } catch (err) {
+          console.error("Retry setCustomer failed:", err);
+        }
+      }
+    }
     setCartCustomer(customer);
     setCustFirstName(customer.firstName || "");
     setCustLastName(customer.lastName || "");
@@ -222,7 +238,7 @@ function CartLineItemAction() {
       setSaving(true);
       setError("");
       await attachCustomer(match);
-      await saveLineItemProperties();
+      await saveLineItemProperties(match);
     } catch (err) {
       console.error("Error attaching existing customer", err);
       setError(i18n.translate("cart_line_item_save_error"));
@@ -254,7 +270,7 @@ function CartLineItemAction() {
         return;
       }
       await attachCustomer(data.customer);
-      await saveLineItemProperties();
+      await saveLineItemProperties(data.customer);
     } catch (err) {
       console.error("Error creating customer", err);
       setError(i18n.translate("cart_line_item_customer_create_failed"));
@@ -267,6 +283,10 @@ function CartLineItemAction() {
       setSaving(true);
       setError("");
       setCustomerMatches(null);
+
+      // State updates inside this run aren't visible to the closure, so
+      // track the customer to link in a local variable.
+      let linkedCustomer = cartCustomer;
 
       // A special order must have a customer before it can be saved.
       if (!cartCustomer) {
@@ -314,9 +334,10 @@ function CartLineItemAction() {
           return;
         }
         await attachCustomer(created.data.customer);
+        linkedCustomer = created.data.customer;
       }
 
-      await saveLineItemProperties();
+      await saveLineItemProperties(linkedCustomer);
     } catch (err) {
       console.error("Error saving line item properties", err);
       setError(i18n.translate("cart_line_item_save_error"));
@@ -324,7 +345,7 @@ function CartLineItemAction() {
     }
   }
 
-  async function saveLineItemProperties() {
+  async function saveLineItemProperties(customer = null) {
     try {
       const lineItem = shopify.cartLineItem;
       const uuid = lineItem?.uuid;
@@ -354,6 +375,14 @@ function CartLineItemAction() {
           field,
           detailValues[field] ?? ""
         );
+      }
+
+      // Hidden linkage (underscore keys never render anywhere): lets the
+      // orders/create webhook attach the customer to the order even if the
+      // POS device dropped the cart-level setCustomer.
+      const linkedCustomer = customer || cartCustomer;
+      if (linkedCustomer?.legacyId) {
+        properties["_Customer ID"] = String(linkedCustomer.legacyId);
       }
 
       await shopify.cart.addLineItemProperties(uuid, properties);
