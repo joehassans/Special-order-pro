@@ -18,6 +18,37 @@ async function findOrder(shop, shopifyId) {
   });
 }
 
+/**
+ * A converted draft and its order are two DB rows for the same real-world
+ * special order. Status writes must hit both — otherwise canceling or
+ * completing from a screen showing one representation (e.g. POS still
+ * showing the draft) never shows up in views reading the other.
+ *
+ * @returns {Promise<string[]>} DB row ids: the record itself plus its
+ *   linked counterpart (converted draft or successor order), if any.
+ */
+async function findOrderAndLinkedIds(shop, shopifyId) {
+  const rec = await prisma.specialOrder.findUnique({
+    where: { shop_shopifyId: { shop, shopifyId } },
+    select: { id: true, kind: true, convertedFromDraftId: true },
+  });
+  if (!rec) return [];
+
+  const ids = [rec.id];
+  if (rec.convertedFromDraftId) {
+    const draft = await findOrder(shop, rec.convertedFromDraftId);
+    if (draft) ids.push(draft.id);
+  }
+  if (rec.kind === "DRAFT_ORDER") {
+    const successor = await prisma.specialOrder.findFirst({
+      where: { shop, convertedFromDraftId: shopifyId },
+      select: { id: true },
+    });
+    if (successor) ids.push(successor.id);
+  }
+  return ids;
+}
+
 function logSkip(fn, e) {
   console.error(
     `[special-order-db-write] ${fn} failed (loader re-sync will heal):`,
@@ -27,10 +58,10 @@ function logSkip(fn, e) {
 
 export async function dbUpdateContactStatus(shop, shopifyId, contactStatus) {
   try {
-    const rec = await findOrder(shop, shopifyId);
-    if (!rec) return;
-    await prisma.specialOrder.update({
-      where: { id: rec.id },
+    const ids = await findOrderAndLinkedIds(shop, shopifyId);
+    if (ids.length === 0) return;
+    await prisma.specialOrder.updateMany({
+      where: { id: { in: ids } },
       data: { contactStatus, syncedAt: new Date() },
     });
   } catch (e) {
@@ -40,10 +71,10 @@ export async function dbUpdateContactStatus(shop, shopifyId, contactStatus) {
 
 export async function dbUpdateOverallStatus(shop, shopifyId, overallStatus) {
   try {
-    const rec = await findOrder(shop, shopifyId);
-    if (!rec) return;
-    await prisma.specialOrder.update({
-      where: { id: rec.id },
+    const ids = await findOrderAndLinkedIds(shop, shopifyId);
+    if (ids.length === 0) return;
+    await prisma.specialOrder.updateMany({
+      where: { id: { in: ids } },
       data: { overallStatus, syncedAt: new Date() },
     });
   } catch (e) {

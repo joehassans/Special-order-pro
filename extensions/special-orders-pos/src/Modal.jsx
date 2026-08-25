@@ -1203,6 +1203,11 @@ function Extension() {
             contactStatus: value,
           }));
         }
+      } catch (e) {
+        console.error("Contact status update failed:", e);
+        shopify.toast?.show?.(
+          "Contact status did not save. Check connection and try again."
+        );
       } finally {
         setSaving(null);
       }
@@ -1242,6 +1247,11 @@ function Extension() {
             overallOrderStatus: value,
           }));
         }
+      } catch (e) {
+        console.error("Overall status update failed:", e);
+        shopify.toast?.show?.(
+          "Order status did not save. Check connection and try again."
+        );
       } finally {
         setSaving(null);
       }

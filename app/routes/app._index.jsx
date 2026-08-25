@@ -46,13 +46,31 @@ function getContactStatusTone(status) {
 }
 
 /** Item-status badges shown per row before collapsing to "+N more". */
-const MAX_ITEM_BADGES = 4;
+const MAX_ITEM_BADGES = 3;
 
 // Treat "Picked Up - Sale Complete" as completed (overall order status)
 function isCompletedOverallOrderStatus(status) {
   if (!status || typeof status !== "string") return false;
   const s = String(status).trim();
   return s === "Picked Up - Sale Complete";
+}
+
+/**
+ * Full-row tints so a finished order can't be mistaken for an open one,
+ * even when employees didn't keep every sub-status up to date.
+ */
+const ROW_TINT_COMPLETED = { backgroundColor: "#e5f3e8" };
+const ROW_TINT_CANCELED = { backgroundColor: "#fdecec" };
+
+const ITEM_DONE_STATUSES = ["Received", "Drop Ship - Delivered"];
+
+function countReceivedItems(orderStatuses) {
+  const items = orderStatuses || [];
+  const received = items.filter((item) => {
+    const status = typeof item === "object" && item != null ? item.status : item;
+    return ITEM_DONE_STATUSES.includes(String(status ?? "").trim());
+  }).length;
+  return { received, total: items.length };
 }
 
 export const loader = async ({ request }) => {
@@ -213,20 +231,20 @@ export default function Index() {
             <s-table-header id="header-customer" listSlot="labeled">
               Customer
             </s-table-header>
+            <s-table-header id="header-overall" listSlot="labeled">
+              Order Status
+            </s-table-header>
             <s-table-header id="header-status" listSlot="labeled">
-              Item Order Status
+              Items
             </s-table-header>
             <s-table-header id="header-payment" listSlot="labeled">
-              Payment Status
+              Payment
             </s-table-header>
             <s-table-header id="header-contact" listSlot="labeled">
-              Contact Status
+              Contact
             </s-table-header>
             <s-table-header id="header-actions" listSlot="labeled">
               Actions
-            </s-table-header>
-            <s-table-header id="header-date" listSlot="labeled">
-              Created
             </s-table-header>
           </s-table-header-row>
 
@@ -266,83 +284,129 @@ export default function Index() {
                 );
                 const orderCanceled =
                   order.overallOrderStatus === "Order Canceled";
+                // Finished orders are tinted across every cell so the state
+                // is unmistakable even if sub-statuses were never updated.
+                const tint = completed
+                  ? ROW_TINT_COMPLETED
+                  : orderCanceled
+                    ? ROW_TINT_CANCELED
+                    : undefined;
+                const { received, total } = countReceivedItems(
+                  order.orderStatuses
+                );
 
                 return (
                   <s-table-row
                     id={`order-row-${order.id}`}
                     key={order.id}
+                    style={tint}
                   >
-                    <s-table-cell id={`cell-order-${order.id}`}>
+                    <s-table-cell id={`cell-order-${order.id}`} style={tint}>
                       <s-stack gap="small-300">
                         <s-text type="strong">{order.name}</s-text>
-                        {completed && (
-                          <s-badge tone="success">Picked Up</s-badge>
-                        )}
-                        {orderCanceled && (
-                          <s-badge tone="critical">Canceled</s-badge>
-                        )}
+                        <s-text color="subdued" type="small">
+                          {order.createdDateLabel}
+                        </s-text>
                       </s-stack>
                     </s-table-cell>
-                    <s-table-cell id={`cell-customer-${order.id}`}>
-                      <s-text>{order.customerName}</s-text>
-                    </s-table-cell>
-                    <s-table-cell id={`cell-status-${order.id}`}>
+                    <s-table-cell id={`cell-customer-${order.id}`} style={tint}>
                       <s-stack gap="small-300">
-                        {(() => {
-                          const statuses =
-                            (order.orderStatuses || []).length > 0
-                              ? order.orderStatuses
-                              : [{ title: "Item", status: "Not set" }];
-                          const shown = statuses.slice(0, MAX_ITEM_BADGES);
-                          const hidden = statuses.length - shown.length;
-                          return (
-                            <>
-                              {shown.map((item, i) => {
-                                const title =
-                                  typeof item === "object" && item != null
-                                    ? item.title
-                                    : "Item";
-                                const status =
-                                  typeof item === "object" && item != null
-                                    ? item.status
-                                    : item;
-                                const label =
-                                  toTitleCase(title || "Item") +
-                                  " - " +
-                                  (String(status ?? "Not set").trim() ||
-                                    "Not set");
-                                return (
-                                  <s-badge
-                                    key={i}
-                                    tone={getOrderStatusTone(status)}
-                                  >
-                                    {label}
-                                  </s-badge>
-                                );
-                              })}
-                              {hidden > 0 && (
-                                <s-text color="subdued" type="small">
-                                  +{hidden} more item{hidden === 1 ? "" : "s"} —
-                                  view details
-                                </s-text>
-                              )}
-                            </>
-                          );
-                        })()}
+                        <s-text>{order.customerName}</s-text>
+                        {order.customerPhone && (
+                          <s-text color="subdued" type="small">
+                            {order.customerPhone}
+                          </s-text>
+                        )}
                       </s-stack>
                     </s-table-cell>
-                    <s-table-cell id={`cell-payment-${order.id}`}>
+                    <s-table-cell id={`cell-overall-${order.id}`} style={tint}>
+                      {completed ? (
+                        <s-badge tone="success">Picked Up — Complete</s-badge>
+                      ) : orderCanceled ? (
+                        <s-badge tone="critical">Canceled</s-badge>
+                      ) : (
+                        <s-badge tone="info">In Progress</s-badge>
+                      )}
+                    </s-table-cell>
+                    <s-table-cell id={`cell-status-${order.id}`} style={tint}>
+                      {completed ? (
+                        // Sub-statuses no longer matter once picked up; a
+                        // single green badge avoids stale-status confusion.
+                        <s-badge tone="success">All items picked up</s-badge>
+                      ) : orderCanceled ? (
+                        <s-badge tone="critical">Order canceled</s-badge>
+                      ) : (
+                        <s-stack gap="small-300">
+                          {total > 0 && (
+                            <s-text color="subdued" type="small">
+                              {received} of {total} item
+                              {total === 1 ? "" : "s"} received
+                            </s-text>
+                          )}
+                          {(() => {
+                            const statuses =
+                              (order.orderStatuses || []).length > 0
+                                ? order.orderStatuses
+                                : [{ title: "Item", status: "Not set" }];
+                            const shown = statuses.slice(0, MAX_ITEM_BADGES);
+                            const hidden = statuses.length - shown.length;
+                            return (
+                              <>
+                                {shown.map((item, i) => {
+                                  const title =
+                                    typeof item === "object" && item != null
+                                      ? item.title
+                                      : "Item";
+                                  const status =
+                                    typeof item === "object" && item != null
+                                      ? item.status
+                                      : item;
+                                  const label =
+                                    toTitleCase(title || "Item") +
+                                    " - " +
+                                    (String(status ?? "Not set").trim() ||
+                                      "Not set");
+                                  return (
+                                    <s-badge
+                                      key={i}
+                                      tone={getOrderStatusTone(status)}
+                                    >
+                                      {label}
+                                    </s-badge>
+                                  );
+                                })}
+                                {hidden > 0 && (
+                                  <s-text color="subdued" type="small">
+                                    +{hidden} more item
+                                    {hidden === 1 ? "" : "s"} — view details
+                                  </s-text>
+                                )}
+                              </>
+                            );
+                          })()}
+                        </s-stack>
+                      )}
+                    </s-table-cell>
+                    <s-table-cell id={`cell-payment-${order.id}`} style={tint}>
                       <s-badge tone={getPaymentStatusTone(order.paymentStatus)}>
                         {order.paymentStatus}
                       </s-badge>
                     </s-table-cell>
-                    <s-table-cell id={`cell-contact-${order.id}`}>
-                      {/* Loader normalizes contactStatus to a valid value. */}
-                      <s-badge tone={getContactStatusTone(order.contactStatus)}>
-                        {order.contactStatus || "Not Contacted"}
-                      </s-badge>
+                    <s-table-cell id={`cell-contact-${order.id}`} style={tint}>
+                      {completed ? (
+                        <s-badge tone="success">Complete</s-badge>
+                      ) : orderCanceled ? (
+                        <s-text color="subdued">—</s-text>
+                      ) : (
+                        /* Loader normalizes contactStatus to a valid value. */
+                        <s-badge
+                          tone={getContactStatusTone(order.contactStatus)}
+                        >
+                          {order.contactStatus || "Not Contacted"}
+                        </s-badge>
+                      )}
                     </s-table-cell>
-                    <s-table-cell id={`cell-actions-${order.id}`}>
+                    <s-table-cell id={`cell-actions-${order.id}`} style={tint}>
                       <s-button
                         id={`view-button-${order.id}`}
                         variant="secondary"
@@ -350,11 +414,6 @@ export default function Index() {
                       >
                         View Details
                       </s-button>
-                    </s-table-cell>
-                    <s-table-cell id={`cell-date-${order.id}`}>
-                      <s-text color="subdued">
-                        {order.createdDateLabel}
-                      </s-text>
                     </s-table-cell>
                   </s-table-row>
                 );
