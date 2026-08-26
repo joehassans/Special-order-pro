@@ -63,6 +63,7 @@
   "load_into_cart": "Load Into Cart",
   "collect_balance": "Collect Balance",
   "open_in_pos_failed": "Could not open this order in POS.",
+  "order_deleted_in_shopify": "This order was deleted in Shopify and has been removed from the list.",
   "fulfill_item": "Fulfill Item",
   "unfulfill_item": "Unfulfill Item",
   "fulfillment_unfulfill_blocked": "Unfulfill in Shopify admin — this item was fulfilled with other products in the same shipment.",

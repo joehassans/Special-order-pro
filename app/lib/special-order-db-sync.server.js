@@ -352,6 +352,20 @@ const DRAFT_FOR_SYNC = `#graphql
 `;
 
 /**
+ * Remove the DB mirror row for an order that no longer exists in Shopify
+ * (deleted order/draft). Cascades to items and notification log. Used by
+ * the delete webhooks and by lookups that discover the order is gone.
+ *
+ * @returns {Promise<boolean>} true when a row was actually removed
+ */
+export async function deleteSpecialOrderByShopifyId(shop, gid) {
+  const res = await prisma.specialOrder.deleteMany({
+    where: { shop, shopifyId: gid },
+  });
+  return res.count > 0;
+}
+
+/**
  * Fetch one Order/DraftOrder from Shopify by GID and mirror it into the DB.
  * Used by the orders/create webhook and the POS sync-ping endpoint.
  *
@@ -367,7 +381,17 @@ export async function fetchAndSyncSpecialOrderById(graphql, shop, gid, extra) {
   });
   const json = await res.json();
   const node = isDraft ? json.data?.draftOrder : json.data?.order;
-  if (!node) return null;
+  if (!node) {
+    // Null with no errors means Shopify genuinely doesn't have this order
+    // anymore (deleted) — clean up the stale mirror row. Null caused by an
+    // API error must NOT delete anything.
+    if (!json.errors?.length) {
+      await deleteSpecialOrderByShopifyId(shop, gid).catch((e) => {
+        console.error(`[special-order-sync] cleanup failed for ${gid}:`, e);
+      });
+    }
+    return null;
+  }
   return syncSpecialOrder(
     shop,
     node,

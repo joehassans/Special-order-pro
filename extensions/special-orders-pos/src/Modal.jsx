@@ -1161,6 +1161,14 @@ function Extension() {
           setRawOrders((prev) =>
             prev.map((o) => (o.id === id ? { ...o, ...refreshed } : o))
           );
+        } else if (!json?.errors?.length) {
+          // Null with no errors: the order was deleted in Shopify. Ping the
+          // backend (which removes its stale mirror row), drop it from this
+          // device's list, and go back to the table.
+          syncOrderToBackend(id);
+          setRawOrders((prev) => prev.filter((o) => o.id !== id));
+          setSelectedOrder(null);
+          shopify.toast?.show?.(i18n.translate("order_deleted_in_shopify"));
         }
       } catch (e) {
         console.error("Order refresh for detail failed:", e);

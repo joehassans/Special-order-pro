@@ -26,7 +26,10 @@ import {
   normalizeAttributesArrayForSave,
   normalizeSpecialOrderAttributeValue,
 } from "../lib/special-order-line-item-attributes";
-import { syncInBackground } from "../lib/special-order-db-sync.server";
+import {
+  deleteSpecialOrderByShopifyId,
+  syncInBackground,
+} from "../lib/special-order-db-sync.server";
 import {
   dbItemAttributesArray,
   loadSpecialOrderDbState,
@@ -514,7 +517,13 @@ export const loader = async ({ request, params }) => {
     const draftOrder = json.data?.draftOrder;
 
     if (!draftOrder) {
-      throw new Response("Draft order not found", { status: 404 });
+      // Deleted in Shopify: remove the stale mirror row so the order stops
+      // showing in the tables, then send the user back to the list. Only
+      // when the null wasn't caused by an API error.
+      if (!json.errors?.length) {
+        await deleteSpecialOrderByShopifyId(session.shop, id).catch(() => {});
+      }
+      throw redirect("/app");
     }
 
     // DB is the primary read source for app-managed state; metafields are
@@ -785,7 +794,13 @@ export const loader = async ({ request, params }) => {
     const order = json.data?.order;
 
     if (!order) {
-      throw new Response("Order not found", { status: 404 });
+      // Deleted in Shopify: remove the stale mirror row so the order stops
+      // showing in the tables, then send the user back to the list. Only
+      // when the null wasn't caused by an API error.
+      if (!json.errors?.length) {
+        await deleteSpecialOrderByShopifyId(session.shop, id).catch(() => {});
+      }
+      throw redirect("/app");
     }
 
     // DB is the primary read source for app-managed state; metafields are
