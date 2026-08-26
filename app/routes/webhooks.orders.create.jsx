@@ -55,6 +55,24 @@ function customerIdFromLineProperties(payload) {
   return null;
 }
 
+/**
+ * The POS extension stamps a hidden "_Draft ID" property on every line when
+ * it rebuilds a draft order's contents in the cart ("Load Into Cart"). It
+ * identifies the originating draft so its special-order state can be copied
+ * onto this order and the draft retired.
+ */
+function draftIdFromLineProperties(payload) {
+  for (const li of payload?.line_items ?? []) {
+    for (const p of li?.properties ?? []) {
+      if (String(p?.name ?? "").trim().toLowerCase() === "_draft id") {
+        const id = String(p?.value ?? "").replace(/\D/g, "");
+        if (id) return id;
+      }
+    }
+  }
+  return null;
+}
+
 function payloadHasSpecialOrderTag(payload) {
   return String(payload?.tags ?? "")
     .split(",")
@@ -84,7 +102,8 @@ export const action = async ({ request }) => {
   try {
     copyResult = await copySpecialOrderMetafieldsFromDraftToOrder(
       admin.graphql,
-      orderGid
+      orderGid,
+      { draftIdHint: draftIdFromLineProperties(payload) }
     );
     if (copyResult.copied) {
       console.log(

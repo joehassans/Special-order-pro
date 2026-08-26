@@ -765,8 +765,9 @@ const DRAFT_REFRESH_QUERY = `
             id
             title
             quantity
+            taxable
             originalUnitPriceSet { shopMoney { amount currencyCode } }
-            variant { title }
+            variant { id title }
             customAttributes { key value }
           }
         }
@@ -1865,44 +1866,129 @@ function Extension() {
       </s-box>
     );
 
-    // Deep link into native POS so staff can check the customer out without
-    // leaving the special-orders workflow: drafts load into the cart via the
-    // native draft screen (keeps the draft link and any deposit); orders
-    // with a balance open the native order screen to collect payment.
-    const posCheckoutUri = (() => {
+    // Rebuild the draft's contents directly in the POS cart with the Cart
+    // API — POS's native draft loading is unreliable (requires an empty
+    // cart and still rejects some drafts), so the extension owns the cart
+    // build. A hidden "_Draft ID" line property lets the orders/create
+    // webhook copy special-order state onto the resulting order and retire
+    // the original draft.
+    const handleLoadDraftIntoCart = async () => {
+      setSaving("load_cart");
+      try {
+        // Always fetch fresh: the DB-backed list rows carry no prices,
+        // variant IDs, or taxable flags.
+        const json = await graphql(DRAFT_REFRESH_QUERY, { id: order.id });
+        const draft = json?.data?.draftOrder;
+        if (!draft) {
+          throw new Error("This draft order no longer exists in Shopify.");
+        }
+        const lines = (draft.lineItems?.edges || []).map((e) => e.node);
+        if (!lines.length) {
+          throw new Error("This draft order has no items.");
+        }
+
+        await shopify.cart.clearCart();
+        await shopify.cart.removeCustomer().catch(() => {});
+
+        const customerNum = Number(
+          String(draft.customer?.id || "").split("/").pop()
+        );
+        if (customerNum) {
+          await shopify.cart.setCustomer({ id: customerNum });
+        }
+
+        const draftNum = String(draft.id).split("/").pop();
+        for (const li of lines) {
+          const variantNum = Number(
+            String(li.variant?.id || "").split("/").pop()
+          );
+          let uuid;
+          if (variantNum) {
+            uuid = await shopify.cart.addLineItem(
+              variantNum,
+              li.quantity || 1
+            );
+            if (!uuid) {
+              // Staff dismissed the oversell guard — stop with a clear
+              // message rather than checking out a partial order.
+              throw new Error(`"${li.title}" was not added to the cart.`);
+            }
+          } else {
+            uuid = await shopify.cart.addCustomSale({
+              title: li.title || "Special order item",
+              quantity: li.quantity || 1,
+              price: String(
+                li.originalUnitPriceSet?.shopMoney?.amount ?? "0.00"
+              ),
+              taxable: li.taxable !== false,
+            });
+          }
+          const props = { "_Draft ID": draftNum };
+          for (const a of li.customAttributes || []) {
+            if (a?.key) props[a.key] = String(a.value ?? "");
+          }
+          if (uuid) {
+            await shopify.cart.addLineItemProperties(uuid, props);
+          }
+        }
+
+        shopify.toast?.show?.(i18n.translate("draft_loaded_into_cart"));
+        // Dismiss the extension modal so staff lands on the loaded cart.
+        window.close();
+      } catch (e) {
+        console.error("Load into cart failed:", e);
+        const detail = e?.message ? ` ${e.message}` : "";
+        shopify.toast?.show?.(
+          `${i18n.translate("load_into_cart_failed")}${detail}`
+        );
+      } finally {
+        setSaving(null);
+      }
+    };
+
+    const posCheckoutButton = (() => {
+      if (overallOrderStatus === "Order Canceled") return null;
       const num = String(order.id || "").split("/").pop();
       if (!num || /\D/.test(num)) return null;
-      if (overallOrderStatus === "Order Canceled") return null;
-      if (isDraftOrder) return `shopify:point-of-sale/draft_orders/${num}`;
-      if (paymentStatus === "Partially Paid" || paymentStatus === "Not Paid") {
-        return `shopify:point-of-sale/orders/${num}`;
-      }
-      return null;
-    })();
 
-    const posCheckoutButton = posCheckoutUri ? (
-      <s-button
-        variant="primary"
-        onClick={async () => {
-          try {
-            if (isDraftOrder) {
-              // POS refuses to load a draft order unless the cart is
-              // completely empty (no items, no customer), so clear it first.
-              await shopify.cart.clearCart();
-              await shopify.cart.removeCustomer().catch(() => {});
+      if (isDraftOrder) {
+        return (
+          <s-button
+            variant="primary"
+            onClick={handleLoadDraftIntoCart}
+            disabled={!!saving}
+          >
+            {saving === "load_cart"
+              ? i18n.translate("loading_into_cart")
+              : i18n.translate("load_into_cart")}
+          </s-button>
+        );
+      }
+
+      if (paymentStatus !== "Partially Paid" && paymentStatus !== "Not Paid") {
+        return null;
+      }
+      return (
+        <s-button
+          variant="primary"
+          onClick={async () => {
+            try {
+              await shopify.navigation.navigate(
+                `shopify:point-of-sale/orders/${num}`
+              );
+            } catch (e) {
+              console.error("POS navigation failed:", e);
+              const detail = e?.message ? ` (${e.message})` : "";
+              shopify.toast?.show?.(
+                `${i18n.translate("open_in_pos_failed")}${detail}`
+              );
             }
-            await shopify.navigation.navigate(posCheckoutUri);
-          } catch (e) {
-            console.error("POS navigation failed:", e);
-            shopify.toast?.show?.(i18n.translate("open_in_pos_failed"));
-          }
-        }}
-      >
-        {isDraftOrder
-          ? i18n.translate("load_into_cart")
-          : i18n.translate("collect_balance")}
-      </s-button>
-    ) : null;
+          }}
+        >
+          {i18n.translate("collect_balance")}
+        </s-button>
+      );
+    })();
 
     return (
       <s-page inlineSize={isTablet ? "large" : "base"}>

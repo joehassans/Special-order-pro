@@ -128,7 +128,31 @@ async function loadDraftOrder(graphql, draftGid) {
   return json.data?.draftOrder ?? null;
 }
 
-async function findDraftOrderForShopifyOrder(graphql, orderGid) {
+const DRAFT_DELETE = `#graphql
+  mutation RetireConvertedSpecialOrderDraft($input: DraftOrderDeleteInput!) {
+    draftOrderDelete(input: $input) {
+      deletedId
+      userErrors {
+        field
+        message
+      }
+    }
+  }
+`;
+
+async function findDraftOrderForShopifyOrder(graphql, orderGid, draftIdHint) {
+  // Explicit hint: the POS extension stamps a hidden "_Draft ID" line
+  // property when it rebuilds a draft's contents in the cart. Those orders
+  // are not native draft completions, so the draft's `order` field stays
+  // null — trust the stamp instead.
+  if (draftIdHint && /^\d+$/.test(String(draftIdHint))) {
+    const draft = await loadDraftOrder(
+      graphql,
+      `gid://shopify/DraftOrder/${draftIdHint}`
+    );
+    if (draft) return draft;
+  }
+
   const orderRes = await graphql(
     `#graphql
     query OrderDraftHints($id: ID!) {
@@ -221,9 +245,19 @@ async function findDraftOrderForShopifyOrder(graphql, orderGid) {
 /**
  * @param {(query: string, opts?: { variables?: Record<string, unknown> }) => Promise<Response>} graphql
  * @param {string} orderGid
+ * @param {{ draftIdHint?: string | null }} [options] numeric DraftOrder id
+ *   stamped on the order's line properties by the POS cart rebuild
  */
-export async function copySpecialOrderMetafieldsFromDraftToOrder(graphql, orderGid) {
-  const draft = await findDraftOrderForShopifyOrder(graphql, orderGid);
+export async function copySpecialOrderMetafieldsFromDraftToOrder(
+  graphql,
+  orderGid,
+  options = {}
+) {
+  const draft = await findDraftOrderForShopifyOrder(
+    graphql,
+    orderGid,
+    options.draftIdHint ?? null
+  );
   if (!draft || !isSpecialOrderDraft(draft)) {
     return { copied: false, reason: "no_matching_special_order_draft" };
   }
@@ -306,9 +340,31 @@ export async function copySpecialOrderMetafieldsFromDraftToOrder(graphql, orderG
     }
   }
 
+  // A native draft completion marks the draft COMPLETED and links it to the
+  // order. A POS cart rebuild does neither, so the draft would linger OPEN
+  // as a duplicate of the new order — delete it (its DB mirror row is then
+  // removed by the draft_orders/delete webhook).
+  let draftDeleted = false;
+  if (!draft.order?.id) {
+    try {
+      const res = await graphql(DRAFT_DELETE, {
+        variables: { input: { id: draft.id } },
+      });
+      const json = await res.json();
+      const errs = json.data?.draftOrderDelete?.userErrors ?? [];
+      if (errs.length > 0) {
+        throw new Error(errs.map((e) => e.message).join(", "));
+      }
+      draftDeleted = Boolean(json.data?.draftOrderDelete?.deletedId);
+    } catch (e) {
+      console.error(`[draft-copy] draftOrderDelete failed for ${draft.id}`, e);
+    }
+  }
+
   return {
     copied: true,
     metafieldsCopied: inputs.length,
     draftId: draft.id,
+    draftDeleted,
   };
 }
