@@ -1877,6 +1877,12 @@ function Extension() {
         variant="primary"
         onClick={async () => {
           try {
+            if (isDraftOrder) {
+              // POS refuses to load a draft order unless the cart is
+              // completely empty (no items, no customer), so clear it first.
+              await shopify.cart.clearCart();
+              await shopify.cart.removeCustomer().catch(() => {});
+            }
             await shopify.navigation.navigate(posCheckoutUri);
           } catch (e) {
             console.error("POS navigation failed:", e);
